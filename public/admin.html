@@ -34,7 +34,10 @@
         <button id="logout">Logout</button>
       </div>
 
-      <label>Device ID</label>
+      <label>User ID</label>
+      <input id="userId" type="text" placeholder="supabase user id" />
+
+      <label>Device ID (fallback)</label>
       <input id="device" type="text" placeholder="loop_device_id" />
 
       <div class="row">
@@ -62,6 +65,7 @@
         const loginPanel = document.getElementById('loginPanel');
         const adminPanel = document.getElementById('adminPanel');
         const deviceEl = document.getElementById('device');
+        const userEl = document.getElementById('userId');
         const emailEl = document.getElementById('email');
         const passwordEl = document.getElementById('password');
 
@@ -100,6 +104,8 @@
             adminPanel.style.display = 'block';
             statusEl.textContent = 'Logged in.';
             try {
+              const userId = data?.session?.user?.id;
+              if (userId && !userEl.value) userEl.value = userId;
               const stored = localStorage.getItem('loop_device_id');
               if (stored && !deviceEl.value) deviceEl.value = stored;
             } catch {}
@@ -131,7 +137,10 @@
         document.getElementById('reset').onclick = async () => {
           statusEl.textContent = 'Resetting...';
           try {
-            const data = await post('/api/admin/reset', { device_id: deviceEl.value });
+            const data = await post('/api/admin/reset', {
+              user_id: userEl.value,
+              device_id: userEl.value ? '' : deviceEl.value
+            });
             statusEl.textContent = `Reset OK: ${JSON.stringify(data)}`;
           } catch (e) {
             statusEl.textContent = e.message;
@@ -152,7 +161,8 @@
           statusEl.textContent = 'Updating...';
           try {
             const data = await post('/api/admin/set-credits', {
-              device_id: deviceEl.value,
+              user_id: userEl.value,
+              device_id: userEl.value ? '' : deviceEl.value,
               free_used: Number(document.getElementById('free_used').value || 0),
               donation_credits: Number(document.getElementById('credits').value || 0)
             });

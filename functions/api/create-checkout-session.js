@@ -7,13 +7,13 @@ const toForm = (data) =>
 
 export async function onRequest({ request, env }) {
   const body = await parseJSON(request);
-  const { device_id, amount } = body;
-  if (!device_id) return json({ error: "device_id required" }, { status: 400 });
+  const { user_id, amount } = body;
+  if (!user_id) return json({ error: "user_id required" }, { status: 400 });
 
   const secret = requireEnv(env, "STRIPE_SECRET_KEY");
   const appUrl = env.APP_URL || "http://localhost:5173";
 
-  const amountInCents = Math.max(100, Number(amount || 500));
+  const amountInCents = Math.max(500, Number(amount || 500));
 
   const payload = {
     mode: "payment",
@@ -23,7 +23,7 @@ export async function onRequest({ request, env }) {
     "line_items[0][price_data][product_data][name]": "Loop credits donation",
     "line_items[0][price_data][unit_amount]": amountInCents,
     "line_items[0][quantity]": 1,
-    "metadata[device_id]": device_id,
+    "metadata[user_id]": user_id,
   };
 
   const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useScroll, useSpring, useTransform } from "framer-motion";
-import heroImage from "./images/hero1.png";
+import { createClient } from "@supabase/supabase-js";
+import heroImage from "./images/hero_6.png";
+import motionMap from "./videos/motionmap.mp4";
 
 const API_BASE = (() => {
   const configured = import.meta.env.VITE_API_BASE || "";
@@ -12,31 +14,31 @@ const API_BASE = (() => {
   return configured;
 })();
 
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
+const supabaseAnon = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+const supabase = supabaseUrl && supabaseAnon ? createClient(supabaseUrl, supabaseAnon) : null;
+
 const steps = [
   {
     number: "01",
-    title: "Pick your spot",
-    body: "Drop a pin. That’s your start and finish.",
-    detail: "Paste lat,lng if you want it precise.",
+    title: "Top up credits",
+    body: "Nothing is free. 3 loops on us, then top up.",
   },
   {
     number: "02",
-    title: "Set the distance",
-    body: "Set distance + vibe so we shape the loop.",
-    detail: "Swap miles or km anytime.",
+    title: "Pick your spot",
+    body: "That’s your start and finish.",
   },
   {
     number: "03",
-    title: "Send it",
-    body: "Open in Google Maps or copy the link.",
-    detail: "One tap on mobile, no drama.",
+    title: "Set the distance",
+    body: "Dial the KM or miles. We shape the loop.",
   },
-];
-
-const routeOptions = [
-  { label: "Loop A", tag: "Fast", hint: "Clean grid" },
-  { label: "Loop B", tag: "Scenic", hint: "Water line" },
-  { label: "Loop C", tag: "Climb", hint: "Heavy legs" },
+  {
+    number: "04",
+    title: "Pick the terrain",
+    body: "Road, climb, or mix — we match the vibe.",
+  },
 ];
 
 function useTheme() {
@@ -58,24 +60,17 @@ export default function App() {
     damping: 25,
   });
 
-  const greeting = useMemo(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Morning";
-    if (hour < 18) return "Afternoon";
-    return "Evening";
-  }, []);
-
   const [loopPoint, setLoopPoint] = useState("SoHo, NYC");
   const [distance, setDistance] = useState(14);
   const [terrain, setTerrain] = useState("mix");
   const [surface, setSurface] = useState("paved");
   const [vibe, setVibe] = useState("Elegant");
-  const [unit, setUnit] = useState<"km" | "mi">("mi");
+  const [unit, setUnit] = useState<"km" | "mi">("km");
   const [activeStep, setActiveStep] = useState(-1);
   const [deviceId, setDeviceId] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [usage, setUsage] = useState<{ free_used: number; donation_credits: number; free_remaining: number } | null>(null);
+  const [usage, setUsage] = useState<{ free_used: number; donation_credits: number; free_remaining: number; credits_remaining: number } | null>(null);
   const [suggestions, setSuggestions] = useState<Array<{ label: string; lat: number; lng: number }>>([]);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -83,6 +78,13 @@ export default function App() {
   const [step1Touched, setStep1Touched] = useState(false);
   const [step2Touched, setStep2Touched] = useState(false);
   const [step3Touched, setStep3Touched] = useState(false);
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
+  const [authMessage, setAuthMessage] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [showCredits, setShowCredits] = useState(false);
+  const [creditAmount, setCreditAmount] = useState("5");
 
   const isMobile = useMemo(
     () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent),
@@ -115,20 +117,47 @@ export default function App() {
     setDeviceId(next);
   }, []);
 
+  useEffect(() => {
+    if (!loopPoint.trim()) {
+      setLoopPoint("SoHo, NYC");
+    }
+  }, [loopPoint]);
+
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.auth.getSession().then(({ data }) => {
+      if (data?.session?.user) {
+        setUser({ id: data.session.user.id, email: data.session.user.email || "" });
+      }
+    });
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser({ id: session.user.id, email: session.user.email || "" });
+      } else {
+        setUser(null);
+      }
+    });
+    return () => {
+      subscription?.subscription?.unsubscribe();
+    };
+  }, []);
+
   const step1Done = step1Touched && loopPoint.trim().length > 3;
   const step2Done = step2Touched;
-  const step3Done = step3Touched || surface !== "" || vibe !== "" || terrain !== "";
+  const step3Done = step3Touched;
   const allDone = step1Done && step2Done && step3Done;
 
   useEffect(() => {
     let active = true;
-    if (!deviceId) return;
+    if (!deviceId && !user?.id) return;
     const fetchUsage = async () => {
       try {
-        const data = await postJSON<{ free_used: number; donation_credits: number; free_remaining: number }>(
-          "/api/usage/check",
-          { device_id: deviceId }
-        );
+        const data = await postJSON<{
+          free_used: number;
+          donation_credits: number;
+          free_remaining: number;
+          credits_remaining: number;
+        }>("/api/usage/check", { device_id: deviceId, user_id: user?.id || "" });
         if (active) setUsage(data);
       } catch {
         if (active) setUsage(null);
@@ -138,7 +167,7 @@ export default function App() {
     return () => {
       active = false;
     };
-  }, [deviceId]);
+  }, [deviceId, user?.id]);
 
   const terrainLabel: Record<string, string> = {
     mix: "Urban mix",
@@ -257,23 +286,22 @@ export default function App() {
   }, [loopPoint, selectedCoords]);
 
   const handleDonate = async () => {
-    if (!deviceId) return;
-    try {
-      const input = window.prompt("Donate amount (USD)", "5");
-      if (!input) return;
-      const amount = Math.max(1, Number.parseFloat(input));
-      if (Number.isNaN(amount)) {
-        setStatusMessage("Enter a valid amount.");
-        return;
-      }
-      const data = await postJSON<{ url: string }>("/api/create-checkout-session", {
-        device_id: deviceId,
-        amount: Math.round(amount * 100),
-      });
-      if (data?.url) window.location.href = data.url;
-    } catch {
-      setStatusMessage("Donation link unavailable right now.");
+    if (!user?.id) {
+      setAuthMessage("Login to add credits.");
+      setShowLogin(true);
+      return;
     }
+    setShowCredits(true);
+  };
+
+  const handleLogin = async () => {
+    setShowLogin(true);
+  };
+
+  const handleLogout = async () => {
+    if (!supabase) return;
+    await supabase.auth.signOut();
+    setAuthMessage("Logged out.");
   };
 
   const handleSaveSetup = async () => {
@@ -281,6 +309,7 @@ export default function App() {
     try {
       await postJSON("/api/save-setup", {
         device_id: deviceId,
+        user_id: user?.id || "",
         loop_point: loopPoint,
         distance,
         unit,
@@ -289,9 +318,9 @@ export default function App() {
         vibe,
       });
       setStatusMessage("Setup saved.");
-      const refreshed = await postJSON<{ free_used: number; donation_credits: number; free_remaining: number }>(
+      const refreshed = await postJSON<{ free_used: number; donation_credits: number; free_remaining: number; credits_remaining: number }>(
         "/api/usage/check",
-        { device_id: deviceId }
+        { device_id: deviceId, user_id: user?.id || "" }
       );
       setUsage(refreshed);
     } catch {
@@ -304,19 +333,22 @@ export default function App() {
     setIsGenerating(true);
     setStatusMessage("");
     try {
-      const usage = await postJSON<{ allowed: boolean; donation_credits: number; free_used: number }>(
-        "/api/usage/consume",
-        { device_id: deviceId }
-      );
+      const usage = await postJSON<{
+        allowed: boolean;
+        donation_credits: number;
+        free_used: number;
+        credits_remaining: number;
+      }>("/api/usage/consume", { device_id: deviceId, user_id: user?.id || "" });
       if (!usage.allowed) {
-        setStatusMessage("Free limit hit. Donate to unlock 10 more loops.");
+        setStatusMessage("Free limit hit. Add credits to keep riding.");
         setIsGenerating(false);
         return;
       }
       setUsage({
         free_used: usage.free_used,
         donation_credits: usage.donation_credits,
-        free_remaining: Math.max(0, 5 - usage.free_used),
+        free_remaining: Math.max(0, 3 - usage.free_used),
+        credits_remaining: usage.credits_remaining || 0,
       });
 
       let origin = selectedCoords || parseLatLng(loopPoint);
@@ -387,16 +419,136 @@ export default function App() {
           <span className="brand-mark" />
           <div>
             <div className="brand-title">GIVE ME THE LOOP</div>
-            <div className="brand-subtitle">Clean loops. No detours.</div>
+            <div className="brand-subtitle">Cheat death on the streets.</div>
           </div>
         </div>
-        <div className="header-actions">
-          <a className="ghost-button" href="#how-it-works">How it works</a>
-          <button className="ghost-button" type="button" onClick={handleDonate}>
+        <button
+          className="menu-toggle"
+          type="button"
+          onClick={() => setMenuOpen((prev) => !prev)}
+          aria-expanded={menuOpen}
+        >
+          Menu
+        </button>
+        <div className={`header-actions ${menuOpen ? "open" : ""}`}>
+          <a className="nav-link" href="#how-it-works">How to set the loop</a>
+          <button className="nav-link" type="button" onClick={handleDonate}>
             Add credits
           </button>
+          {user ? (
+            <button className="nav-link" type="button" onClick={handleLogout}>
+              Logout
+            </button>
+          ) : (
+            <button className="nav-link" type="button" onClick={handleLogin}>
+              Login
+            </button>
+          )}
         </div>
       </header>
+
+      {showLogin && (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <div className="modal-card">
+            <div className="modal-title">Login</div>
+            <div className="modal-subtitle">Get your link. No password.</div>
+            <label className="field">
+              <span>Email</span>
+              <input
+                type="email"
+                value={loginEmail}
+                onChange={(event) => setLoginEmail(event.target.value)}
+                placeholder="you@email.com"
+                autoFocus
+              />
+            </label>
+            <div className="modal-actions">
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={() => setShowLogin(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="primary-button"
+                type="button"
+                onClick={async () => {
+                  if (!supabase) return;
+                  if (!loginEmail) {
+                    setAuthMessage("Add your email.");
+                    return;
+                  }
+                  setAuthMessage("Check your email for the login link.");
+                  await supabase.auth.signInWithOtp({
+                    email: loginEmail,
+                    options: { emailRedirectTo: window.location.origin },
+                  });
+                  setShowLogin(false);
+                  setLoginEmail("");
+                }}
+              >
+                Send link
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCredits && (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <div className="modal-card">
+            <div className="modal-title">Add credits</div>
+            <div className="modal-subtitle">Min $5. $10 = 10 credits.</div>
+            <label className="field">
+              <span>Amount (USD)</span>
+              <input
+                type="number"
+                min="5"
+                step="1"
+                value={creditAmount}
+                onChange={(event) => setCreditAmount(event.target.value)}
+                placeholder="5"
+              />
+            </label>
+            <div className="modal-actions">
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={() => setShowCredits(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="primary-button"
+                type="button"
+                onClick={async () => {
+                  if (!user?.id) return;
+                  const amount = Math.max(5, Number.parseFloat(creditAmount || "0"));
+                  if (Number.isNaN(amount)) {
+                    setStatusMessage("Enter a valid amount.");
+                    return;
+                  }
+                  try {
+                    const data = await postJSON<{ url: string }>("/api/create-checkout-session", {
+                      user_id: user.id,
+                      amount: Math.round(amount * 100),
+                    });
+                    if (data?.url) window.location.href = data.url;
+                  } catch {
+                    setStatusMessage("Donation link unavailable right now.");
+                  } finally {
+                    setShowCredits(false);
+                    setCreditAmount("5");
+                  }
+                }}
+              >
+                Go to checkout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <section className="hero" ref={heroRef}>
         <motion.div
@@ -405,30 +557,31 @@ export default function App() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: "easeOut" }}
         >
-          <div className="hero-eyebrow">{greeting}, BK mode. No fluff.</div>
+          <div className="hero-eyebrow">GIVE ME THE LOOP</div>
           <h1>
-            We build the loop. You just ride.
+            Clean loops.
+            <br />
+            Cheat death on the streets.
           </h1>
           <p>
-            Drop a spot, set the distance, we spin the loop on Google Maps. No drama,
-            no detours. Just clean rides, all gas.
+            Drop a spot, set the distance, get a clean loop back. No fluff.
           </p>
           <div className="hero-actions">
             <a className="primary-button" href="#loop-builder">Build my loop</a>
-            <a className="ghost-button" href="#how-it-works">How it works</a>
+            <a className="ghost-button" href="#how-it-works">How to set the loop</a>
           </div>
           <div className="hero-metadata">
             <div>
-              <div className="metric">3-5</div>
-              <div className="metric-label">Options per request</div>
+              <div className="metric">3</div>
+              <div className="metric-label">Free loops</div>
             </div>
             <div>
-              <div className="metric">60 sec</div>
-              <div className="metric-label">Avg build time</div>
+              <div className="metric">$10</div>
+              <div className="metric-label">= 10 credits</div>
             </div>
             <div>
               <div className="metric">1 tap</div>
-              <div className="metric-label">Open in Maps</div>
+              <div className="metric-label">Grab the route</div>
             </div>
           </div>
         </motion.div>
@@ -445,28 +598,14 @@ export default function App() {
           <motion.div className="glass-card hero-card" style={{ y: parallaxY }}>
             <div className="hero-card-header">
               <div>
-                <div className="hero-card-title">Loop preview</div>
-                <div className="hero-card-subtitle">Harbor District</div>
-              </div>
+            <div className="hero-card-title">Loop preview</div>
+            <div className="hero-card-subtitle">Midnight grid</div>
+          </div>
               <span className="badge"><span className="live-dot" />Live</span>
             </div>
-            <svg viewBox="0 0 360 240" className="loop-svg" aria-hidden>
-              <path
-                d="M36 54 L324 34 L336 206 L24 220 Z"
-                className="map-frame"
-              />
-              <path
-                d="M54 78 L306 60 M60 110 L312 94 M66 142 L318 130 M72 174 L324 164"
-                className="map-grid"
-              />
-              <path
-                d="M88 164 C90 120, 140 92, 196 86 C252 80, 282 114, 272 154 C262 194, 204 200, 164 184 C124 168, 112 140, 132 118"
-                className="loop-path"
-              />
-              <circle cx="88" cy="164" r="8" className="loop-point" />
-              <circle cx="196" cy="86" r="6" className="loop-point secondary" />
-              <circle cx="272" cy="154" r="6" className="loop-point secondary" />
-            </svg>
+            <div className="loop-video">
+              <video src={motionMap} autoPlay muted loop playsInline />
+            </div>
             <div className="hero-card-footer">
               <div className="hero-chip">
                 {distanceLabel} {unit}
@@ -479,7 +618,7 @@ export default function App() {
       </section>
 
       <section className="loop-progress" id="how-it-works">
-        <div className="section-title">How to Set the loop</div>
+        <div className="section-title">How to set up</div>
         <div className="progress-track">
           {steps.map((step, index) => (
             <motion.div
@@ -489,8 +628,10 @@ export default function App() {
               onHoverEnd={() => setActiveStep(-1)}
               transition={{ type: "spring", stiffness: 180, damping: 18 }}
             >
-              <div className="progress-dot" />
-              <div className="progress-number">{step.number}</div>
+              <div className="progress-dot">
+                <span>{step.number}</span>
+              </div>
+              <div className="progress-number">Step {step.number}</div>
               <div className="progress-title">{step.title}</div>
               <div className="progress-body">{step.body}</div>
             </motion.div>
@@ -509,14 +650,15 @@ export default function App() {
           <div className="form-header">
             <div>
               <div className="form-title">Loop builder</div>
-              <div className="form-subtitle">Google Maps ready.</div>
+              <div className="form-subtitle">No fluff. Just loops.</div>
             </div>
             {usage && (
               <div className="loops-left">
-                Loops left: {Math.max(0, usage.free_remaining + usage.donation_credits)}
+                Credits left: {Math.max(0, (usage.credits_remaining || 0) + usage.free_remaining)} · Free: {usage.free_remaining}
               </div>
             )}
           </div>
+          {authMessage && <div className="status-message"><strong>{authMessage}</strong></div>}
 
           <div className="form-section">
             <button className={`step-pill ${step1Done ? "active" : ""}`} type="button">
@@ -555,7 +697,7 @@ export default function App() {
                   ))}
                 </div>
               )}
-              <span className="field-hint">Tip: paste lat,lng for an exact loop anywhere.</span>
+              <span className="field-hint">Paste a full address or city name.</span>
             </label>
           </div>
 
@@ -605,7 +747,7 @@ export default function App() {
               </div>
             </label>
 
-            <button className={`step-pill ${step3Done ? "active" : ""}`} type="button">
+            <button className={`step-pill step-pill-spaced ${step3Done ? "active" : ""}`} type="button">
               Step 3 of 3
             </button>
             <div className="field-row">
@@ -629,7 +771,10 @@ export default function App() {
                 <span>Surface</span>
                 <select
                   value={surface}
-                  onChange={(event) => setSurface(event.target.value)}
+                  onChange={(event) => {
+                    setSurface(event.target.value);
+                    setStep3Touched(true);
+                  }}
                   onFocus={() => setActiveStep(1)}
                 >
                   <option value="paved">Paved</option>
@@ -646,7 +791,10 @@ export default function App() {
                   <button
                     key={option}
                     className={`pill ${vibe === option ? "active" : ""}`}
-                    onClick={() => setVibe(option)}
+                    onClick={() => {
+                      setVibe(option);
+                      setStep3Touched(true);
+                    }}
                     type="button"
                     onFocus={() => setActiveStep(1)}
                   >
@@ -666,13 +814,6 @@ export default function App() {
                 disabled={isGenerating || !allDone}
               >
                 Generate routes
-              </button>
-              <button
-                className="ghost-button"
-                onFocus={() => setActiveStep(2)}
-                onClick={handleSaveSetup}
-              >
-                Save setup
               </button>
             </div>
             {statusMessage && (
@@ -699,6 +840,45 @@ export default function App() {
           </div>
 
         </motion.div>
+      </section>
+
+      <section className="user-panel">
+        <div className="glass-card user-card">
+          <div className="form-title">Account</div>
+          <div className="form-subtitle">Credits + login status</div>
+          <div className="user-row">
+            <div className="user-label">Status</div>
+            <div className="user-value">{user ? "Logged in" : "Guest"}</div>
+          </div>
+          {user?.email && (
+            <div className="user-row">
+              <div className="user-label">Email</div>
+              <div className="user-value">{user.email}</div>
+            </div>
+          )}
+          {usage && (
+            <div className="user-row">
+              <div className="user-label">Credits left</div>
+              <div className="user-value">
+                {Math.max(0, (usage.credits_remaining || 0) + usage.free_remaining)} (Free {usage.free_remaining})
+              </div>
+            </div>
+          )}
+          <div className="user-actions">
+            {!user ? (
+              <button className="primary-button" type="button" onClick={handleLogin}>
+                Login
+              </button>
+            ) : (
+              <button className="ghost-button" type="button" onClick={handleLogout}>
+                Logout
+              </button>
+            )}
+            <button className="ghost-button" type="button" onClick={handleDonate}>
+              Add credits
+            </button>
+          </div>
+        </div>
       </section>
 
       <footer className="site-footer">

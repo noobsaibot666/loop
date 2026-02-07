@@ -49,23 +49,25 @@ export async function onRequest({ request, env }) {
   const event = JSON.parse(raw);
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
-    const device_id = session.metadata?.device_id;
+    const user_id = session.metadata?.user_id;
     const amount = session.amount_total || 0;
+    const creditAdd = Math.max(1, Math.round(amount / 100));
 
-    if (device_id) {
-      const rows = await supabaseRequest(env, `device_usage?device_id=eq.${encodeURIComponent(device_id)}&select=device_id,donation_credits`, {
+    if (user_id && creditAdd > 0) {
+      const rows = await supabaseRequest(env, `user_credits?user_id=eq.${encodeURIComponent(user_id)}&select=user_id,credits`, {
         method: "GET",
       });
-      const currentCredits = rows?.[0]?.donation_credits || 0;
-      await supabaseRequest(env, "device_usage", {
+      const currentCredits = rows?.[0]?.credits || 0;
+      await supabaseRequest(env, "user_credits", {
         method: "POST",
-        headers: { "Prefer": "resolution=merge-duplicates" },
-        body: JSON.stringify({ device_id, donation_credits: currentCredits + 10 }),
+        headers: { Prefer: "resolution=merge-duplicates" },
+        body: JSON.stringify({ user_id, credits: currentCredits + creditAdd }),
       });
       await supabaseRequest(env, "donations", {
         method: "POST",
         body: JSON.stringify({
-          device_id,
+          device_id: "",
+          user_id,
           amount,
           stripe_session_id: session.id,
         }),

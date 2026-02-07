@@ -6,6 +6,14 @@ export async function onRequest({ request, env }) {
 
   const body = await parseJSON(request);
   const device_id = body.device_id;
+  const user_id = body.user_id;
+
+  if (user_id) {
+    await supabaseRequest(env, `user_credits?user_id=eq.${encodeURIComponent(user_id)}`, {
+      method: "DELETE",
+    });
+    return json({ ok: true, user_id });
+  }
 
   if (device_id) {
     await supabaseRequest(env, `device_usage?device_id=eq.${encodeURIComponent(device_id)}`, {
