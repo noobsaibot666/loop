@@ -1,0 +1,247 @@
+import "dotenv/config";
+import express from "express";
+import cors from "cors";
+import Stripe from "stripe";
+import { createClient } from "@supabase/supabase-js";
+
+const app = express();
+const PORT = process.env.PORT || 8787;
+
+const stripeSecret = process.env.STRIPE_SECRET_KEY;
+const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+const stripe = new Stripe(stripeSecret, { apiVersion: "2024-06-20" });
+
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+const ORS_API_KEY = process.env.ORS_API_KEY;
+const APP_URL = process.env.VITE_APP_URL || "http://localhost:5173";
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "").split(",").map((v) => v.trim()).filter(Boolean);
+
+app.use(cors({ origin: true }));
+
+app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async (req, res) => {
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(req.body, req.headers["stripe-signature"], stripeWebhookSecret);
+  } catch (err) {
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object;
+    const device_id = session.metadata?.device_id;
+    const amount = session.amount_total || 0;
+
+    if (device_id) {
+      const { data } = await supabase
+        .from("device_usage")
+        .select("device_id, donation_credits")
+        .eq("device_id", device_id)
+        .maybeSingle();
+
+      const currentCredits = data?.donation_credits || 0;
+      await supabase
+        .from("device_usage")
+        .upsert({ device_id, donation_credits: currentCredits + 10 }, { onConflict: "device_id" });
+
+      await supabase.from("donations").insert({
+        device_id,
+        amount,
+        stripe_session_id: session.id,
+      });
+    }
+  }
+
+  res.json({ received: true });
+});
+
+app.use(express.json());
+
+app.get("/health", (_req, res) => {
+  res.json({ ok: true });
+});
+
+app.post("/api/usage/check", async (req, res) => {
+  const { device_id } = req.body || {};
+  if (!device_id) return res.status(400).json({ error: "device_id required" });
+
+  const { data, error } = await supabase
+    .from("device_usage")
+    .select("device_id, free_used, donation_credits")
+    .eq("device_id", device_id)
+    .maybeSingle();
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  const usage = data || { device_id, free_used: 0, donation_credits: 0 };
+  res.json({
+    ...usage,
+    free_remaining: Math.max(0, 5 - usage.free_used),
+  });
+});
+
+const requireAdmin = async (req, res, next) => {
+  const auth = req.headers.authorization || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token) return res.status(401).json({ error: "unauthorized" });
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error || !data?.user?.email) return res.status(401).json({ error: "unauthorized" });
+  if (ADMIN_EMAILS.length && !ADMIN_EMAILS.includes(data.user.email)) {
+    return res.status(403).json({ error: "forbidden" });
+  }
+  req.adminUser = data.user;
+  return next();
+};
+
+app.post("/api/admin/reset", requireAdmin, async (req, res) => {
+  const { device_id } = req.body || {};
+  if (device_id) {
+    const { error } = await supabase.from("device_usage").delete().eq("device_id", device_id);
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ ok: true, device_id });
+  }
+  const { error } = await supabase.from("device_usage").delete().neq("device_id", "");
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ ok: true, cleared: "all" });
+});
+
+app.post("/api/admin/set-credits", requireAdmin, async (req, res) => {
+  const { device_id, free_used = 0, donation_credits = 0 } = req.body || {};
+  if (!device_id) return res.status(400).json({ error: "device_id required" });
+  const { error } = await supabase
+    .from("device_usage")
+    .upsert({ device_id, free_used, donation_credits }, { onConflict: "device_id" });
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ ok: true, device_id, free_used, donation_credits });
+});
+
+app.post("/api/usage/consume", async (req, res) => {
+  const { device_id } = req.body || {};
+  if (!device_id) return res.status(400).json({ error: "device_id required" });
+
+  const { data, error } = await supabase
+    .from("device_usage")
+    .select("device_id, free_used, donation_credits")
+    .eq("device_id", device_id)
+    .maybeSingle();
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  const usage = data || { device_id, free_used: 0, donation_credits: 0 };
+
+  let allowed = false;
+  let free_used = usage.free_used;
+  let donation_credits = usage.donation_credits;
+
+  if (free_used < 5) {
+    free_used += 1;
+    allowed = true;
+  } else if (donation_credits > 0) {
+    donation_credits -= 1;
+    allowed = true;
+  }
+
+  if (!allowed) {
+    return res.json({ allowed: false, free_used, donation_credits });
+  }
+
+  const { error: upsertError } = await supabase
+    .from("device_usage")
+    .upsert({ device_id, free_used, donation_credits }, { onConflict: "device_id" });
+
+  if (upsertError) return res.status(500).json({ error: upsertError.message });
+
+  res.json({ allowed: true, free_used, donation_credits });
+});
+
+app.post("/api/save-setup", async (req, res) => {
+  const { device_id, loop_point, distance, unit, terrain, surface, vibe } = req.body || {};
+  if (!device_id) return res.status(400).json({ error: "device_id required" });
+
+  const { error } = await supabase.from("saved_setups").insert({
+    device_id,
+    loop_point,
+    distance,
+    unit,
+    terrain,
+    surface,
+    vibe,
+  });
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+
+app.post("/api/create-checkout-session", async (req, res) => {
+  const { device_id, amount } = req.body || {};
+  if (!device_id) return res.status(400).json({ error: "device_id required" });
+
+  const amountInCents = Math.max(100, Number(amount || 500));
+
+  const session = await stripe.checkout.sessions.create({
+    mode: "payment",
+    success_url: `${APP_URL}/?donation=success`,
+    cancel_url: `${APP_URL}/?donation=cancel`,
+    line_items: [
+      {
+        price_data: {
+          currency: "usd",
+          product_data: { name: "Loop credits donation" },
+          unit_amount: amountInCents,
+        },
+        quantity: 1,
+      },
+    ],
+    metadata: { device_id },
+  });
+
+  res.json({ url: session.url });
+});
+
+app.post("/api/geocode", async (req, res) => {
+  const { text } = req.body || {};
+  if (!text) return res.status(400).json({ error: "text required" });
+  if (!ORS_API_KEY) return res.status(500).json({ error: "ORS_API_KEY missing" });
+
+  const url = `https://api.openrouteservice.org/geocode/search?api_key=${ORS_API_KEY}&text=${encodeURIComponent(
+    text
+  )}`;
+  const response = await fetch(url);
+  const data = await response.json();
+  res.json(data);
+});
+
+app.post("/api/loop", async (req, res) => {
+  const { coords, distance_km, seed } = req.body || {};
+  if (!coords || coords.length !== 2) return res.status(400).json({ error: "coords required" });
+  if (!ORS_API_KEY) return res.status(500).json({ error: "ORS_API_KEY missing" });
+
+  const body = {
+    coordinates: [[coords[0], coords[1]]],
+    options: {
+      round_trip: {
+        length: Math.max(1000, distance_km * 1000),
+        points: 3,
+        seed: seed || 1,
+      },
+    },
+  };
+
+  const response = await fetch("https://api.openrouteservice.org/v2/directions/cycling-regular", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: ORS_API_KEY,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const data = await response.json();
+  res.json(data);
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});

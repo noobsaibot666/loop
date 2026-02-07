@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin · GIVE ME THE LOOP</title>
+    <style>
+      body { margin: 0; font-family: Arial, sans-serif; background: #0b0b0b; color: #f2f2f2; padding: 32px; }
+      h1 { margin-top: 0; }
+      label { display: block; margin: 16px 0 6px; font-size: 0.9rem; }
+      input { width: 100%; max-width: 420px; padding: 10px; border-radius: 8px; border: 1px solid #333; background: #151515; color: #f2f2f2; }
+      button { margin-top: 12px; padding: 10px 14px; border-radius: 8px; border: none; background: #f62b0a; color: #ffffff; cursor: pointer; }
+      .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+      .note { color: #9a9a9a; font-size: 0.85rem; margin-top: 6px; }
+      .status { margin-top: 12px; color: #ff9a44; }
+    </style>
+  </head>
+  <body>
+    <h1>Admin</h1>
+    <div class="note">Not linked from the app. Use only for dev resets.</div>
+
+    <div id="loginPanel">
+      <label>Admin login</label>
+      <div class="row">
+        <input id="email" type="email" placeholder="admin@email.com" />
+        <input id="password" type="password" placeholder="password" />
+        <button id="login">Login</button>
+      </div>
+    </div>
+
+    <div id="adminPanel" style="display:none;">
+      <div class="row">
+        <div class="note">Logged in.</div>
+        <button id="logout">Logout</button>
+      </div>
+
+      <label>Device ID</label>
+      <input id="device" type="text" placeholder="loop_device_id" />
+
+      <div class="row">
+        <button id="reset">Reset device usage</button>
+        <button id="clearAll">Clear all usage</button>
+      </div>
+
+      <label>Set credits</label>
+      <div class="row">
+        <input id="free_used" type="number" placeholder="free_used" style="max-width: 120px;" />
+        <input id="credits" type="number" placeholder="donation_credits" style="max-width: 160px;" />
+        <button id="setCredits">Set credits</button>
+      </div>
+    </div>
+
+    <div class="status" id="status"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+      (() => {
+        const apiBase = 'http://localhost:8787';
+        const statusEl = document.getElementById('status');
+        const loginPanel = document.getElementById('loginPanel');
+        const adminPanel = document.getElementById('adminPanel');
+        const deviceEl = document.getElementById('device');
+        const emailEl = document.getElementById('email');
+        const passwordEl = document.getElementById('password');
+
+        const sb = window.__adminSupabase || window.supabase.createClient(
+          'https://gcqphvljyctpkfkpcsbj.supabase.co',
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdjcXBodmxqeWN0cGtma3Bjc2JqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0Njc4MDUsImV4cCI6MjA4NjA0MzgwNX0.af4A7fu7pGg8jovMM5YgBDobfgJmyZRKwdwQpcsde_8'
+        );
+        window.__adminSupabase = sb;
+
+        let accessToken = null;
+
+        const post = async (path, body) => {
+          if (!accessToken) throw new Error('Login required');
+          const res = await fetch(`${apiBase}${path}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`
+            },
+            body: JSON.stringify(body)
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Request failed');
+          return data;
+        };
+
+        const refreshSession = async () => {
+          const { data, error } = await sb.auth.getSession();
+          if (error) {
+            statusEl.textContent = error.message;
+            return;
+          }
+          accessToken = data?.session?.access_token || null;
+          if (accessToken) {
+            loginPanel.style.display = 'none';
+            adminPanel.style.display = 'block';
+            statusEl.textContent = 'Logged in.';
+            try {
+              const stored = localStorage.getItem('loop_device_id');
+              if (stored && !deviceEl.value) deviceEl.value = stored;
+            } catch {}
+          } else {
+            loginPanel.style.display = 'block';
+            adminPanel.style.display = 'none';
+            statusEl.textContent = 'Logged out.';
+          }
+        };
+
+        document.getElementById('login').onclick = async () => {
+          statusEl.textContent = 'Logging in...';
+          const { error } = await sb.auth.signInWithPassword({
+            email: emailEl.value,
+            password: passwordEl.value
+          });
+          if (error) {
+            statusEl.textContent = `Login failed: ${error.message}`;
+            return;
+          }
+          await refreshSession();
+        };
+
+        document.getElementById('logout').onclick = async () => {
+          await sb.auth.signOut();
+          await refreshSession();
+        };
+
+        document.getElementById('reset').onclick = async () => {
+          statusEl.textContent = 'Resetting...';
+          try {
+            const data = await post('/api/admin/reset', { device_id: deviceEl.value });
+            statusEl.textContent = `Reset OK: ${JSON.stringify(data)}`;
+          } catch (e) {
+            statusEl.textContent = e.message;
+          }
+        };
+
+        document.getElementById('clearAll').onclick = async () => {
+          statusEl.textContent = 'Clearing all...';
+          try {
+            const data = await post('/api/admin/reset', {});
+            statusEl.textContent = `Clear OK: ${JSON.stringify(data)}`;
+          } catch (e) {
+            statusEl.textContent = e.message;
+          }
+        };
+
+        document.getElementById('setCredits').onclick = async () => {
+          statusEl.textContent = 'Updating...';
+          try {
+            const data = await post('/api/admin/set-credits', {
+              device_id: deviceEl.value,
+              free_used: Number(document.getElementById('free_used').value || 0),
+              donation_credits: Number(document.getElementById('credits').value || 0)
+            });
+            statusEl.textContent = `Updated: ${JSON.stringify(data)}`;
+          } catch (e) {
+            statusEl.textContent = e.message;
+          }
+        };
+
+        refreshSession();
+      })();
+    </script>
+  </body>
+</html>
