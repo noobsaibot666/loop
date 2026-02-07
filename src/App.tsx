@@ -2,7 +2,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useScroll, useSpring, useTransform } from "framer-motion";
 import heroImage from "./images/hero1.png";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8787";
+const API_BASE = (() => {
+  const configured = import.meta.env.VITE_API_BASE || "";
+  if (typeof window !== "undefined") {
+    const isLocal = window.location.hostname === "localhost";
+    if (!isLocal && configured.includes("localhost")) return window.location.origin;
+    return configured || window.location.origin;
+  }
+  return configured;
+})();
 
 const steps = [
   {
@@ -87,10 +95,13 @@ export default function App() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : null;
     if (!response.ok) {
-      throw new Error(`Request failed: ${response.status}`);
+      const message = data?.error || data?.message || `Request failed: ${response.status}`;
+      throw new Error(message);
     }
-    return response.json();
+    return data;
   };
 
   useEffect(() => {
@@ -332,7 +343,7 @@ export default function App() {
       params.set("travelmode", "bicycling");
 
       if (coords.length > 6) {
-        const pick = (ratio) => coords[Math.floor(coords.length * ratio)];
+        const pick = (ratio: number) => coords[Math.floor(coords.length * ratio)];
         const p1 = pick(0.25);
         const p2 = pick(0.5);
         const p3 = pick(0.75);
@@ -356,9 +367,9 @@ export default function App() {
 
       setLastRouteUrl(url);
       setStatusMessage("Grap your Route and Go to Cheat Death in the Streets.");
-      window.open(url, "_blank");
-    } catch {
-      setStatusMessage("Couldn’t build a loop. Try a different spot.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Couldn’t build a loop. Try a different spot.";
+      setStatusMessage(message);
     } finally {
       setIsGenerating(false);
     }

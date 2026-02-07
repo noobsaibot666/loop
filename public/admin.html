@@ -55,7 +55,9 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
       (() => {
-        const apiBase = 'http://localhost:8787';
+        const apiBase = window.location.hostname === 'localhost'
+          ? 'http://localhost:8787'
+          : window.location.origin;
         const statusEl = document.getElementById('status');
         const loginPanel = document.getElementById('loginPanel');
         const adminPanel = document.getElementById('adminPanel');

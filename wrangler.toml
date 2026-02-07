@@ -1,0 +1,7 @@
+name = "gimme-the-loop"
+compatibility_date = "2024-12-01"
+pages_build_output_dir = "dist"
+
+[vars]
+SUPABASE_URL = "https://gcqphvljyctpkfkpcsbj.supabase.co"
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdjcXBodmxqeWN0cGtma3Bjc2JqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0Njc4MDUsImV4cCI6MjA4NjA0MzgwNX0.af4A7fu7pGg8jovMM5YgBDobfgJmyZRKwdwQpcsde_8"
