@@ -9,7 +9,7 @@ export async function onRequest({ request, env }) {
   const body = await parseJSON(request);
   const { amount } = body;
   const authUser = await getAuthUser(env, request);
-  if (!authUser?.id) return json({ error: "auth required" }, { status: 401 });
+  if (!authUser?.id) return json({ error: "login required" }, { status: 401 });
   const user_id = authUser.id;
 
   const secret = requireEnv(env, "STRIPE_SECRET_KEY");

@@ -4,7 +4,7 @@ export async function onRequest({ request, env }) {
   const body = await parseJSON(request);
   const authUser = await getAuthUser(env, request);
   const user_id = authUser?.id || "";
-  if (!user_id) return json({ error: "auth required" }, { status: 401 });
+  if (!user_id) return json({ error: "login required" }, { status: 401 });
 
   if (user_id) {
     const creditRows = await supabaseRequest(

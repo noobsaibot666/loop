@@ -292,7 +292,7 @@ export default function App() {
 
   const handleDonate = async () => {
     if (!user?.id) {
-      setAuthMessage("Login to add credits.");
+      setAuthMessage("Yo, log in to add credits. We keep it fair — no data games.");
       setShowLogin(true);
       return;
     }
@@ -335,7 +335,7 @@ export default function App() {
 
   const handleGenerateRoutes = async () => {
     if (!user?.id) {
-      setAuthMessage("Yo — log in so we can keep it fair. We don’t collect data, just track free loops.");
+      setAuthMessage("Yo, log in so we can keep it fair. No data games — just counting loops.");
       setShowLogin(true);
       return;
     }
@@ -349,7 +349,7 @@ export default function App() {
         credits_remaining: number;
       }>("/api/usage/consume", { device_id: deviceId, user_id: user?.id || "" });
       if (!usage.allowed) {
-        setStatusMessage("Free limit hit. Add credits to keep riding.");
+        setStatusMessage("Free runs done. Add credits to keep it moving.");
         setIsGenerating(false);
         return;
       }
