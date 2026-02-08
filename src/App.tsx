@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useScroll, useSpring, useTransform } from "framer-motion";
 import { createClient } from "@supabase/supabase-js";
-import heroImage from "./images/hero_6.png";
+import heroImage from "./images/hero_4.png";
 import motionMap from "./videos/motionmap.mp4";
 
 const API_BASE = (() => {
@@ -431,7 +431,7 @@ export default function App() {
           Menu
         </button>
         <div className={`header-actions ${menuOpen ? "open" : ""}`}>
-          <a className="nav-link" href="#how-it-works">How to set the loop</a>
+          <a className="nav-link hide-mobile" href="#how-it-works">How to set the loop</a>
           <button className="nav-link" type="button" onClick={handleDonate}>
             Add credits
           </button>
@@ -499,7 +499,7 @@ export default function App() {
         <div className="modal-overlay" role="dialog" aria-modal="true">
           <div className="modal-card">
             <div className="modal-title">Add credits</div>
-            <div className="modal-subtitle">Min $5. $10 = 10 credits.</div>
+            <div className="modal-subtitle">Min $5. $5 = 10 credits.</div>
             <label className="field">
               <span>Amount (USD)</span>
               <input
@@ -559,8 +559,6 @@ export default function App() {
         >
           <div className="hero-eyebrow">GIVE ME THE LOOP</div>
           <h1>
-            Clean loops.
-            <br />
             Cheat death on the streets.
           </h1>
           <p>
@@ -568,7 +566,6 @@ export default function App() {
           </p>
           <div className="hero-actions">
             <a className="primary-button" href="#loop-builder">Build my loop</a>
-            <a className="ghost-button" href="#how-it-works">How to set the loop</a>
           </div>
           <div className="hero-metadata">
             <div>
@@ -576,7 +573,7 @@ export default function App() {
               <div className="metric-label">Free loops</div>
             </div>
             <div>
-              <div className="metric">$10</div>
+              <div className="metric">$5</div>
               <div className="metric-label">= 10 credits</div>
             </div>
             <div>
@@ -640,12 +637,13 @@ export default function App() {
       </section>
 
       <section className="builder-section" id="loop-builder">
+        <div className="section-title">Build the Loop</div>
         <motion.div
           className="glass-card form-card"
-          initial={{ opacity: 0, y: 18 }}
+          initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.6 }}
-          transition={{ duration: 0.7 }}
+          viewport={{ once: true, amount: 0.15 }}
+          transition={{ duration: 0.35 }}
         >
           <div className="form-header">
             <div>
@@ -654,7 +652,7 @@ export default function App() {
             </div>
             {usage && (
               <div className="loops-left">
-                Credits left: {Math.max(0, (usage.credits_remaining || 0) + usage.free_remaining)} · Free: {usage.free_remaining}
+                Credits {Math.max(0, (usage.credits_remaining || 0) + usage.free_remaining)} · Free {usage.free_remaining}
               </div>
             )}
           </div>

@@ -21,7 +21,7 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "").split(",").map((v) => v.tr
 const FREE_LIMIT = 3;
 
 const creditsFromAmount = (amountInCents = 0) => {
-  const credits = Math.round(Number(amountInCents || 0) / 100);
+  const credits = Math.floor(Number(amountInCents || 0) / 50);
   return Math.max(1, credits);
 };
 

@@ -51,7 +51,7 @@ export async function onRequest({ request, env }) {
     const session = event.data.object;
     const user_id = session.metadata?.user_id;
     const amount = session.amount_total || 0;
-    const creditAdd = Math.max(1, Math.round(amount / 100));
+    const creditAdd = Math.max(1, Math.floor(amount / 50));
 
     if (user_id && creditAdd > 0) {
       const rows = await supabaseRequest(env, `user_credits?user_id=eq.${encodeURIComponent(user_id)}&select=user_id,credits`, {
