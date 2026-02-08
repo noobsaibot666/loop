@@ -63,7 +63,7 @@ export default function App() {
   const bgScale = useTransform(scrollYProgress, [0, 1], [1, 0.82]);
   const bgShiftPx = useMotionTemplate`${bgShift}px`;
 
-  const [loopPoint, setLoopPoint] = useState("SoHo, NYC");
+  const [loopPoint, setLoopPoint] = useState("");
   const [distance, setDistance] = useState(14);
   const [terrain, setTerrain] = useState("mix");
   const [surface, setSurface] = useState("paved");
@@ -428,7 +428,7 @@ export default function App() {
         <div className="brand">
           <span className="brand-mark" />
           <div>
-            <div className="brand-title">GIVE ME THE LOOP</div>
+            <div className="brand-title">Gimme The Loop</div>
             <div className="brand-subtitle">Cheat death on the streets.</div>
           </div>
         </div>
@@ -567,7 +567,7 @@ export default function App() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: "easeOut" }}
         >
-          <div className="hero-eyebrow">GIVE ME THE LOOP</div>
+          <div className="hero-eyebrow">Gimme The Loop</div>
           <h1>
             Cheat death on the streets.
           </h1>
@@ -891,7 +891,7 @@ export default function App() {
 
       <footer className="site-footer">
         <div>
-          <div className="footer-title">GIVE ME THE LOOP</div>
+          <div className="footer-title">Gimme The Loop</div>
           <div className="footer-subtitle">Built for riders who love the return.</div>
         </div>
         <div className="footer-links">

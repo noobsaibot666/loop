@@ -1371,9 +1371,9 @@ p {
   }
 
   .site-header {
-    flex-direction: row;
-    align-items: center;
-    gap: 12px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
   }
 
   .menu-toggle {
@@ -1384,10 +1384,10 @@ p {
     display: flex;
     flex-wrap: nowrap;
     width: 100%;
-    gap: 16px;
+    gap: 12px;
     flex-direction: row;
-    justify-content: flex-end;
-    margin-left: auto;
+    justify-content: flex-start;
+    margin-left: 0;
   }
 
   .header-actions.open {
@@ -1401,8 +1401,8 @@ p {
 
   .hero {
     min-height: auto;
-    padding: 32px 20px 40px;
-    gap: 20px;
+    padding: 18px 20px 32px;
+    gap: 14px;
   }
 
   .hero-visual {
@@ -1506,6 +1506,28 @@ p {
     aspect-ratio: 1 / 1;
     justify-content: center;
     padding: 16px;
+    gap: 4px;
+    align-items: center;
+    text-align: center;
+  }
+
+  .progress-number {
+    width: 100%;
+    text-align: center;
+  }
+
+  .progress-title,
+  .progress-body {
+    width: 100%;
+  }
+
+  .progress-title {
+    font-size: 0.9rem;
+  }
+
+  .progress-body {
+    font-size: 0.78rem;
+    line-height: 1.35;
   }
 
   .hide-mobile {
@@ -1513,19 +1535,19 @@ p {
   }
 
   .form-section {
-    gap: 18px;
-    padding: 16px;
-    border-radius: 18px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(255, 255, 255, 0.02);
+    gap: 16px;
+    padding: 0;
+    border-radius: 0;
+    border: none;
+    background: transparent;
   }
 
   .form-section + .form-section {
-    margin-top: 10px;
+    margin-top: 6px;
   }
 
   .step-pill {
-    align-self: flex-start;
+    align-self: flex-end;
   }
 
   .field-row {
@@ -1561,6 +1583,10 @@ p {
   }
 
   .user-card .user-row:nth-of-type(2) {
+    display: none;
+  }
+
+  .brand-mark {
     display: none;
   }
 }
