@@ -55,6 +55,14 @@ const supabaseAuthUser = async (env, token) => {
 
 const getAdminEmails = (env) => (env.ADMIN_EMAILS || "").split(",").map((v) => v.trim()).filter(Boolean);
 
+const getAuthUser = async (env, request) => {
+  const auth = request.headers.get("authorization") || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token) return null;
+  const user = await supabaseAuthUser(env, token);
+  return user || null;
+};
+
 const requireAdmin = async (env, request) => {
   const auth = request.headers.get("authorization") || "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
@@ -80,6 +88,7 @@ export {
   requireEnv,
   supabaseRequest,
   supabaseAuthUser,
+  getAuthUser,
   requireAdmin,
   parseJSON,
 };

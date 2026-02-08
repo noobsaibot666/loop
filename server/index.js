@@ -25,6 +25,15 @@ const creditsFromAmount = (amountInCents = 0) => {
   return Math.max(1, credits);
 };
 
+const getAuthUser = async (req) => {
+  const auth = req.headers.authorization || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token) return null;
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error) return null;
+  return data?.user || null;
+};
+
 app.use(cors({ origin: true }));
 
 app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async (req, res) => {
@@ -71,7 +80,9 @@ app.get("/health", (_req, res) => {
 });
 
 app.post("/api/usage/check", async (req, res) => {
-  const { device_id, user_id } = req.body || {};
+  const { device_id } = req.body || {};
+  const authUser = await getAuthUser(req);
+  const user_id = authUser?.id || "";
   if (!device_id && !user_id) return res.status(400).json({ error: "device_id or user_id required" });
 
   if (user_id) {
@@ -157,7 +168,9 @@ app.post("/api/admin/set-credits", requireAdmin, async (req, res) => {
 });
 
 app.post("/api/usage/consume", async (req, res) => {
-  const { device_id, user_id } = req.body || {};
+  const { device_id } = req.body || {};
+  const authUser = await getAuthUser(req);
+  const user_id = authUser?.id || "";
   if (!device_id && !user_id) return res.status(400).json({ error: "device_id or user_id required" });
 
   if (user_id) {
@@ -237,7 +250,9 @@ app.post("/api/usage/consume", async (req, res) => {
 });
 
 app.post("/api/save-setup", async (req, res) => {
-  const { device_id, user_id, loop_point, distance, unit, terrain, surface, vibe } = req.body || {};
+  const { device_id, loop_point, distance, unit, terrain, surface, vibe } = req.body || {};
+  const authUser = await getAuthUser(req);
+  const user_id = authUser?.id || null;
   if (!device_id) return res.status(400).json({ error: "device_id required" });
 
   const { error } = await supabase.from("saved_setups").insert({
@@ -256,8 +271,10 @@ app.post("/api/save-setup", async (req, res) => {
 });
 
 app.post("/api/create-checkout-session", async (req, res) => {
-  const { user_id, amount } = req.body || {};
-  if (!user_id) return res.status(400).json({ error: "user_id required" });
+  const { amount } = req.body || {};
+  const authUser = await getAuthUser(req);
+  const user_id = authUser?.id || "";
+  if (!user_id) return res.status(401).json({ error: "auth required" });
 
   const amountInCents = Math.max(500, Number(amount || 500));
 

@@ -1,4 +1,4 @@
-import { json, parseJSON, requireEnv } from "../_utils.js";
+import { json, parseJSON, requireEnv, getAuthUser } from "../_utils.js";
 
 const toForm = (data) =>
   Object.entries(data)
@@ -7,8 +7,10 @@ const toForm = (data) =>
 
 export async function onRequest({ request, env }) {
   const body = await parseJSON(request);
-  const { user_id, amount } = body;
-  if (!user_id) return json({ error: "user_id required" }, { status: 400 });
+  const { amount } = body;
+  const authUser = await getAuthUser(env, request);
+  if (!authUser?.id) return json({ error: "auth required" }, { status: 401 });
+  const user_id = authUser.id;
 
   const secret = requireEnv(env, "STRIPE_SECRET_KEY");
   const appUrl = env.APP_URL || "http://localhost:5173";

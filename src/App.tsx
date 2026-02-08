@@ -82,6 +82,7 @@ export default function App() {
   const [step2Touched, setStep2Touched] = useState(false);
   const [step3Touched, setStep3Touched] = useState(false);
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
+  const [accessToken, setAccessToken] = useState("");
   const [authMessage, setAuthMessage] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
@@ -97,7 +98,10 @@ export default function App() {
   const postJSON = async <T,>(path: string, body: Record<string, unknown>): Promise<T> => {
     const response = await fetch(`${API_BASE}${path}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
       body: JSON.stringify(body),
     });
     const text = await response.text();
@@ -126,13 +130,16 @@ export default function App() {
     supabase.auth.getSession().then(({ data }) => {
       if (data?.session?.user) {
         setUser({ id: data.session.user.id, email: data.session.user.email || "" });
+        setAccessToken(data.session.access_token);
       }
     });
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser({ id: session.user.id, email: session.user.email || "" });
+        setAccessToken(session.access_token);
       } else {
         setUser(null);
+        setAccessToken("");
       }
     });
     return () => {
@@ -147,7 +154,7 @@ export default function App() {
 
   useEffect(() => {
     let active = true;
-    if (!deviceId && !user?.id) return;
+    if (!user?.id) return;
     const fetchUsage = async () => {
       try {
         const data = await postJSON<{
@@ -327,7 +334,11 @@ export default function App() {
   };
 
   const handleGenerateRoutes = async () => {
-    if (!deviceId) return;
+    if (!user?.id) {
+      setAuthMessage("Yo — log in so we can keep it fair. We don’t collect data, just track free loops.");
+      setShowLogin(true);
+      return;
+    }
     setIsGenerating(true);
     setStatusMessage("");
     try {
@@ -498,7 +509,7 @@ export default function App() {
         <div className="modal-overlay" role="dialog" aria-modal="true">
           <div className="modal-card">
             <div className="modal-title">Add credits</div>
-            <div className="modal-subtitle">Min $5. $5 = 10 credits.</div>
+            <div className="modal-subtitle">Min $5. $5 = 10 credits. We don’t collect data — just track free loops.</div>
             <label className="field">
               <span>Amount (USD)</span>
               <input
