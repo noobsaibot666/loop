@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { motion, useScroll, useSpring, useTransform } from "framer-motion";
+import { motion, useScroll, useSpring, useTransform, useMotionTemplate } from "framer-motion";
 import { createClient } from "@supabase/supabase-js";
 import heroImage from "./images/hero_4.png";
 import motionMap from "./videos/motionmap.mp4";
@@ -50,7 +50,7 @@ function useTheme() {
 export default function App() {
   useTheme();
   const heroRef = useRef<HTMLDivElement | null>(null);
-  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start end", "end start"] });
+  const { scrollYProgress } = useScroll();
   const parallaxY = useSpring(useTransform(scrollYProgress, [0, 1], [30, -30]), {
     stiffness: 120,
     damping: 25,
@@ -59,6 +59,9 @@ export default function App() {
     stiffness: 120,
     damping: 25,
   });
+  const bgShift = useTransform(scrollYProgress, [0, 1], [420, 260]);
+  const bgScale = useTransform(scrollYProgress, [0, 1], [1, 0.82]);
+  const bgShiftPx = useMotionTemplate`${bgShift}px`;
 
   const [loopPoint, setLoopPoint] = useState("SoHo, NYC");
   const [distance, setDistance] = useState(14);
@@ -117,11 +120,6 @@ export default function App() {
     setDeviceId(next);
   }, []);
 
-  useEffect(() => {
-    if (!loopPoint.trim()) {
-      setLoopPoint("SoHo, NYC");
-    }
-  }, [loopPoint]);
 
   useEffect(() => {
     if (!supabase) return;
@@ -413,6 +411,7 @@ export default function App() {
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8, ease: "easeOut" }}
+      style={{ "--bg-shift": bgShiftPx, "--bg-scale": bgScale } as React.CSSProperties}
     >
       <header className="site-header">
         <div className="brand">
