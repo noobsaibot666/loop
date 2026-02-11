@@ -217,6 +217,15 @@ select {
   box-shadow: none;
 }
 
+.generate-routes-button:disabled {
+  background: #f62b0a;
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: var(--shadow);
+  cursor: not-allowed;
+  opacity: 1;
+}
+
 .primary-button:hover {
   transform: translateY(-1px);
 }
@@ -238,11 +247,11 @@ select {
   grid-template-columns: 1.1fr 0.9fr;
   gap: 32px;
   align-items: center;
-  min-height: 54vh;
+  min-height: 68vh;
   position: relative;
   border-radius: 36px;
   overflow: hidden;
-  padding: 24px 72px;
+  padding: 8px 72px 20px;
   background: transparent;
   box-shadow: none;
   z-index: 1;
@@ -269,7 +278,7 @@ select {
   z-index: 2;
   max-width: 560px;
   color: #f7f7f7;
-  margin-top: 86px;
+  margin-top: 176px;
 }
 
 .hero-copy h1,
@@ -440,7 +449,7 @@ p {
     aspect-ratio: 16 / 9;
   }
   .hero-visual {
-    min-height: 520px;
+    min-height: 680px;
   }
 }
 
@@ -449,7 +458,7 @@ p {
   height: 100%;
   display: block;
   object-fit: cover;
-  object-position: center;
+  object-position: center 98%;
   transform: none;
   filter: saturate(0.9) contrast(1.08) brightness(0.85);
   transition: transform 0.35s ease;
@@ -834,6 +843,10 @@ p {
   color: #ffffff;
 }
 
+.loops-left-line {
+  display: inline;
+}
+
 .form-title {
   font-weight: 600;
   font-size: 1.2rem;
@@ -851,6 +864,10 @@ p {
   flex-direction: column;
   gap: 14px;
   padding-top: 6px;
+}
+
+.first-form-section {
+  margin-top: 22px;
 }
 
 .form-section .step-pill + .field-row {
@@ -917,6 +934,7 @@ p {
   flex-direction: column;
   gap: 10px;
   font-size: 0.9rem;
+  --field-control-height: 44px;
 }
 
 .unit-toggle {
@@ -959,9 +977,10 @@ p {
   border-radius: 14px;
   border: 1px solid var(--border);
   background: var(--bg-elev);
-  padding: 10px 12px;
+  padding: 0 14px;
   color: var(--text);
-  min-height: 40px;
+  min-height: var(--field-control-height);
+  height: var(--field-control-height);
   font-size: 0.85rem;
   line-height: 1.2;
 }
@@ -1008,6 +1027,14 @@ p {
   gap: 16px;
 }
 
+.terrain-row {
+  margin-top: 18px;
+}
+
+.vibe-field {
+  margin-top: 18px;
+}
+
 .pill-group {
   display: flex;
   flex-wrap: wrap;
@@ -1017,13 +1044,19 @@ p {
 .pill {
   border-radius: 14px;
   border: 1px solid var(--border);
-  padding: 8px 12px;
+  padding: 0 14px;
+  min-height: var(--field-control-height);
+  height: var(--field-control-height);
   background: transparent;
   cursor: pointer;
   color: var(--text);
   font-size: 0.75rem;
+  line-height: 1;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .pill.active {
@@ -1212,7 +1245,7 @@ p {
 }
 
 .user-card {
-  max-width: 520px;
+  max-width: 760px;
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -1242,6 +1275,7 @@ p {
   gap: 10px;
   flex-wrap: wrap;
   margin-top: 8px;
+  justify-content: center;
 }
 
 .modal-overlay {
@@ -1367,13 +1401,14 @@ p {
 @media (max-width: 720px) {
   .page {
     gap: 48px;
-    padding: 16px 20px 24px;
+    padding: 8px 20px 24px;
   }
 
   .site-header {
-    flex-direction: column;
+    flex-direction: row;
     align-items: flex-start;
-    gap: 10px;
+    justify-content: space-between;
+    gap: 14px;
   }
 
   .menu-toggle {
@@ -1383,11 +1418,13 @@ p {
   .header-actions {
     display: flex;
     flex-wrap: nowrap;
-    width: 100%;
+    width: auto;
     gap: 12px;
-    flex-direction: row;
+    flex-direction: column;
     justify-content: flex-start;
-    margin-left: 0;
+    align-items: flex-end;
+    margin-left: auto;
+    margin-top: 0;
   }
 
   .header-actions.open {
@@ -1401,8 +1438,12 @@ p {
 
   .hero {
     min-height: auto;
-    padding: 18px 20px 32px;
-    gap: 14px;
+    padding: 10px 20px 32px;
+    gap: 50px;
+  }
+
+  .hero-copy {
+    margin-top: 0;
   }
 
   .hero-visual {
@@ -1485,6 +1526,20 @@ p {
 
   .form-card {
     padding: 22px;
+  }
+
+  .loops-left {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    white-space: normal;
+    line-height: 1.3;
+    border-radius: 14px;
+  }
+
+  .loops-left-line {
+    display: block;
   }
 
   .form-actions.split {

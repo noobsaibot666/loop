@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useScroll, useSpring, useTransform, useMotionTemplate } from "framer-motion";
 import { createClient } from "@supabase/supabase-js";
-import heroImage from "./images/hero_4.png";
-import motionMap from "./videos/motionmap.mp4";
+import heroImage from "./images/hero_6.png";
 
 const API_BASE = (() => {
   const configured = import.meta.env.VITE_API_BASE || "";
@@ -173,18 +172,6 @@ export default function App() {
       active = false;
     };
   }, [deviceId, user?.id]);
-
-  const terrainLabel: Record<string, string> = {
-    mix: "Urban mix",
-    road: "Road fast",
-    climb: "Climb",
-    coast: "Coastal",
-  };
-  const surfaceLabel: Record<string, string> = {
-    paved: "Paved",
-    mixed: "Mixed",
-    gravel: "Gravel",
-  };
 
   const parseLatLng = (value: string) => {
     const match = value.match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
@@ -441,7 +428,6 @@ export default function App() {
           Menu
         </button>
         <div className={`header-actions ${menuOpen ? "open" : ""}`}>
-          <a className="nav-link hide-mobile" href="#how-it-works">How to set the loop</a>
           <button className="nav-link" type="button" onClick={handleDonate}>
             Add credits
           </button>
@@ -567,7 +553,7 @@ export default function App() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: "easeOut" }}
         >
-          <div className="hero-eyebrow">Gimme The Loop</div>
+          
           <h1>
             Cheat death on the streets.
           </h1>
@@ -601,25 +587,6 @@ export default function App() {
         >
           <motion.div className="hero-image" style={{ y: parallaxY, x: parallaxX }}>
             <img src={heroImage} alt="Cyclist moving through a city loop" />
-          </motion.div>
-          <motion.div className="glass-card hero-card" style={{ y: parallaxY }}>
-            <div className="hero-card-header">
-              <div>
-            <div className="hero-card-title">Loop preview</div>
-            <div className="hero-card-subtitle">Midnight grid</div>
-          </div>
-              <span className="badge"><span className="live-dot" />Live</span>
-            </div>
-            <div className="loop-video">
-              <video src={motionMap} autoPlay muted loop playsInline />
-            </div>
-            <div className="hero-card-footer">
-              <div className="hero-chip">
-                {distanceLabel} {unit}
-              </div>
-              <div className="hero-chip">+280 m</div>
-              <div className="hero-chip">{terrainLabel[terrain]}</div>
-            </div>
           </motion.div>
         </motion.div>
       </section>
@@ -662,16 +629,16 @@ export default function App() {
             </div>
             {usage && (
               <div className="loops-left">
-                Credits {Math.max(0, (usage.credits_remaining || 0) + usage.free_remaining)} · Free {usage.free_remaining}
+                <span className="loops-left-line">
+                  Credits {Math.max(0, (usage.credits_remaining || 0) + usage.free_remaining)}
+                </span>
+                <span className="loops-left-line">Free {usage.free_remaining}</span>
               </div>
             )}
           </div>
           {authMessage && <div className="status-message"><strong>{authMessage}</strong></div>}
 
-          <div className="form-section">
-            <button className={`step-pill ${step1Done ? "active" : ""}`} type="button">
-              Step 1 of 3
-            </button>
+          <div className="form-section first-form-section">
             <label className="field">
               <span>Loop point</span>
               <input
@@ -710,9 +677,6 @@ export default function App() {
           </div>
 
           <div className="form-section">
-            <button className={`step-pill ${step2Done ? "active" : ""}`} type="button">
-              Step 2 of 3
-            </button>
             <label className="field">
               <span>Distance</span>
               <div className="unit-toggle">
@@ -755,10 +719,7 @@ export default function App() {
               </div>
             </label>
 
-            <button className={`step-pill step-pill-spaced ${step3Done ? "active" : ""}`} type="button">
-              Step 3 of 3
-            </button>
-            <div className="field-row">
+            <div className="field-row terrain-row">
               <label className="field">
                 <span>Terrain</span>
                 <select
@@ -792,7 +753,7 @@ export default function App() {
               </label>
             </div>
 
-            <label className="field">
+            <label className="field vibe-field">
               <span>Ride vibe</span>
               <div className="pill-group">
                 {["Elegant", "Energy", "Scenic", "Climb"].map((option) => (
@@ -816,7 +777,7 @@ export default function App() {
           <div className="form-section">
             <div className="form-actions split">
               <button
-                className={`primary-button ${allDone ? "ready" : ""}`}
+                className={`primary-button generate-routes-button ${allDone ? "ready" : ""}`}
                 onFocus={() => setActiveStep(2)}
                 onClick={handleGenerateRoutes}
                 disabled={isGenerating || !allDone}
