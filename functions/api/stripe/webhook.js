@@ -47,13 +47,49 @@ export async function onRequest({ request, env }) {
   }
 
   const event = JSON.parse(raw);
+
+  // Idempotency by Stripe event id (requires stripe_events table).
+  // If the table does not exist yet, we continue with session-level fallback checks.
+  if (event?.id) {
+    try {
+      const seen = await supabaseRequest(
+        env,
+        `stripe_events?event_id=eq.${encodeURIComponent(event.id)}&select=event_id`,
+        { method: "GET" }
+      );
+      if (Array.isArray(seen) && seen.length > 0) {
+        return json({ received: true, duplicate: true });
+      }
+      await supabaseRequest(env, "stripe_events", {
+        method: "POST",
+        body: JSON.stringify({
+          event_id: event.id,
+          event_type: event.type || "unknown",
+        }),
+      });
+    } catch {}
+  }
+
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
     const user_id = session.metadata?.user_id;
+    const sessionId = session.id;
     const amount = session.amount_total || 0;
     const creditAdd = Math.max(1, Math.floor(amount / 50));
 
-    if (user_id && creditAdd > 0) {
+    if (user_id && creditAdd > 0 && sessionId) {
+      // Session-level dedupe fallback: if we've already logged this Stripe session in donations, skip.
+      try {
+        const existingDonation = await supabaseRequest(
+          env,
+          `donations?stripe_session_id=eq.${encodeURIComponent(sessionId)}&select=stripe_session_id&limit=1`,
+          { method: "GET" }
+        );
+        if (Array.isArray(existingDonation) && existingDonation.length > 0) {
+          return json({ received: true, duplicate: true });
+        }
+      } catch {}
+
       const rows = await supabaseRequest(env, `user_credits?user_id=eq.${encodeURIComponent(user_id)}&select=user_id,credits`, {
         method: "GET",
       });
@@ -63,15 +99,34 @@ export async function onRequest({ request, env }) {
         headers: { Prefer: "resolution=merge-duplicates" },
         body: JSON.stringify({ user_id, credits: currentCredits + creditAdd }),
       });
-      await supabaseRequest(env, "donations", {
-        method: "POST",
-        body: JSON.stringify({
-          device_id: "",
-          user_id,
-          amount,
-          stripe_session_id: session.id,
-        }),
-      });
+
+      // Best-effort session audit. Safe if table is not migrated yet.
+      try {
+        await supabaseRequest(env, "stripe_sessions", {
+          method: "POST",
+          headers: { Prefer: "resolution=merge-duplicates" },
+          body: JSON.stringify({
+            session_id: sessionId,
+            user_id,
+            amount_cents: amount,
+            credits_to_grant: creditAdd,
+            status: "credited",
+          }),
+        });
+      } catch {}
+
+      // Keep legacy donations log for compatibility.
+      try {
+        await supabaseRequest(env, "donations", {
+          method: "POST",
+          body: JSON.stringify({
+            device_id: "",
+            user_id,
+            amount,
+            stripe_session_id: sessionId,
+          }),
+        });
+      } catch {}
     }
   }
 

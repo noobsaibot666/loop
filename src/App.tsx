@@ -146,6 +146,41 @@ export default function App() {
     };
   }, []);
 
+  // After Stripe redirects back, verify the session so credits apply even if webhook delivery is delayed.
+  useEffect(() => {
+    if (!user?.id) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("donation") !== "success") return;
+    const sessionId = params.get("session_id");
+    if (!sessionId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await postJSON("/api/stripe/verify-session", { session_id: sessionId });
+        const refreshed = await postJSON<{
+          free_used: number;
+          donation_credits: number;
+          free_remaining: number;
+          credits_remaining: number;
+        }>("/api/usage/check", { device_id: deviceId, user_id: user.id });
+        if (!cancelled) setUsage(refreshed);
+      } catch {
+        // Keep UI quiet; user can still refresh later. Webhook should catch up.
+      } finally {
+        // Remove query params so we don't re-verify on every reload.
+        try {
+          const url = new URL(window.location.href);
+          url.searchParams.delete("donation");
+          url.searchParams.delete("session_id");
+          window.history.replaceState({}, "", url.toString());
+        } catch {}
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, deviceId]);
+
   const step1Done = step1Touched && loopPoint.trim().length > 3;
   const step2Done = step2Touched;
   const step3Done = step3Touched;

@@ -1,4 +1,4 @@
-import { json, parseJSON, requireEnv, getAuthUser } from "../_utils.js";
+import { json, parseJSON, requireEnv, getAuthUser, supabaseRequest } from "../_utils.js";
 
 const toForm = (data) =>
   Object.entries(data)
@@ -13,13 +13,14 @@ export async function onRequest({ request, env }) {
   const user_id = authUser.id;
 
   const secret = requireEnv(env, "STRIPE_SECRET_KEY");
-  const appUrl = env.APP_URL || "http://localhost:5173";
+  const appUrl = new URL(request.url).origin;
 
   const amountInCents = Math.max(500, Number(amount || 500));
 
   const payload = {
     mode: "payment",
-    success_url: `${appUrl}/?donation=success`,
+    // Return the checkout session id so the app can verify/credit even if webhook delivery is delayed.
+    success_url: `${appUrl}/?donation=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${appUrl}/?donation=cancel`,
     "line_items[0][price_data][currency]": "usd",
     "line_items[0][price_data][product_data][name]": "Loop credits donation",
@@ -39,6 +40,22 @@ export async function onRequest({ request, env }) {
 
   const data = await response.json();
   if (!response.ok) return json({ error: data.error?.message || "Stripe error" }, { status: 400 });
+
+  // Best-effort audit trail for checkout starts. Safe to skip if table is not created yet.
+  try {
+    const creditsToGrant = Math.max(1, Math.floor(amountInCents / 50));
+    await supabaseRequest(env, "stripe_sessions", {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates" },
+      body: JSON.stringify({
+        session_id: data.id,
+        user_id,
+        amount_cents: amountInCents,
+        credits_to_grant: creditsToGrant,
+        status: "checkout_created",
+      }),
+    });
+  } catch {}
 
   return json({ url: data.url });
 }

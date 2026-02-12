@@ -1,10 +1,32 @@
 import { json, parseJSON, supabaseRequest, getAuthUser } from "../../_utils.js";
 
 export async function onRequest({ request, env }) {
-  const body = await parseJSON(request);
+  await parseJSON(request);
   const authUser = await getAuthUser(env, request);
   const user_id = authUser?.id || "";
   if (!user_id) return json({ error: "login required" }, { status: 401 });
+
+  // Prefer atomic consume via SQL function to prevent race conditions.
+  try {
+    const rpcRows = await supabaseRequest(env, "rpc/consume_user_credit", {
+      method: "POST",
+      body: JSON.stringify({
+        p_user_id: user_id,
+        p_free_limit: 3,
+      }),
+    });
+    const row = Array.isArray(rpcRows) ? rpcRows[0] : rpcRows;
+    if (row && typeof row.allowed === "boolean") {
+      return json({
+        allowed: row.allowed,
+        free_used: row.free_used || 0,
+        donation_credits: row.credits_remaining || 0,
+        credits_remaining: row.credits_remaining || 0,
+      });
+    }
+  } catch {
+    // Fall back to legacy flow until SQL migration is applied.
+  }
 
   if (user_id) {
     const creditRows = await supabaseRequest(
