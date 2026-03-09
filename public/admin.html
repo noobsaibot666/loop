@@ -3,67 +3,170 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/favicon.png" />
     <title>Admin · GIVE ME THE LOOP</title>
     <style>
-      body { margin: 0; font-family: Arial, sans-serif; background: #0b0b0b; color: #f2f2f2; padding: 32px; }
-      h1 { margin-top: 0; }
-      label { display: block; margin: 16px 0 6px; font-size: 0.9rem; }
-      input { width: 100%; max-width: 420px; padding: 10px; border-radius: 8px; border: 1px solid #333; background: #151515; color: #f2f2f2; }
-      button { margin-top: 12px; padding: 10px 14px; border-radius: 8px; border: none; background: #f62b0a; color: #ffffff; cursor: pointer; }
+      :root {
+        color-scheme: dark;
+        --bg: #0b0b0b;
+        --card: rgba(255, 255, 255, 0.06);
+        --border: rgba(255, 255, 255, 0.12);
+        --text: #f4f4f4;
+        --muted: #b7b7b7;
+        --accent: #f62b0a;
+        --accent-soft: #ff8f3d;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background:
+          radial-gradient(circle at bottom, rgba(246, 43, 10, 0.2), transparent 45%),
+          linear-gradient(180deg, #050505 0%, #0b0b0b 100%);
+        color: var(--text);
+        padding: 24px;
+      }
+      .shell { max-width: 980px; margin: 0 auto; display: grid; gap: 18px; }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        padding: 20px;
+        backdrop-filter: blur(12px);
+      }
+      h1, h2, p { margin: 0; }
+      .eyebrow { color: var(--accent-soft); text-transform: uppercase; letter-spacing: 0.18em; font-size: 0.72rem; margin-bottom: 10px; }
+      .hero { display: grid; gap: 10px; }
+      .sub { color: var(--muted); line-height: 1.5; max-width: 60ch; }
+      .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+      .metric { font-size: 2rem; font-weight: 700; margin-top: 6px; }
+      .label { color: var(--muted); font-size: 0.85rem; }
       .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
-      .note { color: #9a9a9a; font-size: 0.85rem; margin-top: 6px; }
-      .status { margin-top: 12px; color: #ff9a44; }
+      .stack { display: grid; gap: 12px; }
+      input {
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+      }
+      button {
+        padding: 11px 16px;
+        border-radius: 12px;
+        border: 1px solid transparent;
+        background: var(--accent);
+        color: white;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: var(--border);
+      }
+      .status { color: var(--accent-soft); min-height: 20px; }
+      .sessions { display: grid; gap: 10px; }
+      .session {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 14px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .session span { display: block; color: var(--muted); font-size: 0.82rem; margin-top: 4px; }
+      @media (max-width: 640px) {
+        body { padding: 14px; }
+        .card { border-radius: 18px; padding: 16px; }
+        .session { flex-direction: column; }
+      }
     </style>
   </head>
   <body>
-    <h1>Admin</h1>
-    <div class="note">Not linked from the app. Use only for dev resets.</div>
+    <div class="shell">
+      <section class="card hero">
+        <div class="eyebrow">Admin</div>
+        <h1>Minimal ops page for resets, credits, and quick health checks.</h1>
+        <p class="sub">Small on purpose. Enough to keep V1 usable, test the flows, and recover from bad state without building a giant back office.</p>
+      </section>
 
-    <div id="loginPanel">
-      <label>Admin login</label>
-      <div class="row">
-        <input id="email" type="email" placeholder="admin@email.com" />
-        <input id="password" type="password" placeholder="password" />
-        <button id="login">Login</button>
-      </div>
+      <section class="card" id="loginPanel">
+        <div class="eyebrow">Sign in</div>
+        <div class="stack">
+          <input id="email" type="email" placeholder="admin@email.com" />
+          <input id="password" type="password" placeholder="password" />
+          <div class="row">
+            <button id="login">Login</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="adminPanel" style="display:none;">
+        <div class="row" style="justify-content:space-between;">
+          <div>
+            <div class="eyebrow">Live state</div>
+            <h2 id="adminEmail">Admin</h2>
+          </div>
+          <button id="logout" class="secondary">Logout</button>
+        </div>
+
+        <div class="grid" id="overviewGrid">
+          <div>
+            <div class="label">Website health</div>
+            <div class="metric" id="healthMetric">--</div>
+          </div>
+          <div>
+            <div class="label">Riders with credits</div>
+            <div class="metric" id="ridersMetric">0</div>
+          </div>
+          <div>
+            <div class="label">Paid credits live</div>
+            <div class="metric" id="creditsMetric">0</div>
+          </div>
+          <div>
+            <div class="label">Alleycat runs</div>
+            <div class="metric" id="runsMetric">0</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="controlsPanel" style="display:none;">
+        <div class="eyebrow">Controls</div>
+        <div class="stack">
+          <input id="userId" type="text" placeholder="Supabase user id" />
+          <input id="device" type="text" placeholder="loop_device_id fallback" />
+          <div class="row">
+            <button id="reset" class="secondary">Reset rider usage</button>
+            <button id="clearAll" class="secondary">Clear all guest usage</button>
+          </div>
+          <div class="row">
+            <input id="free_used" type="number" placeholder="free_used" style="max-width:140px;" />
+            <input id="credits" type="number" placeholder="credits" style="max-width:180px;" />
+            <button id="setCredits">Set credits</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="sessionsPanel" style="display:none;">
+        <div class="eyebrow">Recent top-ups</div>
+        <div class="sessions" id="sessionsList"></div>
+      </section>
+
+      <div class="status" id="status"></div>
     </div>
-
-    <div id="adminPanel" style="display:none;">
-      <div class="row">
-        <div class="note">Logged in.</div>
-        <button id="logout">Logout</button>
-      </div>
-
-      <label>User ID</label>
-      <input id="userId" type="text" placeholder="supabase user id" />
-
-      <label>Device ID (fallback)</label>
-      <input id="device" type="text" placeholder="loop_device_id" />
-
-      <div class="row">
-        <button id="reset">Reset device usage</button>
-        <button id="clearAll">Clear all usage</button>
-      </div>
-
-      <label>Set credits</label>
-      <div class="row">
-        <input id="free_used" type="number" placeholder="free_used" style="max-width: 120px;" />
-        <input id="credits" type="number" placeholder="donation_credits" style="max-width: 160px;" />
-        <button id="setCredits">Set credits</button>
-      </div>
-    </div>
-
-    <div class="status" id="status"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
       (() => {
-        const apiBase = window.location.hostname === 'localhost'
-          ? 'http://localhost:8787'
-          : window.location.origin;
+        const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        const apiBase = isLocal ? 'http://localhost:8787' : window.location.origin;
         const statusEl = document.getElementById('status');
         const loginPanel = document.getElementById('loginPanel');
         const adminPanel = document.getElementById('adminPanel');
+        const controlsPanel = document.getElementById('controlsPanel');
+        const sessionsPanel = document.getElementById('sessionsPanel');
+        const sessionsList = document.getElementById('sessionsList');
         const deviceEl = document.getElementById('device');
         const userEl = document.getElementById('userId');
         const emailEl = document.getElementById('email');
@@ -92,6 +195,41 @@
           return data;
         };
 
+        const paintOverview = async () => {
+          try {
+            const [healthRes, overview] = await Promise.all([
+              fetch(`${apiBase}/health`).then((res) => res.json()).catch(() => ({ ok: false })),
+              post('/api/admin/overview', {})
+            ]);
+            document.getElementById('healthMetric').textContent = healthRes.ok ? 'OK' : 'Down';
+            document.getElementById('adminEmail').textContent = overview.admin_email || 'Admin';
+            document.getElementById('ridersMetric').textContent = overview.metrics.riders_with_credits;
+            document.getElementById('creditsMetric').textContent = overview.metrics.total_paid_credits;
+            document.getElementById('runsMetric').textContent = overview.metrics.alleycat_runs;
+            sessionsList.innerHTML = '';
+            if (!overview.recent_sessions.length) {
+              sessionsList.innerHTML = '<div class="label">No recent Stripe sessions.</div>';
+              return;
+            }
+            overview.recent_sessions.forEach((session) => {
+              const row = document.createElement('div');
+              row.className = 'session';
+              row.innerHTML = `
+                <div>
+                  <strong>${(Number(session.amount_cents || 0) / 100).toFixed(2)} USD</strong>
+                  <span>${session.session_id}</span>
+                </div>
+                <div>
+                  <strong>${String(session.status || '').replace(/_/g, ' ')}</strong>
+                </div>
+              `;
+              sessionsList.appendChild(row);
+            });
+          } catch (error) {
+            statusEl.textContent = error.message;
+          }
+        };
+
         const refreshSession = async () => {
           const { data, error } = await sb.auth.getSession();
           if (error) {
@@ -102,6 +240,8 @@
           if (accessToken) {
             loginPanel.style.display = 'none';
             adminPanel.style.display = 'block';
+            controlsPanel.style.display = 'block';
+            sessionsPanel.style.display = 'block';
             statusEl.textContent = 'Logged in.';
             try {
               const userId = data?.session?.user?.id;
@@ -109,9 +249,12 @@
               const stored = localStorage.getItem('loop_device_id');
               if (stored && !deviceEl.value) deviceEl.value = stored;
             } catch {}
+            await paintOverview();
           } else {
             loginPanel.style.display = 'block';
             adminPanel.style.display = 'none';
+            controlsPanel.style.display = 'none';
+            sessionsPanel.style.display = 'none';
             statusEl.textContent = 'Logged out.';
           }
         };
@@ -142,23 +285,25 @@
               device_id: userEl.value ? '' : deviceEl.value
             });
             statusEl.textContent = `Reset OK: ${JSON.stringify(data)}`;
+            await paintOverview();
           } catch (e) {
             statusEl.textContent = e.message;
           }
         };
 
         document.getElementById('clearAll').onclick = async () => {
-          statusEl.textContent = 'Clearing all...';
+          statusEl.textContent = 'Clearing guest usage...';
           try {
             const data = await post('/api/admin/reset', {});
             statusEl.textContent = `Clear OK: ${JSON.stringify(data)}`;
+            await paintOverview();
           } catch (e) {
             statusEl.textContent = e.message;
           }
         };
 
         document.getElementById('setCredits').onclick = async () => {
-          statusEl.textContent = 'Updating...';
+          statusEl.textContent = 'Updating credits...';
           try {
             const data = await post('/api/admin/set-credits', {
               user_id: userEl.value,
@@ -167,6 +312,7 @@
               donation_credits: Number(document.getElementById('credits').value || 0)
             });
             statusEl.textContent = `Updated: ${JSON.stringify(data)}`;
+            await paintOverview();
           } catch (e) {
             statusEl.textContent = e.message;
           }

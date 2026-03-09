@@ -1,12 +1,86 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { motion, useScroll, useSpring, useTransform, useMotionTemplate } from "framer-motion";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from "react";
+import { motion, useMotionTemplate, useScroll, useSpring, useTransform } from "framer-motion";
 import { createClient } from "@supabase/supabase-js";
 import heroImage from "./images/hero_6.png";
+
+type PageView = "home" | "messenger" | "account";
+type Usage = {
+  free_used: number;
+  donation_credits: number;
+  free_remaining: number;
+  credits_remaining: number;
+};
+type Suggestion = {
+  label: string;
+  lat: number;
+  lng: number;
+};
+type MessengerCheckpoint = {
+  id: string;
+  order: number;
+  name: string;
+  lat: number;
+  lng: number;
+  hint: string;
+  task: string;
+};
+type MessengerManifest = {
+  id: string;
+  city: string;
+  city_slug: string;
+  difficulty: string;
+  style: string;
+  manifest_title: string;
+  estimated_minutes: number;
+  ghost_seconds: number;
+  checkpoint_count: number;
+  route_note: string;
+  finish_label: string;
+  safety_note: string;
+  checkpoints: MessengerCheckpoint[];
+};
+type MessengerRun = {
+  runId: string;
+  startedAt: string;
+  completedIds: string[];
+  finishSeconds: number | null;
+  finishedAt: string | null;
+  status?: string;
+};
+type AlleycatChallenge = {
+  id: string;
+  code: string;
+};
+type AlleycatLeaderboardEntry = {
+  user_id: string;
+  manifest_id: string;
+  joined_at: string;
+  city_name: string;
+  best_seconds: number | null;
+  best_run_id: string | null;
+  status: string;
+  is_creator: boolean;
+};
+type AccountSummary = {
+  purchases: {
+    session_id: string;
+    amount_cents: number;
+    credits_to_grant: number;
+    status: string;
+    created_at: string;
+  }[];
+  alleycat: {
+    manifests: number;
+    runs: number;
+    finished_runs: number;
+    challenges: number;
+  };
+};
 
 const API_BASE = (() => {
   const configured = import.meta.env.VITE_API_BASE || "";
   if (typeof window !== "undefined") {
-    const isLocal = window.location.hostname === "localhost";
+    const isLocal = ["localhost", "127.0.0.1"].includes(window.location.hostname);
     if (!isLocal && configured.includes("localhost")) return window.location.origin;
     return configured || window.location.origin;
   }
@@ -17,26 +91,49 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
 const supabaseAnon = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 const supabase = supabaseUrl && supabaseAnon ? createClient(supabaseUrl, supabaseAnon) : null;
 
-const steps = [
+const LOOP_FREE_LIMIT = 3;
+const MESSENGER_CREDIT_COST = 3;
+const ALLEYCAT_STORAGE_KEY = "loop_alleycat_state";
+const ALLEYCAT_CITY_PRESETS = ["Berlin", "London"];
+
+const loopSteps = [
   {
     number: "01",
-    title: "Top up credits",
-    body: "Nothing is free. 3 loops on us, then top up.",
+    title: "Drop your point",
+    body: "Choose the place you want to leave from and return to.",
   },
   {
     number: "02",
-    title: "Pick your spot",
-    body: "That’s your start and finish.",
+    title: "Tune the ride",
+    body: "Set distance, terrain, and the kind of energy you want back from the route.",
   },
   {
     number: "03",
-    title: "Set the distance",
-    body: "Dial the KM or miles. We shape the loop.",
+    title: "Open and go",
+    body: "We shape the loop. You throw it into Maps and keep moving.",
+  },
+];
+
+const messengerFlow = [
+  {
+    number: "01",
+    title: "Pick the city",
+    body: "Start with a supported city pack and let the app pull a fixed manifest from curated checkpoints.",
+  },
+  {
+    number: "02",
+    title: "Choose the pressure",
+    body: "Difficulty and street tone shift the pacing, spread, and feel of the checkpoint list.",
+  },
+  {
+    number: "03",
+    title: "Run your own line",
+    body: "Checkpoints can be cleared in any order. The route between them is fully yours.",
   },
   {
     number: "04",
-    title: "Pick the terrain",
-    body: "Road, climb, or mix — we match the vibe.",
+    title: "Beat the ghost",
+    body: "Check in every stop, close the run, and compare your time against the target.",
   },
 ];
 
@@ -45,6 +142,18 @@ function useTheme() {
     document.documentElement.setAttribute("data-theme", "dark");
   }, []);
 }
+
+const formatDuration = (totalSeconds: number) => {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+};
+
+const getPageView = (): PageView => {
+  if (window.location.pathname.startsWith("/messenger")) return "messenger";
+  if (window.location.pathname.startsWith("/account")) return "account";
+  return "home";
+};
 
 export default function App() {
   useTheme();
@@ -62,37 +171,63 @@ export default function App() {
   const bgScale = useTransform(scrollYProgress, [0, 1], [1, 0.82]);
   const bgShiftPx = useMotionTemplate`${bgShift}px`;
 
+  const [pageView, setPageView] = useState<PageView>(() => getPageView());
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [activeStep, setActiveStep] = useState(-1);
+  const [deviceId, setDeviceId] = useState("");
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
+  const [accessToken, setAccessToken] = useState("");
+  const [usage, setUsage] = useState<Usage | null>(null);
+  const [authMessage, setAuthMessage] = useState("");
+  const [statusMessage, setStatusMessage] = useState("");
+  const [showLogin, setShowLogin] = useState(false);
+  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
+  const [showCredits, setShowCredits] = useState(false);
+  const [creditAmount, setCreditAmount] = useState("5");
+  const [accountSummary, setAccountSummary] = useState<AccountSummary | null>(null);
+  const [accountPassword, setAccountPassword] = useState("");
+  const [accountStatus, setAccountStatus] = useState("");
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [isSendingReset, setIsSendingReset] = useState(false);
+
   const [loopPoint, setLoopPoint] = useState("");
   const [distance, setDistance] = useState(14);
   const [terrain, setTerrain] = useState("mix");
   const [surface, setSurface] = useState("paved");
   const [vibe, setVibe] = useState("Elegant");
   const [unit, setUnit] = useState<"km" | "mi">("km");
-  const [activeStep, setActiveStep] = useState(-1);
-  const [deviceId, setDeviceId] = useState("");
-  const [statusMessage, setStatusMessage] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [usage, setUsage] = useState<{ free_used: number; donation_credits: number; free_remaining: number; credits_remaining: number } | null>(null);
-  const [suggestions, setSuggestions] = useState<Array<{ label: string; lat: number; lng: number }>>([]);
+  const [isGeneratingLoop, setIsGeneratingLoop] = useState(false);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [lastRouteUrl, setLastRouteUrl] = useState<string>("");
+  const [lastRouteUrl, setLastRouteUrl] = useState("");
   const [step1Touched, setStep1Touched] = useState(false);
   const [step2Touched, setStep2Touched] = useState(false);
   const [step3Touched, setStep3Touched] = useState(false);
-  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
-  const [accessToken, setAccessToken] = useState("");
-  const [authMessage, setAuthMessage] = useState("");
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [showLogin, setShowLogin] = useState(false);
-  const [loginEmail, setLoginEmail] = useState("");
-  const [showCredits, setShowCredits] = useState(false);
-  const [creditAmount, setCreditAmount] = useState("5");
 
-  const isMobile = useMemo(
-    () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent),
-    []
-  );
+  const [messengerCity, setMessengerCity] = useState("");
+  const [messengerDifficulty, setMessengerDifficulty] = useState("medium");
+  const [messengerStyle, setMessengerStyle] = useState("local");
+  const [messengerManifest, setMessengerManifest] = useState<MessengerManifest | null>(null);
+  const [messengerManifestId, setMessengerManifestId] = useState("");
+  const [messengerStatus, setMessengerStatus] = useState("");
+  const [isGeneratingMessenger, setIsGeneratingMessenger] = useState(false);
+  const [messengerRun, setMessengerRun] = useState<MessengerRun | null>(null);
+  const [clockNow, setClockNow] = useState(Date.now());
+  const [isHydratingRun, setIsHydratingRun] = useState(false);
+  const [shareCode, setShareCode] = useState("");
+  const [shareInput, setShareInput] = useState("");
+  const [shareStatus, setShareStatus] = useState("");
+  const [isSharingManifest, setIsSharingManifest] = useState(false);
+  const [isLoadingSharedManifest, setIsLoadingSharedManifest] = useState(false);
+  const [challenge, setChallenge] = useState<AlleycatChallenge | null>(null);
+  const [leaderboard, setLeaderboard] = useState<AlleycatLeaderboardEntry[]>([]);
+  const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
+
+  const isMobile = useMemo(() => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent), []);
 
   const postJSON = async <T,>(path: string, body: Record<string, unknown>): Promise<T> => {
     const response = await fetch(`${API_BASE}${path}`, {
@@ -123,6 +258,11 @@ export default function App() {
     setDeviceId(next);
   }, []);
 
+  useEffect(() => {
+    const onPopState = () => setPageView(getPageView());
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   useEffect(() => {
     if (!supabase) return;
@@ -139,6 +279,8 @@ export default function App() {
       } else {
         setUser(null);
         setAccessToken("");
+        setUsage(null);
+        setAccountSummary(null);
       }
     });
     return () => {
@@ -146,7 +288,6 @@ export default function App() {
     };
   }, []);
 
-  // After Stripe redirects back, verify the session so credits apply even if webhook delivery is delayed.
   useEffect(() => {
     if (!user?.id) return;
     const params = new URLSearchParams(window.location.search);
@@ -157,23 +298,19 @@ export default function App() {
     (async () => {
       try {
         await postJSON("/api/stripe/verify-session", { session_id: sessionId });
-        const refreshed = await postJSON<{
-          free_used: number;
-          donation_credits: number;
-          free_remaining: number;
-          credits_remaining: number;
-        }>("/api/usage/check", { device_id: deviceId, user_id: user.id });
+        const refreshed = await postJSON<Usage>("/api/usage/check", { device_id: deviceId, user_id: user.id });
         if (!cancelled) setUsage(refreshed);
       } catch {
-        // Keep UI quiet; user can still refresh later. Webhook should catch up.
+        // Webhook can settle this later.
       } finally {
-        // Remove query params so we don't re-verify on every reload.
         try {
           const url = new URL(window.location.href);
           url.searchParams.delete("donation");
           url.searchParams.delete("session_id");
           window.history.replaceState({}, "", url.toString());
-        } catch {}
+        } catch {
+          // Ignore.
+        }
       }
     })();
     return () => {
@@ -181,22 +318,12 @@ export default function App() {
     };
   }, [user?.id, deviceId]);
 
-  const step1Done = step1Touched && loopPoint.trim().length > 3;
-  const step2Done = step2Touched;
-  const step3Done = step3Touched;
-  const allDone = step1Done && step2Done && step3Done;
-
   useEffect(() => {
     let active = true;
     if (!user?.id) return;
     const fetchUsage = async () => {
       try {
-        const data = await postJSON<{
-          free_used: number;
-          donation_credits: number;
-          free_remaining: number;
-          credits_remaining: number;
-        }>("/api/usage/check", { device_id: deviceId, user_id: user?.id || "" });
+        const data = await postJSON<Usage>("/api/usage/check", { device_id: deviceId, user_id: user.id });
         if (active) setUsage(data);
       } catch {
         if (active) setUsage(null);
@@ -207,6 +334,211 @@ export default function App() {
       active = false;
     };
   }, [deviceId, user?.id]);
+
+  useEffect(() => {
+    let active = true;
+    if (!user?.id) {
+      setAccountSummary(null);
+      return;
+    }
+    const fetchAccountSummary = async () => {
+      try {
+        const data = await postJSON<AccountSummary>("/api/account/summary", {});
+        if (active) setAccountSummary(data);
+      } catch {
+        if (active) setAccountSummary(null);
+      }
+    };
+    fetchAccountSummary();
+    return () => {
+      active = false;
+    };
+  }, [user?.id, usage?.credits_remaining, messengerRun?.finishSeconds]);
+
+  useEffect(() => {
+    if (!messengerRun || messengerRun.finishedAt) return;
+    const timer = window.setInterval(() => setClockNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [messengerRun]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(ALLEYCAT_STORAGE_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as {
+        city?: string;
+        difficulty?: string;
+        style?: string;
+        manifestId?: string;
+        manifest?: MessengerManifest | null;
+        run?: MessengerRun | null;
+        challenge?: AlleycatChallenge | null;
+      };
+      if (saved.city) setMessengerCity(saved.city);
+      if (saved.difficulty) setMessengerDifficulty(saved.difficulty);
+      if (saved.style) setMessengerStyle(saved.style);
+      if (saved.manifestId) setMessengerManifestId(saved.manifestId);
+      if (saved.manifest) setMessengerManifest(saved.manifest);
+      if (saved.run) setMessengerRun(saved.run);
+      if (saved.challenge) {
+        setChallenge(saved.challenge);
+        setShareCode(saved.challenge.code);
+      }
+    } catch {
+      localStorage.removeItem(ALLEYCAT_STORAGE_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        ALLEYCAT_STORAGE_KEY,
+        JSON.stringify({
+          city: messengerCity,
+          difficulty: messengerDifficulty,
+          style: messengerStyle,
+          manifestId: messengerManifestId,
+          manifest: messengerManifest,
+          run: messengerRun,
+          challenge,
+        })
+      );
+    } catch {
+      // Ignore storage failures.
+    }
+  }, [messengerCity, messengerDifficulty, messengerStyle, messengerManifestId, messengerManifest, messengerRun, challenge]);
+
+  useEffect(() => {
+    if (!user?.id || !messengerRun?.runId) return;
+    let cancelled = false;
+    setIsHydratingRun(true);
+    (async () => {
+      try {
+        const data = await postJSON<{
+          run: {
+            id: string;
+            status: string;
+            started_at: string;
+            finished_at: string | null;
+            finish_seconds: number | null;
+            completed_ids: string[];
+          };
+          manifest_id: string;
+          manifest: MessengerManifest | null;
+          challenge: AlleycatChallenge | null;
+        }>("/api/messenger/run-state", { run_id: messengerRun.runId });
+        if (cancelled) return;
+        if (data.manifest) {
+          setMessengerManifest(data.manifest);
+          setMessengerManifestId(data.manifest_id);
+        }
+        if (data.challenge) {
+          setChallenge(data.challenge);
+          setShareCode(data.challenge.code);
+        }
+        setMessengerRun({
+          runId: data.run.id,
+          startedAt: data.run.started_at,
+          completedIds: data.run.completed_ids,
+          finishSeconds: data.run.finish_seconds,
+          finishedAt: data.run.finished_at,
+          status: data.run.status,
+        });
+      } catch {
+        if (!cancelled) {
+          setMessengerStatus((current) => current || "Could not reload the current alleycat run.");
+        }
+      } finally {
+        if (!cancelled) setIsHydratingRun(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, messengerRun?.runId]);
+
+  useEffect(() => {
+    if (!user?.id || (!challenge?.id && !messengerManifestId)) {
+      setLeaderboard([]);
+      return;
+    }
+    let cancelled = false;
+    setIsLoadingLeaderboard(true);
+    (async () => {
+      try {
+        const data = await postJSON<{
+          challenge: AlleycatChallenge | null;
+          leaderboard: AlleycatLeaderboardEntry[];
+        }>("/api/messenger/leaderboard", {
+          challenge_id: challenge?.id || "",
+          manifest_id: messengerManifestId || "",
+        });
+        if (cancelled) return;
+        if (data.challenge) {
+          setChallenge(data.challenge);
+          setShareCode(data.challenge.code);
+        }
+        setLeaderboard(data.leaderboard || []);
+      } catch {
+        if (!cancelled) setLeaderboard([]);
+      } finally {
+        if (!cancelled) setIsLoadingLeaderboard(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, challenge?.id, messengerManifestId, messengerRun?.finishSeconds, messengerRun?.completedIds.length]);
+
+  useEffect(() => {
+    if (!loopPoint || loopPoint.length < 3) {
+      setSuggestions([]);
+      return;
+    }
+    if (selectedCoords) return;
+    let active = true;
+    setIsSuggesting(true);
+    const timer = setTimeout(async () => {
+      try {
+        const geo = await postJSON<any>("/api/geocode", { text: loopPoint });
+        const results =
+          geo?.features?.slice(0, 5).map((feature: any) => ({
+            label: feature?.properties?.label || feature?.properties?.name || "Unknown",
+            lat: feature.geometry.coordinates[1],
+            lng: feature.geometry.coordinates[0],
+          })) || [];
+        if (active) setSuggestions(results);
+      } catch {
+        if (active) setSuggestions([]);
+      } finally {
+        if (active) setIsSuggesting(false);
+      }
+    }, 350);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [loopPoint, selectedCoords]);
+
+  const step1Done = step1Touched && loopPoint.trim().length > 3;
+  const step2Done = step2Touched;
+  const step3Done = step3Touched;
+  const allLoopDone = step1Done && step2Done && step3Done;
+
+  const totalCredits = Math.max(0, (usage?.credits_remaining || 0) + (usage?.free_remaining || 0));
+  const messengerCreditsOnly = Math.max(0, usage?.credits_remaining || 0);
+  const currentElapsed = useMemo(() => {
+    if (!messengerRun) return 0;
+    if (messengerRun.finishSeconds) return messengerRun.finishSeconds;
+    return Math.max(0, Math.round((clockNow - new Date(messengerRun.startedAt).getTime()) / 1000));
+  }, [messengerRun, clockNow]);
+  const ghostDelta =
+    messengerManifest && messengerRun?.finishSeconds
+      ? messengerRun.finishSeconds - messengerManifest.ghost_seconds
+      : null;
+  const completedCount = messengerRun?.completedIds.length || 0;
+  const totalCheckpoints = messengerManifest?.checkpoints.length || 0;
+  const remainingCount = Math.max(0, totalCheckpoints - completedCount);
 
   const parseLatLng = (value: string) => {
     const match = value.match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
@@ -237,6 +569,125 @@ export default function App() {
     return { lat: (lat2 * 180) / Math.PI, lng: (lng2 * 180) / Math.PI };
   };
 
+  const handleNavigate = (target: PageView) => {
+    const path = target === "messenger" ? "/messenger" : target === "account" ? "/account" : "/";
+    window.history.pushState({}, "", path);
+    setPageView(target);
+    setMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const openAuth = (mode: "login" | "signup" = "login", message = "") => {
+    setAuthMode(mode);
+    setAuthMessage(message);
+    setShowLogin(true);
+  };
+
+  const buildCheckpointMapsUrl = (checkpoint: MessengerCheckpoint) => {
+    const params = new URLSearchParams();
+    params.set("api", "1");
+    params.set("destination", `${checkpoint.lat},${checkpoint.lng}`);
+    params.set("travelmode", "bicycling");
+    return `https://www.google.com/maps/dir/?${params.toString()}`;
+  };
+
+  const getCurrentPosition = () =>
+    new Promise<{ lat: number; lng: number }>((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Location is not available on this device."));
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        () => reject(new Error("Location permission is required for checkpoint check-in.")),
+        {
+          enableHighAccuracy: true,
+          timeout: 12000,
+          maximumAge: 0,
+        }
+      );
+    });
+
+  const handleResetAlleycat = () => {
+    setMessengerManifest(null);
+    setMessengerManifestId("");
+    setMessengerRun(null);
+    setMessengerStatus("");
+    setChallenge(null);
+    setShareCode("");
+    setShareInput("");
+    setShareStatus("");
+    setLeaderboard([]);
+    try {
+      localStorage.removeItem(ALLEYCAT_STORAGE_KEY);
+    } catch {
+      // Ignore storage failures.
+    }
+  };
+
+  const handleCreateShareCode = async () => {
+    if (!messengerManifestId) return;
+    setIsSharingManifest(true);
+    setShareStatus("");
+    try {
+      const data = await postJSON<{ code: string; challenge_id?: string }>("/api/messenger/share", {
+        manifest_id: messengerManifestId,
+      });
+      setShareCode(data.code);
+      if (data.challenge_id) {
+        setChallenge({ id: data.challenge_id, code: data.code });
+      }
+      setShareStatus("Share code ready. Send it to a friend so they can load the same manifest.");
+      try {
+        await navigator.clipboard.writeText(data.code);
+      } catch {
+        // Ignore clipboard failures.
+      }
+    } catch (error) {
+      setShareStatus(error instanceof Error ? error.message : "Could not create a share code.");
+    } finally {
+      setIsSharingManifest(false);
+    }
+  };
+
+  const handleLoadShareCode = async () => {
+    if (!shareInput.trim()) return;
+    if (!user?.id) {
+      requireLogin("Log in to join a shared Alleycat run.");
+      return;
+    }
+    setIsLoadingSharedManifest(true);
+    setShareStatus("");
+    try {
+      const data = await postJSON<{
+        manifest_id: string;
+        manifest: MessengerManifest;
+        source_code: string;
+        challenge_id?: string;
+      }>("/api/messenger/share", {
+        code: shareInput.trim().toUpperCase(),
+      });
+      setMessengerManifestId(data.manifest_id);
+      setMessengerManifest(data.manifest);
+      setMessengerRun(null);
+      setShareCode(data.source_code);
+      if (data.challenge_id) {
+        setChallenge({ id: data.challenge_id, code: data.source_code });
+      }
+      setShareStatus(`Shared manifest loaded from code ${data.source_code}.`);
+      setMessengerStatus("Shared manifest loaded. Start when you are ready.");
+    } catch (error) {
+      setShareStatus(error instanceof Error ? error.message : "Could not load that share code.");
+    } finally {
+      setIsLoadingSharedManifest(false);
+    }
+  };
+
   const buildMapsUrl = (variant: string) => {
     const params = new URLSearchParams();
     params.set("api", "1");
@@ -259,19 +710,14 @@ export default function App() {
     return `https://www.google.com/maps/dir/?${params.toString()}`;
   };
 
-  const handleCopy = async (variant: string) => {
-    const url = variant ? buildMapsUrl(variant) : lastRouteUrl || buildMapsUrl("");
+  const handleCopy = async () => {
+    const url = lastRouteUrl || buildMapsUrl("");
     try {
       await navigator.clipboard.writeText(url);
     } catch {
       window.prompt("Copy your Maps link", url);
     }
   };
-
-  const distanceLabel = Number(distance.toFixed(1));
-  const minDistance = unit === "km" ? 5 : 3;
-  const maxDistance = unit === "km" ? 80 : 50;
-  const rangePercent = ((distance - minDistance) / (maxDistance - minDistance)) * 100;
 
   const handleUnitChange = (next: "km" | "mi") => {
     if (next === unit) return;
@@ -280,106 +726,141 @@ export default function App() {
     setUnit(next);
   };
 
-  useEffect(() => {
-    if (!loopPoint || loopPoint.length < 3) {
-      setSuggestions([]);
-      return;
-    }
-    if (selectedCoords) {
-      return;
-    }
-    let active = true;
-    setIsSuggesting(true);
-    const timer = setTimeout(async () => {
-      try {
-        const geo = await postJSON<any>("/api/geocode", { text: loopPoint });
-        const results =
-          geo?.features?.slice(0, 5).map((feature: any) => ({
-            label: feature?.properties?.label || feature?.properties?.name || "Unknown",
-            lat: feature.geometry.coordinates[1],
-            lng: feature.geometry.coordinates[0],
-          })) || [];
-        if (active) setSuggestions(results);
-      } catch {
-        if (active) setSuggestions([]);
-      } finally {
-        if (active) setIsSuggesting(false);
-      }
-    }, 350);
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
-  }, [loopPoint, selectedCoords]);
+  const distanceLabel = Number(distance.toFixed(1));
+  const minDistance = unit === "km" ? 5 : 3;
+  const maxDistance = unit === "km" ? 80 : 50;
+  const rangePercent = ((distance - minDistance) / (maxDistance - minDistance)) * 100;
+
+  const requireLogin = (message: string) => {
+    openAuth("login", message);
+  };
 
   const handleDonate = async () => {
     if (!user?.id) {
-      setAuthMessage("Yo, log in to add credits. We keep it fair — no data games.");
-      setShowLogin(true);
+      requireLogin("Log in first so credits land on the right rider.");
       return;
     }
     setShowCredits(true);
-  };
-
-  const handleLogin = async () => {
-    setShowLogin(true);
   };
 
   const handleLogout = async () => {
     if (!supabase) return;
     await supabase.auth.signOut();
     setAuthMessage("Logged out.");
+    setUsage(null);
+    setAccountSummary(null);
+    setPageView("home");
+    window.history.pushState({}, "", "/");
   };
 
-  const handleSaveSetup = async () => {
-    if (!deviceId) return;
-    try {
-      await postJSON("/api/save-setup", {
-        device_id: deviceId,
-        user_id: user?.id || "",
-        loop_point: loopPoint,
-        distance,
-        unit,
-        terrain,
-        surface,
-        vibe,
-      });
-      setStatusMessage("Setup saved.");
-      const refreshed = await postJSON<{ free_used: number; donation_credits: number; free_remaining: number; credits_remaining: number }>(
-        "/api/usage/check",
-        { device_id: deviceId, user_id: user?.id || "" }
-      );
-      setUsage(refreshed);
-    } catch {
-      setStatusMessage("Save failed. Try again.");
-    }
-  };
-
-  const handleGenerateRoutes = async () => {
-    if (!user?.id) {
-      setAuthMessage("Yo, log in so we can keep it fair. No data games — just counting loops.");
-      setShowLogin(true);
+  const handleAuthSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!supabase) return;
+    if (!loginEmail.trim() || !loginPassword.trim()) {
+      setAuthMessage("Add your email and password.");
       return;
     }
-    setIsGenerating(true);
+    setAuthLoading(true);
+    setAuthMessage("");
+    try {
+      if (authMode === "signup") {
+        const { data, error } = await supabase.auth.signUp({
+          email: loginEmail.trim(),
+          password: loginPassword,
+          options: {
+            emailRedirectTo: `${window.location.origin}/account`,
+          },
+        });
+        if (error) throw error;
+        setAuthMessage(
+          data.session
+            ? "Account ready. You are logged in."
+            : "Account created. Check your inbox if email confirmation is enabled."
+        );
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: loginEmail.trim(),
+          password: loginPassword,
+        });
+        if (error) throw error;
+        setAuthMessage("Logged in.");
+      }
+      setShowLogin(false);
+      setLoginEmail("");
+      setLoginPassword("");
+      handleNavigate("account");
+    } catch (error) {
+      setAuthMessage(error instanceof Error ? error.message : "Could not complete auth.");
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handlePasswordUpdate = async () => {
+    if (!supabase || !accountPassword.trim()) {
+      setAccountStatus("Add a new password first.");
+      return;
+    }
+    setIsUpdatingPassword(true);
+    setAccountStatus("");
+    try {
+      const { error } = await supabase.auth.updateUser({ password: accountPassword.trim() });
+      if (error) throw error;
+      setAccountPassword("");
+      setAccountStatus("Password updated.");
+    } catch (error) {
+      setAccountStatus(error instanceof Error ? error.message : "Could not update password.");
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!supabase || !loginEmail.trim()) {
+      setAuthMessage("Add your email first.");
+      return;
+    }
+    setIsSendingReset(true);
+    setAuthMessage("");
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(loginEmail.trim(), {
+        redirectTo: `${window.location.origin}/account`,
+      });
+      if (error) throw error;
+      setAuthMessage("Password reset email sent.");
+    } catch (error) {
+      setAuthMessage(error instanceof Error ? error.message : "Could not send reset email.");
+    } finally {
+      setIsSendingReset(false);
+    }
+  };
+
+  const handleGenerateLoop = async () => {
+    if (!user?.id) {
+      requireLogin("Log in so we can keep the free runs fair.");
+      return;
+    }
+    setIsGeneratingLoop(true);
     setStatusMessage("");
     try {
-      const usage = await postJSON<{
+      const consumed = await postJSON<{
         allowed: boolean;
         donation_credits: number;
         free_used: number;
         credits_remaining: number;
-      }>("/api/usage/consume", { device_id: deviceId, user_id: user?.id || "" });
-      if (!usage.allowed) {
-        setStatusMessage("Free runs done. Add credits to keep it moving.");
-        setIsGenerating(false);
+      }>("/api/usage/consume", { device_id: deviceId, user_id: user.id });
+
+      if (!consumed.allowed) {
+        setStatusMessage("Free loops are spent. Add credits and keep moving.");
+        setIsGeneratingLoop(false);
         return;
       }
+
       setUsage({
-        free_used: usage.free_used,
-        donation_credits: usage.donation_credits,
-        free_remaining: Math.max(0, 3 - usage.free_used),
-        credits_remaining: usage.credits_remaining || 0,
+        free_used: consumed.free_used,
+        donation_credits: consumed.donation_credits,
+        free_remaining: Math.max(0, LOOP_FREE_LIMIT - consumed.free_used),
+        credits_remaining: consumed.credits_remaining || 0,
       });
 
       let origin = selectedCoords || parseLatLng(loopPoint);
@@ -410,118 +891,231 @@ export default function App() {
         const p1 = pick(0.25);
         const p2 = pick(0.5);
         const p3 = pick(0.75);
-        params.set(
-          "waypoints",
-          [`${p1[1]},${p1[0]}`, `${p2[1]},${p2[0]}`, `${p3[1]},${p3[0]}`].join("|")
-        );
+        params.set("waypoints", [`${p1[1]},${p1[0]}`, `${p2[1]},${p2[0]}`, `${p3[1]},${p3[0]}`].join("|"));
       } else {
         const fallbackDistanceKm = Math.max(2, distanceKm * 0.4);
         const bearings = [40, 160, 260];
         const waypoints = bearings
           .map((bearing) => computeWaypointFromOrigin(origin, bearing, fallbackDistanceKm))
-          .filter(Boolean)
           .map((point) => `${point.lat.toFixed(6)},${point.lng.toFixed(6)}`);
-        if (waypoints.length) {
-          params.set("waypoints", waypoints.join("|"));
-        }
+        if (waypoints.length) params.set("waypoints", waypoints.join("|"));
       }
 
-      const url = `https://www.google.com/maps/dir/?${params.toString()}`;
-
-      setLastRouteUrl(url);
-      setStatusMessage("Grap your Route and Go to Cheat Death in the Streets.");
+      setLastRouteUrl(`https://www.google.com/maps/dir/?${params.toString()}`);
+      setStatusMessage("Loop built. Open it in Maps and ride your return.");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Couldn’t build a loop. Try a different spot.";
-      setStatusMessage(message);
+      setStatusMessage(error instanceof Error ? error.message : "Couldn’t build a loop. Try another point.");
     } finally {
-      setIsGenerating(false);
+      setIsGeneratingLoop(false);
     }
   };
 
-  return (
-    <motion.div
-      className="page"
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.8, ease: "easeOut" }}
-      style={{ "--bg-shift": bgShiftPx, "--bg-scale": bgScale } as React.CSSProperties}
-    >
-      <header className="site-header">
-        <div className="brand">
-          <span className="brand-mark" />
-          <div>
-            <div className="brand-title">Gimme The Loop</div>
-            <div className="brand-subtitle">Cheat death on the streets.</div>
-          </div>
-        </div>
-        <button
-          className="menu-toggle"
-          type="button"
-          onClick={() => setMenuOpen((prev) => !prev)}
-          aria-expanded={menuOpen}
-        >
-          Menu
-        </button>
-        <div className={`header-actions ${menuOpen ? "open" : ""}`}>
-          <button className="nav-link" type="button" onClick={handleDonate}>
-            Add credits
-          </button>
-          {user ? (
-            <button className="nav-link" type="button" onClick={handleLogout}>
-              Logout
-            </button>
-          ) : (
-            <button className="nav-link" type="button" onClick={handleLogin}>
-              Login
-            </button>
-          )}
-        </div>
-      </header>
+  const handleGenerateMessenger = async () => {
+    if (!user?.id) {
+      requireLogin("Log in to unlock Alleycat Mode.");
+      return;
+    }
+    setIsGeneratingMessenger(true);
+    setMessengerStatus("");
+    try {
+      const data = await postJSON<{
+        manifest_id: string;
+        manifest: MessengerManifest;
+        credits_remaining: number;
+      }>("/api/messenger/generate", {
+        city: messengerCity,
+        difficulty: messengerDifficulty,
+        style: messengerStyle,
+      });
+      setMessengerManifestId(data.manifest_id);
+      setMessengerManifest(data.manifest);
+      setMessengerRun(null);
+      setMessengerStatus("Manifest loaded. Start when you are ready to clear the whole list.");
+      setUsage((current) =>
+        current
+          ? {
+              ...current,
+              donation_credits: data.credits_remaining,
+              credits_remaining: data.credits_remaining,
+            }
+          : current
+      );
+    } catch (error) {
+      setMessengerStatus(error instanceof Error ? error.message : "Couldn’t build the manifest.");
+    } finally {
+      setIsGeneratingMessenger(false);
+    }
+  };
 
+  const handleStartMessenger = async () => {
+    if (!messengerManifestId) return;
+    try {
+      const data = await postJSON<{ run_id: string; started_at: string; reused?: boolean }>("/api/messenger/start", {
+        manifest_id: messengerManifestId,
+      });
+      setMessengerRun({
+        runId: data.run_id,
+        startedAt: data.started_at,
+        completedIds: [],
+        finishSeconds: null,
+        finishedAt: null,
+        status: data.reused ? "active" : "active",
+      });
+      setMessengerStatus(data.reused ? "Picked up your active run. Keep clearing checkpoints." : "Clock is live. Clear every checkpoint, then close the run.");
+    } catch (error) {
+      setMessengerStatus(error instanceof Error ? error.message : "Couldn’t start the run.");
+    }
+  };
+
+  const handleCheckInMessenger = async (checkpointId: string) => {
+    if (!messengerRun) return;
+    try {
+      setMessengerStatus("Checking your location…");
+      const position = await getCurrentPosition();
+      const data = await postJSON<{ completed_ids: string[] }>("/api/messenger/check-in", {
+        run_id: messengerRun.runId,
+        checkpoint_id: checkpointId,
+        lat: position.lat,
+        lng: position.lng,
+      });
+      setMessengerRun((current) => (current ? { ...current, completedIds: data.completed_ids } : current));
+      setMessengerStatus("Checkpoint cleared.");
+    } catch (error) {
+      setMessengerStatus(error instanceof Error ? error.message : "Check-in failed.");
+    }
+  };
+
+  const handleFinishMessenger = async () => {
+    if (!messengerRun) return;
+    try {
+      const data = await postJSON<{ finished_at: string; finish_seconds: number }>("/api/messenger/finish", {
+        run_id: messengerRun.runId,
+      });
+      setMessengerRun((current) =>
+        current
+          ? {
+              ...current,
+              finishSeconds: data.finish_seconds,
+              finishedAt: data.finished_at,
+              status: "finished",
+            }
+          : current
+      );
+      setMessengerStatus("Run closed. Stack your time against the ghost and go again if needed.");
+    } catch (error) {
+      setMessengerStatus(error instanceof Error ? error.message : "Couldn’t finish the run.");
+    }
+  };
+
+  const renderHeader = () => (
+    <header className="site-header">
+      <button className="brand brand-button" type="button" onClick={() => handleNavigate("home")}>
+        <span className="brand-mark" />
+          <span>
+          <span className="brand-title">Gimme The Loop</span>
+          <span className="brand-subtitle">
+            {pageView === "messenger"
+              ? "Premium alleycat challenge mode."
+              : pageView === "account"
+                ? "Account, credits, and purchase history."
+                : "Loop routes built for the return."}
+          </span>
+        </span>
+      </button>
+
+      <button className="menu-toggle" type="button" onClick={() => setMenuOpen((prev) => !prev)} aria-expanded={menuOpen}>
+        Menu
+      </button>
+
+      <div className={`header-actions ${menuOpen ? "open" : ""}`}>
+        <button className={`nav-link ${pageView === "home" ? "active" : ""}`} type="button" onClick={() => handleNavigate("home")}>
+          Loop
+        </button>
+        <button
+          className={`nav-link premium-link ${pageView === "messenger" ? "active" : ""}`}
+          type="button"
+          onClick={() => handleNavigate("messenger")}
+        >
+          Alleycat Mode
+        </button>
+        <button className="nav-link" type="button" onClick={handleDonate}>
+          Add credits
+        </button>
+        {user ? (
+          <button
+            className={`nav-link ${pageView === "account" ? "active" : ""}`}
+            type="button"
+            onClick={() => handleNavigate("account")}
+          >
+            Account
+          </button>
+        ) : (
+          <button className="nav-link" type="button" onClick={() => openAuth("login")}>
+            Sign in
+          </button>
+        )}
+      </div>
+    </header>
+  );
+
+  const renderModals = () => (
+    <>
       {showLogin && (
         <div className="modal-overlay" role="dialog" aria-modal="true">
           <div className="modal-card">
-            <div className="modal-title">Login</div>
-            <div className="modal-subtitle">Get your link. No password.</div>
-            <label className="field">
-              <span>Email</span>
-              <input
-                type="email"
-                value={loginEmail}
-                onChange={(event) => setLoginEmail(event.target.value)}
-                placeholder="you@email.com"
-                autoFocus
-              />
-            </label>
-            <div className="modal-actions">
+            <div className="modal-title">{authMode === "signup" ? "Create account" : "Sign in"}</div>
+            <div className="modal-subtitle">Email and password. Clean, normal, and test-ready.</div>
+            <div className="auth-mode-switch">
               <button
-                className="ghost-button"
+                className={`pill ${authMode === "login" ? "active" : ""}`}
                 type="button"
-                onClick={() => setShowLogin(false)}
+                onClick={() => setAuthMode("login")}
               >
-                Cancel
+                Sign in
               </button>
               <button
-                className="primary-button"
+                className={`pill ${authMode === "signup" ? "active" : ""}`}
                 type="button"
-                onClick={async () => {
-                  if (!supabase) return;
-                  if (!loginEmail) {
-                    setAuthMessage("Add your email.");
-                    return;
-                  }
-                  setAuthMessage("Check your email for the login link.");
-                  await supabase.auth.signInWithOtp({
-                    email: loginEmail,
-                    options: { emailRedirectTo: window.location.origin },
-                  });
-                  setShowLogin(false);
-                  setLoginEmail("");
-                }}
+                onClick={() => setAuthMode("signup")}
               >
-                Send link
+                Create account
               </button>
             </div>
+            <form className="modal-form" onSubmit={handleAuthSubmit}>
+              <label className="field">
+                <span>Email</span>
+                <input
+                  type="email"
+                  value={loginEmail}
+                  onChange={(event) => setLoginEmail(event.target.value)}
+                  placeholder="you@email.com"
+                  autoFocus
+                />
+              </label>
+              <label className="field">
+                <span>Password</span>
+                <input
+                  type="password"
+                  value={loginPassword}
+                  onChange={(event) => setLoginPassword(event.target.value)}
+                  placeholder="At least 6 characters"
+                />
+              </label>
+              {authMessage && <div className="status-message compact-status">{authMessage}</div>}
+              <div className="modal-actions">
+                <button className="ghost-button" type="button" onClick={() => setShowLogin(false)}>
+                  Cancel
+                </button>
+                {authMode === "login" && (
+                  <button className="ghost-button" type="button" onClick={handlePasswordReset} disabled={isSendingReset}>
+                    {isSendingReset ? "Sending..." : "Reset password"}
+                  </button>
+                )}
+                <button className="primary-button" type="submit" disabled={authLoading}>
+                  {authLoading ? "Working..." : authMode === "signup" ? "Create account" : "Sign in"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -530,7 +1124,9 @@ export default function App() {
         <div className="modal-overlay" role="dialog" aria-modal="true">
           <div className="modal-card">
             <div className="modal-title">Add credits</div>
-            <div className="modal-subtitle">Min $5. $5 = 10 credits. We don’t collect data — just track free loops.</div>
+            <div className="modal-subtitle">
+              $5 = 10 credits. Loop uses the standard meter. Alleycat Mode costs {MESSENGER_CREDIT_COST} credits per manifest.
+            </div>
             <label className="field">
               <span>Amount (USD)</span>
               <input
@@ -543,11 +1139,7 @@ export default function App() {
               />
             </label>
             <div className="modal-actions">
-              <button
-                className="ghost-button"
-                type="button"
-                onClick={() => setShowCredits(false)}
-              >
+              <button className="ghost-button" type="button" onClick={() => setShowCredits(false)}>
                 Cancel
               </button>
               <button
@@ -580,7 +1172,156 @@ export default function App() {
           </div>
         </div>
       )}
+    </>
+  );
 
+  const renderAccount = () => (
+    <>
+      <section className="builder-section account-section">
+        <div className="account-shell">
+          <div className="account-topbar">
+            <div>
+              <div className="section-title">Account</div>
+              <div className="account-kicker">Mini dashboard for credits, purchases, and rider status.</div>
+            </div>
+            <div className="account-topbar-actions">
+              {user ? (
+                <button className="primary-button" type="button" onClick={handleDonate}>
+                  Add credits
+                </button>
+              ) : (
+                <button className="primary-button" type="button" onClick={() => openAuth("login")}>
+                  Sign in
+                </button>
+              )}
+              <button className="ghost-button" type="button" onClick={() => handleNavigate("home")}>
+                Back to Loop
+              </button>
+            </div>
+          </div>
+        </div>
+        {!user && (
+          <div className="builder-grid single">
+            <div className="glass-card form-card account-guest-card">
+              <div className="form-title">Sign in to unlock account tools</div>
+              <div className="form-subtitle">Use email and password. Credits, purchases, and Alleycat progress stay tied to one rider profile.</div>
+              {authMessage && <div className="status-message compact-status">{authMessage}</div>}
+              <div className="form-actions centered-actions">
+                <button className="primary-button" type="button" onClick={() => openAuth("login")}>
+                  Sign in
+                </button>
+                <button className="ghost-button" type="button" onClick={() => openAuth("signup")}>
+                  Create account
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {user && (
+          <div className="builder-grid account-grid">
+            <div className="glass-card form-card account-summary-card">
+              <div className="form-title">Profile</div>
+              <div className="form-subtitle">Minimal controls for a real rider account.</div>
+              {authMessage && <div className="status-message compact-status">{authMessage}</div>}
+              {accountStatus && <div className="status-message compact-status">{accountStatus}</div>}
+              <div className="user-row">
+                <div className="user-label">Email</div>
+                <div className="user-value">{user.email || "No email"}</div>
+              </div>
+              <div className="user-row">
+                <div className="user-label">Loop balance</div>
+                <div className="user-value">{totalCredits} total runs available</div>
+              </div>
+              <div className="user-row">
+                <div className="user-label">Free left</div>
+                <div className="user-value">{usage?.free_remaining || 0} free loops left</div>
+              </div>
+              <div className="user-row">
+                <div className="user-label">Paid credits</div>
+                <div className="user-value">{messengerCreditsOnly} credits live</div>
+              </div>
+              <label className="field">
+                <span>Change password</span>
+                <input
+                  type="password"
+                  value={accountPassword}
+                  onChange={(event) => setAccountPassword(event.target.value)}
+                  placeholder="New password"
+                />
+              </label>
+              <div className="form-actions">
+                <button className="primary-button" type="button" onClick={handlePasswordUpdate} disabled={isUpdatingPassword}>
+                  {isUpdatingPassword ? "Saving..." : "Update password"}
+                </button>
+                <button className="ghost-button" type="button" onClick={handleDonate}>
+                  Add credits
+                </button>
+                <button className="ghost-button" type="button" onClick={handleLogout}>
+                  Logout
+                </button>
+              </div>
+            </div>
+
+            <div className="glass-card form-card account-stats-card">
+              <div className="form-title">V1 activity</div>
+              <div className="form-subtitle">Enough visibility to test V1 without building a control room.</div>
+              <div className="result-grid result-grid-two">
+                <div>
+                  <span>Manifests</span>
+                  <strong>{accountSummary?.alleycat.manifests || 0}</strong>
+                </div>
+                <div>
+                  <span>Runs</span>
+                  <strong>{accountSummary?.alleycat.runs || 0}</strong>
+                </div>
+                <div>
+                  <span>Finished</span>
+                  <strong>{accountSummary?.alleycat.finished_runs || 0}</strong>
+                </div>
+                <div>
+                  <span>Challenges</span>
+                  <strong>{accountSummary?.alleycat.challenges || 0}</strong>
+                </div>
+              </div>
+              <div className="account-note">
+                Alleycat Mode costs {MESSENGER_CREDIT_COST} credits per manifest. Loop still uses the normal free and paid meter.
+              </div>
+            </div>
+
+            <div className="glass-card form-card account-purchases-card">
+              <div className="form-title">Recent purchases</div>
+              <div className="form-subtitle">A short receipt list for top-ups and quick verification.</div>
+              {!accountSummary?.purchases?.length && (
+                <div className="empty-state">
+                  <div className="empty-state-body">No credit purchases yet.</div>
+                </div>
+              )}
+              {accountSummary?.purchases?.length ? (
+                <div className="purchase-list">
+                  {accountSummary.purchases.map((purchase) => (
+                    <div key={purchase.session_id} className="purchase-row">
+                      <div>
+                        <strong>${(purchase.amount_cents / 100).toFixed(2)}</strong>
+                        <span>{new Date(purchase.created_at).toLocaleDateString()}</span>
+                      </div>
+                      <div>
+                        <strong>{purchase.credits_to_grant} credits</strong>
+                        <span>{purchase.status.replace(/_/g, " ")}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        )}
+      </section>
+    </>
+  );
+
+  const renderHome = () => (
+    <>
       <section className="hero" ref={heroRef}>
         <motion.div
           className="hero-copy"
@@ -588,15 +1329,16 @@ export default function App() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: "easeOut" }}
         >
-          
-          <h1>
-            Cheat death on the streets.
-          </h1>
-          <p>
-            Drop a spot, set the distance, get a clean loop back. No fluff.
-          </p>
+          <div className="hero-eyebrow">Loop Product</div>
+          <h1>Clean loops back to where you started.</h1>
+          <p>Drop a point, shape the ride, and get a clean return route.</p>
           <div className="hero-actions">
-            <a className="primary-button" href="#loop-builder">Build my loop</a>
+            <a className="primary-button" href="#loop-builder">
+              Build a loop
+            </a>
+            <button className="ghost-button" type="button" onClick={() => handleNavigate("messenger")}>
+              Explore Alleycat Mode
+            </button>
           </div>
           <div className="hero-metadata">
             <div>
@@ -604,12 +1346,12 @@ export default function App() {
               <div className="metric-label">Free loops</div>
             </div>
             <div>
-              <div className="metric">$5</div>
-              <div className="metric-label">= 10 credits</div>
+              <div className="metric">1 tap</div>
+              <div className="metric-label">Open in Maps</div>
             </div>
             <div>
-              <div className="metric">1 tap</div>
-              <div className="metric-label">Grab the route</div>
+              <div className="metric">$5</div>
+              <div className="metric-label">Adds 10 credits</div>
             </div>
           </div>
         </motion.div>
@@ -625,17 +1367,14 @@ export default function App() {
           </motion.div>
         </motion.div>
       </section>
-
-      <section className="loop-progress" id="how-it-works">
-        <div className="section-title">How to set up</div>
-        <div className="progress-track">
-          {steps.map((step, index) => (
+      <section className="loop-progress">
+        <div className="progress-track three-up">
+          {loopSteps.map((step, index) => (
             <motion.div
               key={step.number}
               className={`progress-step ${activeStep === index ? "active" : ""}`}
               onHoverStart={() => setActiveStep(index)}
               onHoverEnd={() => setActiveStep(-1)}
-              transition={{ type: "spring", stiffness: 180, damping: 18 }}
             >
               <div className="progress-dot">
                 <span>{step.number}</span>
@@ -649,254 +1388,594 @@ export default function App() {
       </section>
 
       <section className="builder-section" id="loop-builder">
-        <div className="section-title">Build the Loop</div>
-        <motion.div
-          className="glass-card form-card"
-          initial={{ opacity: 0, y: 12 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.15 }}
-          transition={{ duration: 0.35 }}
-        >
-          <div className="form-header">
-            <div>
-              <div className="form-title">Loop builder</div>
-              <div className="form-subtitle">No fluff. Just loops.</div>
-            </div>
-            {usage && (
-              <div className="loops-left">
-                <span className="loops-left-line">
-                  Credits {Math.max(0, (usage.credits_remaining || 0) + usage.free_remaining)}
-                </span>
-                <span className="loops-left-line">Free {usage.free_remaining}</span>
+        <div className="builder-grid single">
+          <div className="glass-card form-card">
+            <div className="form-header">
+              <div>
+                <div className="form-title">Loop builder</div>
+                <div className="form-subtitle">Fast route generation with the current product flow intact.</div>
               </div>
-            )}
-          </div>
-          {authMessage && <div className="status-message"><strong>{authMessage}</strong></div>}
+              {usage && (
+                <div className="loops-left">
+                  <span className="loops-left-line">Credits {totalCredits}</span>
+                  <span className="loops-left-line">Free {usage.free_remaining}</span>
+                </div>
+              )}
+            </div>
 
-          <div className="form-section first-form-section">
-            <label className="field">
-              <span>Loop point</span>
-              <input
-                type="text"
-                value={loopPoint}
-                onChange={(event) => {
-                  setLoopPoint(event.target.value);
-                  setSelectedCoords(null);
-                  setStep1Touched(true);
-                }}
-                placeholder="Search neighborhood or drop a pin"
-                onFocus={() => setActiveStep(0)}
-              />
-              {isSuggesting && <div className="field-hint">Searching…</div>}
-              {suggestions.length > 0 && (
-                <div className="suggestions">
-                  {suggestions.map((item) => (
+            <div className="form-section">
+              <label className="field">
+                <span>Loop point</span>
+                <input
+                  type="text"
+                  value={loopPoint}
+                  onChange={(event) => {
+                    setLoopPoint(event.target.value);
+                    setSelectedCoords(null);
+                    setStep1Touched(true);
+                  }}
+                  placeholder="Search neighborhood, station, or full address"
+                />
+                {isSuggesting && <div className="field-hint">Searching…</div>}
+                {suggestions.length > 0 && (
+                  <div className="suggestions">
+                    {suggestions.map((item) => (
+                      <button
+                        key={`${item.lat},${item.lng}`}
+                        type="button"
+                        className="suggestion-item"
+                        onClick={() => {
+                          setLoopPoint(item.label);
+                          setSelectedCoords({ lat: item.lat, lng: item.lng });
+                          setSuggestions([]);
+                          setStep1Touched(true);
+                        }}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <span className="field-hint">Choose where the ride should start and finish.</span>
+              </label>
+            </div>
+
+            <div className="form-section">
+              <label className="field">
+                <span>Distance</span>
+                <div className="unit-toggle">
+                  <button
+                    type="button"
+                    className={`pill ${unit === "km" ? "active" : ""}`}
+                    onClick={() => {
+                      handleUnitChange("km");
+                      setStep2Touched(true);
+                    }}
+                  >
+                    KM
+                  </button>
+                  <button
+                    type="button"
+                    className={`pill ${unit === "mi" ? "active" : ""}`}
+                    onClick={() => {
+                      handleUnitChange("mi");
+                      setStep2Touched(true);
+                    }}
+                  >
+                    Miles
+                  </button>
+                </div>
+                <input
+                  type="range"
+                  min={minDistance}
+                  max={maxDistance}
+                  value={distance}
+                  onChange={(event) => {
+                    setDistance(Number(event.target.value));
+                    setStep2Touched(true);
+                  }}
+                  style={{ ["--range-progress" as string]: `${rangePercent}%` }}
+                />
+                <div className="range-labels">
+                  <span>
+                    {minDistance} {unit}
+                  </span>
+                  <span>
+                    {distanceLabel} {unit}
+                  </span>
+                </div>
+              </label>
+
+              <div className="field-row">
+                <label className="field">
+                  <span>Terrain</span>
+                  <select
+                    value={terrain}
+                    onChange={(event) => {
+                      setTerrain(event.target.value);
+                      setStep3Touched(true);
+                    }}
+                  >
+                    <option value="mix">Urban mix</option>
+                    <option value="road">Road fast</option>
+                    <option value="climb">Climb focused</option>
+                    <option value="coast">Coastal</option>
+                  </select>
+                </label>
+                <label className="field">
+                  <span>Surface</span>
+                  <select
+                    value={surface}
+                    onChange={(event) => {
+                      setSurface(event.target.value);
+                      setStep3Touched(true);
+                    }}
+                  >
+                    <option value="paved">Paved</option>
+                    <option value="mixed">Mixed</option>
+                    <option value="gravel">Gravel</option>
+                  </select>
+                </label>
+              </div>
+
+              <label className="field">
+                <span>Ride vibe</span>
+                <div className="pill-group">
+                  {["Elegant", "Energy", "Scenic", "Climb"].map((option) => (
                     <button
-                      key={`${item.lat},${item.lng}`}
-                      type="button"
-                      className="suggestion-item"
+                      key={option}
+                      className={`pill ${vibe === option ? "active" : ""}`}
                       onClick={() => {
-                        setLoopPoint(item.label);
-                        setSelectedCoords({ lat: item.lat, lng: item.lng });
-                        setSuggestions([]);
-                        setStep1Touched(true);
+                        setVibe(option);
+                        setStep3Touched(true);
                       }}
+                      type="button"
                     >
-                      {item.label}
+                      {option}
                     </button>
                   ))}
                 </div>
-              )}
-              <span className="field-hint">Paste a full address or city name.</span>
-            </label>
-          </div>
-
-          <div className="form-section">
-            <label className="field">
-              <span>Distance</span>
-              <div className="unit-toggle">
-                <button
-                  type="button"
-                  className={`pill ${unit === "km" ? "active" : ""}`}
-                  onClick={() => {
-                    handleUnitChange("km");
-                    setStep2Touched(true);
-                  }}
-                >
-                  KM
-                </button>
-                <button
-                  type="button"
-                  className={`pill ${unit === "mi" ? "active" : ""}`}
-                  onClick={() => {
-                    handleUnitChange("mi");
-                    setStep2Touched(true);
-                  }}
-                >
-                  Miles
-                </button>
-              </div>
-              <input
-                type="range"
-                min={minDistance}
-                max={maxDistance}
-                value={distance}
-                onChange={(event) => {
-                  setDistance(Number(event.target.value));
-                  setStep2Touched(true);
-                }}
-                onFocus={() => setActiveStep(1)}
-                style={{ ["--range-progress" as string]: `${rangePercent}%` }}
-              />
-              <div className="range-labels">
-                <span>{minDistance} {unit}</span>
-                <span>{distanceLabel} {unit}</span>
-              </div>
-            </label>
-
-            <div className="field-row terrain-row">
-              <label className="field">
-                <span>Terrain</span>
-                <select
-                  value={terrain}
-                  onChange={(event) => {
-                    setTerrain(event.target.value);
-                    setStep3Touched(true);
-                  }}
-                  onFocus={() => setActiveStep(1)}
-                >
-                  <option value="mix">Urban mix</option>
-                  <option value="road">Road fast</option>
-                  <option value="climb">Climb focused</option>
-                  <option value="coast">Coastal</option>
-                </select>
-              </label>
-              <label className="field">
-                <span>Surface</span>
-                <select
-                  value={surface}
-                  onChange={(event) => {
-                    setSurface(event.target.value);
-                    setStep3Touched(true);
-                  }}
-                  onFocus={() => setActiveStep(1)}
-                >
-                  <option value="paved">Paved</option>
-                  <option value="mixed">Mixed</option>
-                  <option value="gravel">Gravel</option>
-                </select>
               </label>
             </div>
 
-            <label className="field vibe-field">
-              <span>Ride vibe</span>
-              <div className="pill-group">
-                {["Elegant", "Energy", "Scenic", "Climb"].map((option) => (
-                  <button
-                    key={option}
-                    className={`pill ${vibe === option ? "active" : ""}`}
-                    onClick={() => {
-                      setVibe(option);
-                      setStep3Touched(true);
-                    }}
-                    type="button"
-                    onFocus={() => setActiveStep(1)}
-                  >
-                    {option}
-                  </button>
-                ))}
+            <div className="form-section">
+              <div className="form-actions">
+                <button
+                  className={`primary-button ${allLoopDone ? "ready" : ""}`}
+                  onClick={handleGenerateLoop}
+                  disabled={isGeneratingLoop || !allLoopDone}
+                >
+                  {isGeneratingLoop ? "Building..." : "Generate loop"}
+                </button>
               </div>
-            </label>
-          </div>
-
-          <div className="form-section">
-            <div className="form-actions split">
-              <button
-                className={`primary-button generate-routes-button ${allDone ? "ready" : ""}`}
-                onFocus={() => setActiveStep(2)}
-                onClick={handleGenerateRoutes}
-                disabled={isGenerating || !allDone}
-              >
-                Generate routes
-              </button>
-            </div>
-            {statusMessage && (
-              <div className="status-message">
-                <strong>{statusMessage}</strong>
-              </div>
-            )}
-            {lastRouteUrl && (
-              <div className="route-output">
-                <div className="route-actions">
-                  <button
-                    className="ghost-button small"
-                    type="button"
-                    onClick={() => handleCopy("")}
-                  >
-                    Copy link
-                  </button>
-                  <a className="primary-button small" href={lastRouteUrl} target="_blank" rel="noreferrer">
-                    Open in Maps
-                  </a>
+              {statusMessage && <div className="status-message">{statusMessage}</div>}
+              {lastRouteUrl && (
+                <div className="route-output">
+                  <div className="route-actions">
+                    <button className="ghost-button small" type="button" onClick={handleCopy}>
+                      Copy link
+                    </button>
+                    <a className="primary-button small" href={lastRouteUrl} target="_blank" rel="noreferrer">
+                      Open in Maps
+                    </a>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
+        </div>
+      </section>
 
+    </>
+  );
+
+  const renderMessenger = () => (
+    <>
+      <section className="hero messenger-hero" ref={heroRef}>
+        <motion.div
+          className="hero-copy"
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
+        >
+          <div className="hero-eyebrow">Alleycat Mode</div>
+          <h1>Premium city manifests built for pressure, not clutter.</h1>
+          <p>Curated checkpoints, ghost targets, and your own line through the city.</p>
+          <div className="hero-actions">
+            <a className="primary-button" href="#messenger-builder">
+              Build a manifest
+            </a>
+            <button className="ghost-button" type="button" onClick={() => handleNavigate("home")}>
+              Back to Loop
+            </button>
+          </div>
+          <div className="hero-metadata">
+            <div>
+              <div className="metric">{MESSENGER_CREDIT_COST}</div>
+              <div className="metric-label">Credits per manifest</div>
+            </div>
+            <div>
+              <div className="metric">Solo</div>
+              <div className="metric-label">Ghost race format</div>
+            </div>
+            <div>
+              <div className="metric">Any order</div>
+              <div className="metric-label">Route choice stays yours</div>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          className="hero-visual"
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut", delay: 0.15 }}
+        >
+          <motion.div className="hero-image messenger-image" style={{ y: parallaxY, x: parallaxX }}>
+            <img src={heroImage} alt="Rider in a city challenge flow" />
+          </motion.div>
         </motion.div>
       </section>
 
-      <section className="user-panel">
-        <div className="glass-card user-card">
-          <div className="form-title">Account</div>
-          <div className="form-subtitle">Credits + login status</div>
-          <div className="user-row">
-            <div className="user-label">Status</div>
-            <div className="user-value">{user ? "Logged in" : "Guest"}</div>
-          </div>
-          {user?.email && (
-            <div className="user-row">
-              <div className="user-label">Email</div>
-              <div className="user-value">{user.email}</div>
-            </div>
-          )}
-          {usage && (
-            <div className="user-row">
-              <div className="user-label">Credits left</div>
-              <div className="user-value">
-                {Math.max(0, (usage.credits_remaining || 0) + usage.free_remaining)} (Free {usage.free_remaining})
+      <section className="loop-progress messenger-flow">
+        <div className="section-title">How the product works</div>
+        <div className="progress-track stacked-mobile">
+          {messengerFlow.map((step, index) => (
+            <motion.div
+              key={step.number}
+              className={`progress-step ${activeStep === index ? "active" : ""}`}
+              onHoverStart={() => setActiveStep(index)}
+              onHoverEnd={() => setActiveStep(-1)}
+            >
+              <div className="progress-dot">
+                <span>{step.number}</span>
               </div>
-            </div>
-          )}
-          <div className="user-actions">
-            {!user ? (
-              <button className="primary-button" type="button" onClick={handleLogin}>
-                Login
-              </button>
-            ) : (
-              <button className="ghost-button" type="button" onClick={handleLogout}>
-                Logout
-              </button>
-            )}
-            <button className="ghost-button" type="button" onClick={handleDonate}>
-              Add credits
-            </button>
-          </div>
+              <div className="progress-number">Step {step.number}</div>
+              <div className="progress-title">{step.title}</div>
+              <div className="progress-body">{step.body}</div>
+            </motion.div>
+          ))}
         </div>
       </section>
 
+      <section className="builder-section" id="messenger-builder">
+        <div className={`builder-grid messenger-page-grid ${!messengerManifest ? "single-card-layout" : ""}`}>
+          <div className="glass-card form-card premium-card active-premium">
+            <div className="form-header">
+              <div>
+                <div className="form-title premium-title">
+                  Alleycat builder
+                  <span className="inline-badge">Premium</span>
+                </div>
+                <div className="form-subtitle">
+                  Pull a city-specific checkpoint set, start the timer, then clear every stop in your own order.
+                </div>
+              </div>
+              <div className="loops-left">
+                <span className="loops-left-line">Credits {messengerCreditsOnly}</span>
+                <span className="loops-left-line">{MESSENGER_CREDIT_COST} per manifest</span>
+              </div>
+            </div>
+
+            <div className="share-strip">
+              <label className="field share-field">
+                <span>Have a share code?</span>
+                <input
+                  type="text"
+                  value={shareInput}
+                  onChange={(event) => setShareInput(event.target.value.toUpperCase())}
+                  placeholder="Enter code"
+                />
+              </label>
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={handleLoadShareCode}
+                disabled={isLoadingSharedManifest || !shareInput.trim()}
+              >
+                {isLoadingSharedManifest ? "Loading..." : "Load shared manifest"}
+              </button>
+            </div>
+            {shareStatus && <div className="status-message">{shareStatus}</div>}
+
+            <div className="form-section">
+              <label className="field">
+                <span>City or start area</span>
+                <input
+                  type="text"
+                  value={messengerCity}
+                  onChange={(event) => setMessengerCity(event.target.value)}
+                  placeholder="Berlin or London for now"
+                />
+                <span className="field-hint">V1 ships with curated city packs. More can be added cleanly later.</span>
+              </label>
+              <div className="pill-group city-preset-group">
+                {ALLEYCAT_CITY_PRESETS.map((city) => (
+                  <button
+                    key={city}
+                    type="button"
+                    className={`pill ${messengerCity.trim().toLowerCase() === city.toLowerCase() ? "active" : ""}`}
+                    onClick={() => setMessengerCity(city)}
+                  >
+                    {city}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="form-section">
+              <label className="field">
+                <span>Difficulty</span>
+                <div className="pill-group">
+                  {[
+                    ["easy", "Easy"],
+                    ["medium", "Medium"],
+                    ["hard", "Hard"],
+                  ].map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={`pill ${messengerDifficulty === value ? "active" : ""}`}
+                      onClick={() => setMessengerDifficulty(value)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </label>
+
+              <label className="field">
+                <span>Street tone</span>
+                <div className="pill-group">
+                  {[
+                    ["local", "Local"],
+                    ["fast", "Fast"],
+                    ["chaotic", "Chaotic"],
+                  ].map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={`pill ${messengerStyle === value ? "active" : ""}`}
+                      onClick={() => setMessengerStyle(value)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </label>
+            </div>
+
+            <div className="form-section">
+              <div className="form-actions">
+                <button
+                  className="primary-button premium-button"
+                  type="button"
+                  onClick={handleGenerateMessenger}
+                  disabled={isGeneratingMessenger || !messengerCity.trim()}
+                >
+                  {isGeneratingMessenger ? "Building manifest..." : "Generate manifest"}
+                </button>
+                {(messengerManifest || messengerRun) && (
+                  <button className="ghost-button" type="button" onClick={handleResetAlleycat}>
+                    Reset alleycat
+                  </button>
+                )}
+                {messengerManifestId && (
+                  <button
+                    className="ghost-button"
+                    type="button"
+                    onClick={handleCreateShareCode}
+                    disabled={isSharingManifest}
+                  >
+                    {isSharingManifest ? "Creating code..." : "Create share code"}
+                  </button>
+                )}
+              </div>
+              {messengerStatus && <div className="status-message">{messengerStatus}</div>}
+            </div>
+          </div>
+
+          {messengerManifest && (
+            <div className="glass-card form-card sequential-card">
+            <div className="form-title">Run panel</div>
+            {isHydratingRun && <div className="status-message">Reloading your current alleycat run…</div>}
+              <div className="messenger-output">
+                <div className="manifest-brief">
+                  <div>
+                    <div className="manifest-title">{messengerManifest.manifest_title}</div>
+                    <div className="manifest-subtitle">
+                      {messengerManifest.city} · {messengerManifest.checkpoint_count} checkpoints ·{" "}
+                      {messengerManifest.estimated_minutes} min est.
+                    </div>
+                  </div>
+                  <div className="manifest-metrics">
+                    <div>
+                      <span>Ghost</span>
+                      <strong>{formatDuration(messengerManifest.ghost_seconds)}</strong>
+                    </div>
+                    <div>
+                      <span>Format</span>
+                      <strong>Any order</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="manifest-notes">
+                  <div>{messengerManifest.route_note}</div>
+                  <div>{messengerManifest.finish_label}</div>
+                </div>
+
+                <div className="manifest-actions">
+                  <div className="run-progress">
+                    <span>Progress</span>
+                    <strong>
+                      {completedCount}/{totalCheckpoints} cleared
+                    </strong>
+                    <em>{remainingCount} left</em>
+                  </div>
+                  {shareCode && (
+                    <div className="run-progress share-code-box">
+                      <span>Share code</span>
+                      <strong>{shareCode}</strong>
+                      <em>Same manifest, friend vs friend.</em>
+                    </div>
+                  )}
+                  {!messengerRun ? (
+                    <button className="primary-button" type="button" onClick={handleStartMessenger}>
+                      Start run
+                    </button>
+                  ) : (
+                    <>
+                      <div className="run-clock">
+                        <span>Elapsed</span>
+                        <strong>{formatDuration(currentElapsed)}</strong>
+                      </div>
+                      <button
+                        className="ghost-button"
+                        type="button"
+                        onClick={handleFinishMessenger}
+                        disabled={
+                          messengerRun.completedIds.length !== messengerManifest.checkpoints.length ||
+                          Boolean(messengerRun.finishedAt)
+                        }
+                      >
+                        {messengerRun.finishedAt ? "Run finished" : "Finish run"}
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                <div className="checkpoint-list">
+                  {messengerManifest.checkpoints.map((checkpoint) => {
+                    const done = messengerRun?.completedIds.includes(checkpoint.id) || false;
+                    return (
+                      <div key={checkpoint.id} className={`checkpoint-card ${done ? "done" : ""}`}>
+                        <div className="checkpoint-meta">
+                          <span>CP {checkpoint.order}</span>
+                          {done && <span className="checkpoint-done">Checked in</span>}
+                        </div>
+                        <div className="checkpoint-name">{checkpoint.name}</div>
+                        <div className="checkpoint-task">{checkpoint.task}</div>
+                        <div className="checkpoint-hint">{checkpoint.hint}</div>
+                        <div className="checkpoint-actions">
+                          <a
+                            className="ghost-button small"
+                            href={buildCheckpointMapsUrl(checkpoint)}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Open in Maps
+                          </a>
+                          {messengerRun && !messengerRun.finishedAt && (
+                            <button
+                              className={`ghost-button small ${done ? "is-complete" : ""}`}
+                              type="button"
+                              onClick={() => handleCheckInMessenger(checkpoint.id)}
+                            >
+                              {done ? "Checked in" : "Check in"}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {messengerRun?.finishedAt && (
+                  <div className="result-card">
+                    <div className="result-title">Run closed</div>
+                    <div className="result-grid result-grid-three">
+                      <div>
+                        <span>Your time</span>
+                        <strong>{formatDuration(messengerRun.finishSeconds || 0)}</strong>
+                      </div>
+                      <div>
+                        <span>Ghost</span>
+                        <strong>{formatDuration(messengerManifest.ghost_seconds)}</strong>
+                      </div>
+                      <div>
+                        <span>Difference</span>
+                        <strong className={ghostDelta !== null && ghostDelta <= 0 ? "good-time" : "slow-time"}>
+                          {ghostDelta !== null
+                            ? `${ghostDelta <= 0 ? "-" : "+"}${formatDuration(Math.abs(ghostDelta))}`
+                            : "--:--"}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {(challenge || leaderboard.length > 0 || isLoadingLeaderboard) && (
+                  <div className="result-card leaderboard-card">
+                    <div className="result-title">Friend leaderboard</div>
+                    {challenge && <div className="manifest-subtitle">Code {challenge.code}</div>}
+                    {isLoadingLeaderboard && <div className="status-message compact-status">Refreshing leaderboard…</div>}
+                    {!isLoadingLeaderboard && leaderboard.length === 0 && (
+                      <div className="empty-state">
+                        <div className="empty-state-body">No finished runs yet. Share the code and race it out.</div>
+                      </div>
+                    )}
+                    {leaderboard.length > 0 && (
+                      <div className="leaderboard-list">
+                        {leaderboard.map((entry, index) => (
+                          <div key={`${entry.user_id}-${entry.manifest_id}`} className="leaderboard-row">
+                            <div className="leaderboard-rank">#{index + 1}</div>
+                            <div className="leaderboard-main">
+                              <strong>{entry.is_creator ? "You / creator" : entry.user_id === user?.id ? "You" : "Rider"}</strong>
+                              <span>{entry.status === "finished" ? "Finished" : "Open run"}</span>
+                            </div>
+                            <div className="leaderboard-time">
+                              {entry.best_seconds !== null ? formatDuration(entry.best_seconds) : "--:--"}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+    </>
+  );
+
+  return (
+    <motion.div
+      className={`page ${pageView === "messenger" ? "page-messenger" : "page-home"}`}
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8, ease: "easeOut" }}
+      style={{ "--bg-shift": bgShiftPx, "--bg-scale": bgScale } as CSSProperties}
+    >
+      {renderHeader()}
+      {renderModals()}
+      {pageView === "messenger" ? renderMessenger() : pageView === "account" ? renderAccount() : renderHome()}
       <footer className="site-footer">
         <div>
           <div className="footer-title">Gimme The Loop</div>
-          <div className="footer-subtitle">Built for riders who love the return.</div>
+          <div className="footer-subtitle">
+            {pageView === "messenger"
+              ? "Alleycat Mode is the premium city challenge layer built on top of the route product."
+              : pageView === "account"
+                ? "Account keeps credits, purchases, and profile controls in one clean place."
+              : "Loop is the fast route product. Alleycat Mode adds the premium city challenge layer."}
+          </div>
         </div>
         <div className="footer-links">
-          <a className="ghost-link" href="/privacy.html">Privacy</a>
-          <a className="ghost-link" href="/terms.html">Terms</a>
+          <a className="ghost-link" href="/privacy.html">
+            Privacy
+          </a>
+          <a className="ghost-link" href="/terms.html">
+            Terms
+          </a>
+          <a className="ghost-link" href="/how.html">
+            How it works
+          </a>
           <a className="ghost-link" href="https://buymeacoffee.com/js4mhwqrdjd">
             Buy me a coffee
           </a>
-          <a className="ghost-link admin-link" href="/admin.html">Admin</a>
         </div>
       </footer>
     </motion.div>

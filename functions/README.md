@@ -7,6 +7,8 @@ Required secrets (set in Cloudflare Pages):
 - STRIPE_WEBHOOK_SECRET
 - ORS_API_KEY
 - SUPABASE_SERVICE_ROLE_KEY
+- SUPABASE_URL
+- SUPABASE_ANON_KEY
 - ADMIN_EMAILS
 - APP_URL (optional; e.g. https://gimme-the-loop.pages.dev)
 
@@ -18,3 +20,16 @@ Recommended DB migration for atomic credits:
 
 Recommended DB migration for free-tier protection:
 - Run `/Users/alan/_localDEV/Loop/db/sql/rls_hardening.sql` in Supabase SQL editor.
+
+Recommended DB migration for Alleycat Mode:
+- Run `/Users/alan/_localDEV/Loop/db/sql/messenger_mode.sql` in Supabase SQL editor.
+
+Recommended DB migration for advisor cleanup:
+- Run `/Users/alan/_localDEV/Loop/db/sql/supabase_security_followups.sql` in Supabase SQL editor.
+
+Admin bootstrap:
+- Create or update an admin auth user with `npm run admin:create -- admin@email.com strong-password`
+- Make sure the admin email is included in `ADMIN_EMAILS`
+
+Supabase Auth hardening:
+- Enable leaked password protection in Dashboard -> Auth -> Providers -> Email

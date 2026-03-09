@@ -1,0 +1,4 @@
+/messenger /index.html 200
+/messenger/* /index.html 200
+/account /index.html 200
+/account/* /index.html 200
