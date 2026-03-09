@@ -6,55 +6,59 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   scroll-behavior: smooth;
-  --bg: #0b0b0b;
-  --bg-elev: #151515;
-  --text: #f2f2f2;
-  --text-soft: #e5e5e5;
-  --text-muted: #c2c2c2;
-  --border: rgba(255, 255, 255, 0.12);
-  --shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
-  --accent: #f62b0a;
-  --accent-warm: #ff8f3d;
-  --ghost-fill: rgba(255, 255, 255, 0.08);
-  --premium-fill: linear-gradient(135deg, rgba(246, 43, 10, 0.22), rgba(255, 143, 61, 0.12));
+
+  /* Premium HSL Color Palette */
+  --hue: 10;
+  --bg: hsl(var(--hue), 10%, 4%);
+  --bg-elev: hsl(var(--hue), 10%, 8%);
+  --text: hsl(0, 0%, 96%);
+  --text-soft: hsl(0, 0%, 88%);
+  --text-muted: hsl(0, 0%, 75%);
+  --accent: hsl(10, 95%, 50%);
+  --accent-warm: hsl(25, 100%, 65%);
+  --border: hsla(0, 0%, 100%, 0.1);
+  --border-bright: hsla(0, 0%, 100%, 0.2);
+  --shadow: 0 30px 90px hsla(0, 0%, 0%, 0.7);
+  --ghost-fill: hsla(0, 0%, 100%, 0.04);
+  --glass-bg: hsla(var(--hue), 15%, 12%, 0.25);
+  --premium-fill: linear-gradient(135deg, hsla(10, 95%, 50%, 0.2), hsla(25, 100%, 65%, 0.1));
 }
 
 * {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 html,
 body,
 #root {
   min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
 }
 
 body {
-  margin: 0;
-  font-family: "Zalando Sans Expanded", "Helvetica Neue", sans-serif;
-  background: var(--bg);
-  color: var(--text);
+  font-family: "Zalando Sans Expanded", "Inter", "Helvetica Neue", sans-serif;
   font-weight: 350;
+  line-height: 1.6;
 }
 
 button,
 input,
 select {
-  font-family: "Zalando Sans Expanded", "Helvetica Neue", sans-serif;
-}
-
-a {
-  color: inherit;
+  font-family: inherit;
+  font-weight: inherit;
 }
 
 .page {
   min-height: 100vh;
-  padding: 18px 64px 64px;
+  padding: 24px 64px 80px;
   display: flex;
   flex-direction: column;
-  gap: 64px;
+  gap: 80px;
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
 .page::before {
@@ -62,17 +66,17 @@ a {
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(ellipse at 50% 102%, rgba(252, 167, 69, 0.55) 0%, transparent 52%),
-    radial-gradient(ellipse at 50% 100%, rgba(255, 120, 0, 0.45) 0%, transparent 50%),
-    radial-gradient(ellipse at 35% 103%, rgba(253, 29, 29, 0.45) 0%, transparent 58%),
-    radial-gradient(ellipse at 70% 105%, rgba(235, 19, 19, 0.35) 0%, transparent 60%),
-    linear-gradient(180deg, #000000 0%, #000000 72%, #120604 100%);
+    radial-gradient(ellipse at 50% 102%, hsla(35, 95%, 60%, 0.4) 0%, transparent 60%),
+    radial-gradient(ellipse at 15% 105%, hsla(10, 95%, 50%, 0.3) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 105%, hsla(25, 100%, 65%, 0.25) 0%, transparent 55%),
+    linear-gradient(180deg, hsl(0, 0%, 0%) 0%, hsl(10, 10%, 2%) 100%);
   pointer-events: none;
   z-index: 0;
-  transform: translateY(calc(18vh + var(--bg-shift, 0px))) scale(var(--bg-scale, 1));
+  transform: translateY(calc(15vh + var(--bg-shift, 0px))) scale(var(--bg-scale, 1.1));
   transform-origin: center bottom;
-  filter: blur(180px);
+  filter: blur(140px);
 }
+
 
 .page::after {
   content: "";

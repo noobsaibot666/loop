@@ -3,7 +3,11 @@ import { motion, useMotionTemplate, useScroll, useSpring, useTransform } from "f
 import { createClient } from "@supabase/supabase-js";
 import heroImage from "./images/hero_6.png";
 
-type PageView = "home" | "loop" | "messenger" | "account" | "wall";
+import { Hero } from "./components/Hero";
+import { formatDuration, getPageView } from "./utils/routeUtils";
+
+export type PageView = "home" | "loop" | "messenger" | "account" | "wall";
+
 type Usage = {
   free_used: number;
   donation_credits: number;
@@ -249,28 +253,14 @@ const messengerFlow = [
   },
 ];
 
-function useTheme() {
+
+
+
+export default function App() {
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", "dark");
   }, []);
-}
 
-const formatDuration = (totalSeconds: number) => {
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-};
-
-const getPageView = (): PageView => {
-  if (window.location.pathname.startsWith("/loop")) return "loop";
-  if (window.location.pathname.startsWith("/messenger")) return "messenger";
-  if (window.location.pathname.startsWith("/account")) return "account";
-  if (window.location.pathname.startsWith("/wall")) return "wall";
-  return "home";
-};
-
-export default function App() {
-  useTheme();
   const heroRef = useRef<HTMLDivElement | null>(null);
   const { scrollYProgress } = useScroll();
   const parallaxY = useSpring(useTransform(scrollYProgress, [0, 1], [30, -30]), {
@@ -712,7 +702,7 @@ export default function App() {
     const lat2 =
       Math.asin(
         Math.sin(lat1) * Math.cos(distanceKm / earthRadiusKm) +
-          Math.cos(lat1) * Math.sin(distanceKm / earthRadiusKm) * Math.cos(bearing)
+        Math.cos(lat1) * Math.sin(distanceKm / earthRadiusKm) * Math.cos(bearing)
       );
     const lng2 =
       lng1 +
@@ -1077,9 +1067,9 @@ export default function App() {
       setMessengerRun((current) =>
         current
           ? {
-              ...current,
-              proofs: proofResponse.proofs || [],
-            }
+            ...current,
+            proofs: proofResponse.proofs || [],
+          }
           : current
       );
       setProofFiles((current) => ({ ...current, [checkpoint.id]: null }));
@@ -1211,12 +1201,12 @@ export default function App() {
       setUsage((current) =>
         current
           ? {
-              ...current,
-              donation_credits: data.credits_remaining,
-              credits_remaining: data.credits_remaining,
-              is_admin: data.is_admin ?? current.is_admin,
-              unlimited_credits: data.unlimited_credits ?? current.unlimited_credits,
-            }
+            ...current,
+            donation_credits: data.credits_remaining,
+            credits_remaining: data.credits_remaining,
+            is_admin: data.is_admin ?? current.is_admin,
+            unlimited_credits: data.unlimited_credits ?? current.unlimited_credits,
+          }
           : current
       );
     } catch (error) {
@@ -1277,11 +1267,11 @@ export default function App() {
       setMessengerRun((current) =>
         current
           ? {
-              ...current,
-              finishSeconds: data.finish_seconds,
-              finishedAt: data.finished_at,
-              status: "finished",
-            }
+            ...current,
+            finishSeconds: data.finish_seconds,
+            finishedAt: data.finished_at,
+            status: "finished",
+          }
           : current
       );
       setMessengerStatus("Run closed. Stack your time against the ghost and go again if needed.");
@@ -1294,18 +1284,18 @@ export default function App() {
     <header className="site-header">
       <button className="brand brand-button" type="button" onClick={() => handleNavigate("home")}>
         <span className="brand-mark" />
-          <span>
+        <span>
           <span className="brand-title">Gimme The Loop</span>
           <span className="brand-subtitle">
             {pageView === "home"
               ? "Loop routes and alleycat runs for the city."
               : pageView === "loop"
                 ? "Loop routes built for the return."
-              : pageView === "messenger"
-              ? "Premium alleycat challenge mode."
-              : pageView === "account"
-                ? "Account, credits, and purchase history."
-                : "Public proof from alleycat runs."}
+                : pageView === "messenger"
+                  ? "Premium alleycat challenge mode."
+                  : pageView === "account"
+                    ? "Account, credits, and purchase history."
+                    : "Public proof from alleycat runs."}
           </span>
         </span>
       </button>
@@ -1799,54 +1789,16 @@ export default function App() {
 
   const renderHome = () => (
     <>
-      <section className="hero" ref={heroRef}>
-        <motion.div
-          className="hero-copy"
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: "easeOut" }}
-        >
-          <div className="hero-eyebrow">City riding tools</div>
-          <h1>One product page. Two ways to ride the city.</h1>
-          <p>Loop gives you the fast return route. Alleycat gives you the pressure, checkpoints, and shared city game.</p>
-          <div className="hero-actions">
-            <button className="primary-button" type="button" onClick={() => handleNavigate("loop")}>
-              Open Loop
-            </button>
-            <button className="ghost-button" type="button" onClick={() => handleNavigate("messenger")}>
-              Open Alleycat
-            </button>
-            <button className="ghost-button" type="button" onClick={() => handleNavigate("wall")}>
-              Open Wall
-            </button>
-          </div>
-          <div className="hero-metadata">
-            <div>
-              <div className="metric">Loop</div>
-              <div className="metric-label">Clean return routes</div>
-            </div>
-            <div>
-              <div className="metric">Alleycat</div>
-              <div className="metric-label">Checkpoint city mode</div>
-            </div>
-            <div>
-              <div className="metric">Wall</div>
-              <div className="metric-label">Public proof feed</div>
-            </div>
-          </div>
-        </motion.div>
+      <Hero
+        heroRef={heroRef}
+        parallaxY={parallaxY}
+        parallaxX={parallaxX}
+        heroImage={heroImage}
+        onNavigate={handleNavigate}
+        activeStep={activeStep}
+        setActiveStep={setActiveStep}
+      />
 
-        <motion.div
-          className="hero-visual"
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut", delay: 0.15 }}
-        >
-          <motion.div className="hero-image" style={{ y: parallaxY, x: parallaxX }}>
-            <img src={heroImage} alt="Cyclist moving through a city ride product" />
-          </motion.div>
-        </motion.div>
-      </section>
 
       <section className="feature-link-section">
         <div className="section-title">Pick a mode</div>
@@ -2300,8 +2252,8 @@ export default function App() {
 
           {messengerManifest && (
             <div className="glass-card form-card sequential-card">
-            <div className="form-title">Run panel</div>
-            {isHydratingRun && <div className="status-message">Reloading your current alleycat run…</div>}
+              <div className="form-title">Run panel</div>
+              {isHydratingRun && <div className="status-message">Reloading your current alleycat run…</div>}
               <div className="messenger-output">
                 <div className="manifest-brief">
                   <div>
@@ -2689,14 +2641,14 @@ export default function App() {
             {pageView === "home"
               ? "Home is the product page. Loop and Alleycat stay as the focused ride tools."
               : pageView === "messenger"
-              ? "Alleycat Mode is the premium city challenge layer built on top of the route product."
-              : pageView === "loop"
-                ? "Loop is the fast route product for clean return rides."
-              : pageView === "account"
-                ? "Account keeps credits, purchases, and profile controls in one clean place."
-                : pageView === "wall"
-                  ? "Wall is the public layer for Alleycat proof and city moments."
-                  : "Loop is the fast route product. Alleycat Mode adds the premium city challenge layer."}
+                ? "Alleycat Mode is the premium city challenge layer built on top of the route product."
+                : pageView === "loop"
+                  ? "Loop is the fast route product for clean return rides."
+                  : pageView === "account"
+                    ? "Account keeps credits, purchases, and profile controls in one clean place."
+                    : pageView === "wall"
+                      ? "Wall is the public layer for Alleycat proof and city moments."
+                      : "Loop is the fast route product. Alleycat Mode adds the premium city challenge layer."}
           </div>
         </div>
         <div className="footer-links">
