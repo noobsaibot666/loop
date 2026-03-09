@@ -24,6 +24,20 @@ export async function onRequest({ request, env }) {
   const checkpoints = manifest?.manifest?.checkpoints || [];
   const checkpoint = checkpoints.find((item) => item.id === checkpointId);
   if (!checkpoint) return json({ error: "checkpoint not part of manifest" }, { status: 400 });
+  const checkins = await getRunCheckins(env, runId);
+  const existing = checkins.find((item) => item.checkpoint_id === checkpointId);
+  if (existing) {
+    return json(
+      {
+        ok: true,
+        already_checked_in: true,
+        checkpoint_id: checkpointId,
+        completed_ids: checkins.map((row) => row.checkpoint_id),
+        message: `${checkpoint.name} is already checked in.`,
+      },
+      { status: 200 }
+    );
+  }
 
   const distanceMeters = distanceBetweenMeters(
     { lat, lng },
@@ -33,9 +47,10 @@ export async function onRequest({ request, env }) {
   if (distanceMeters > ALLEYCAT_CHECKIN_RADIUS_METERS) {
     return json(
       {
-        error: `Move closer to ${checkpoint.name} before checking in.`,
+        error: `Move closer to ${checkpoint.name} before checking in. You are ${distanceMeters}m away.`,
         distance_meters: distanceMeters,
         max_distance_meters: ALLEYCAT_CHECKIN_RADIUS_METERS,
+        meters_to_move: distanceMeters - ALLEYCAT_CHECKIN_RADIUS_METERS,
       },
       { status: 400 }
     );
@@ -55,12 +70,12 @@ export async function onRequest({ request, env }) {
     }),
   });
 
-  const checkins = await getRunCheckins(env, runId);
+  const updatedCheckins = await getRunCheckins(env, runId);
   return json({
     ok: true,
     run_id: runId,
     checkpoint_id: checkpointId,
-    completed_ids: checkins.map((row) => row.checkpoint_id),
+    completed_ids: updatedCheckins.map((row) => row.checkpoint_id),
     distance_meters: distanceMeters,
   });
 }

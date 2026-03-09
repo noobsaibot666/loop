@@ -1,0 +1,76 @@
+import { getAuthUser, json, parseJSON, supabaseRequest } from "../../_utils.js";
+import { getManifest, getRun, getRunCheckins, getRunProofs, MESSENGER_TABLES } from "./_helpers.js";
+
+const riderLabelFromEmail = (email = "") => {
+  const [local] = String(email || "").split("@");
+  return local ? local.slice(0, 24) : "rider";
+};
+
+export async function onRequest({ request, env }) {
+  if (request.method !== "POST") return json({ error: "method not allowed" }, { status: 405 });
+
+  const body = await parseJSON(request);
+  const authUser = await getAuthUser(env, request);
+  const userId = authUser?.id || "";
+  if (!userId) return json({ error: "login required" }, { status: 401 });
+
+  const { run_id: runId, checkpoint_id: checkpointId, storage_path: storagePath, public_url: publicUrl, is_public: isPublic } = body || {};
+  if (!runId || !checkpointId || !storagePath || !publicUrl) {
+    return json({ error: "run_id, checkpoint_id, storage_path, and public_url required" }, { status: 400 });
+  }
+
+  const run = await getRun(env, runId);
+  if (!run || run.user_id !== userId) return json({ error: "run not found" }, { status: 404 });
+
+  const checkins = await getRunCheckins(env, runId);
+  if (!checkins.some((row) => row.checkpoint_id === checkpointId)) {
+    return json({ error: "check in at the checkpoint before posting proof" }, { status: 400 });
+  }
+  const existingProofs = await getRunProofs(env, runId);
+  const existingProof = existingProofs.find((row) => row.checkpoint_id === checkpointId);
+  if (existingProof) {
+    return json(
+      {
+        error: "proof already uploaded for this checkpoint",
+        proof: existingProof,
+        proofs: existingProofs,
+      },
+      { status: 409 }
+    );
+  }
+
+  const manifest = await getManifest(env, run.manifest_id);
+  const checkpoints = manifest?.manifest?.checkpoints || [];
+  const checkpoint = checkpoints.find((item) => item.id === checkpointId);
+  if (!checkpoint) return json({ error: "checkpoint not part of manifest" }, { status: 400 });
+
+  const rows = await supabaseRequest(env, MESSENGER_TABLES.proofs, {
+    method: "POST",
+    headers: {
+      Prefer: "resolution=merge-duplicates,return=representation",
+    },
+    body: JSON.stringify({
+      user_id: userId,
+      run_id: runId,
+      manifest_id: run.manifest_id,
+      checkpoint_id: checkpointId,
+      checkpoint_name: checkpoint.name,
+      city_slug: manifest?.city_slug || manifest?.manifest?.city_slug || "",
+      city_name: manifest?.city_name || manifest?.manifest?.city || "",
+      rider_name: riderLabelFromEmail(authUser?.email || ""),
+      media_type: "image",
+      storage_path: storagePath,
+      public_url: publicUrl,
+      location_label: checkpoint.name,
+      is_public: isPublic !== false,
+    }),
+  });
+
+  const proof = rows?.[0] || null;
+  const proofs = await getRunProofs(env, runId);
+  return json({
+    ok: true,
+    proof,
+    proofs,
+  });
+}

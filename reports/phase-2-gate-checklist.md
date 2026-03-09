@@ -10,8 +10,8 @@ Status legend:
 - `[-]` intentionally deferred
 
 ## Product readiness
-- [ ] Admin page feels clean and dashboard-like instead of one long block stack
-- [ ] Admin sections are grouped clearly: overview, ops, wall, city studio
+- [x] Admin page feels clean and dashboard-like instead of one long block stack
+- [x] Admin sections are grouped clearly: overview, ops, wall, city studio
 - [ ] City studio is clear enough to use without guessing the order
 - [ ] AI pack drafting avoids tourist-guide tone and feels like real alleycat culture
 

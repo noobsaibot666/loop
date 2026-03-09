@@ -54,6 +54,11 @@ const supabaseAuthUser = async (env, token) => {
 };
 
 const getAdminEmails = (env) => (env.ADMIN_EMAILS || "").split(",").map((v) => v.trim()).filter(Boolean);
+const isAdminEmail = (env, email) => {
+  if (!email) return false;
+  const admins = getAdminEmails(env);
+  return admins.length ? admins.includes(email) : false;
+};
 
 const getAuthUser = async (env, request) => {
   const auth = request.headers.get("authorization") || "";
@@ -69,8 +74,7 @@ const requireAdmin = async (env, request) => {
   if (!token) return null;
   const user = await supabaseAuthUser(env, token);
   if (!user?.email) return null;
-  const admins = getAdminEmails(env);
-  if (admins.length && !admins.includes(user.email)) return null;
+  if (!isAdminEmail(env, user.email)) return null;
   return user;
 };
 
@@ -89,6 +93,7 @@ export {
   supabaseRequest,
   supabaseAuthUser,
   getAuthUser,
+  isAdminEmail,
   requireAdmin,
   parseJSON,
 };

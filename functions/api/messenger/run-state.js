@@ -1,5 +1,5 @@
 import { json, parseJSON, getAuthUser } from "../../_utils.js";
-import { getChallengeById, getManifest, getRun, getRunCheckins } from "./_helpers.js";
+import { getChallengeById, getManifest, getRun, getRunCheckins, getRunProofs } from "./_helpers.js";
 
 export async function onRequest({ request, env }) {
   const body = request.method === "GET" ? Object.fromEntries(new URL(request.url).searchParams.entries()) : await parseJSON(request);
@@ -15,6 +15,7 @@ export async function onRequest({ request, env }) {
 
   const manifest = await getManifest(env, run.manifest_id);
   const checkins = await getRunCheckins(env, runId);
+  const proofs = await getRunProofs(env, runId);
   const challenge = manifest?.source_challenge_id ? await getChallengeById(env, manifest.source_challenge_id) : null;
 
   return json({
@@ -28,6 +29,7 @@ export async function onRequest({ request, env }) {
     },
     manifest_id: manifest?.id || run.manifest_id,
     manifest: manifest?.manifest || null,
+    proofs: proofs || [],
     challenge: challenge
       ? {
           id: challenge.id,

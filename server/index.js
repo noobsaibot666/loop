@@ -6,9 +6,21 @@ import { createClient } from "@supabase/supabase-js";
 import {
   ALLEYCAT_CHECKIN_RADIUS_METERS,
   buildMessengerManifest,
+  buildMessengerManifestFromPack,
   distanceBetweenMeters,
   MESSENGER_CREDIT_COST,
+  normalizeCitySlug,
 } from "../shared/messenger.js";
+import { buildQuarterLeaderboard, deriveBadges, getQuarterWindow, isInWindow } from "../shared/quarterly.js";
+import { buildAlleycatHistory, buildChallengeHistory, buildSharedRiders } from "../shared/account.js";
+import { buildChallengeSummary, deriveChallengeStatus } from "../shared/challenges.js";
+import {
+  buildCheckpointDraftPrompt,
+  buildPackDraftPrompt,
+  callOpenAIJson,
+  checkpointDraftSchema,
+  packDraftSchema,
+} from "../shared/ai.js";
 
 const app = express();
 const PORT = process.env.PORT || 8787;
@@ -25,10 +37,17 @@ const ORS_API_KEY = process.env.ORS_API_KEY;
 const APP_URL = process.env.APP_URL || process.env.VITE_APP_URL || "http://localhost:5173";
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "").split(",").map((v) => v.trim()).filter(Boolean);
 const FREE_LIMIT = 3;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
+const OPENAI_MODEL = process.env.OPENAI_MODEL || undefined;
 
 const creditsFromAmount = (amountInCents = 0) => {
   const credits = Math.floor(Number(amountInCents || 0) / 50);
   return Math.max(1, credits);
+};
+
+const isAdminEmail = (email = "") => {
+  if (!email) return false;
+  return ADMIN_EMAILS.length ? ADMIN_EMAILS.includes(email) : false;
 };
 
 const getAuthUser = async (req) => {
@@ -40,7 +59,17 @@ const getAuthUser = async (req) => {
   return data?.user || null;
 };
 
-const consumeMessengerCredits = async (user_id) => {
+const consumeMessengerCredits = async (user_id, user_email = "") => {
+  if (isAdminEmail(user_email)) {
+    return {
+      ok: true,
+      credits_remaining: 9999,
+      free_used: 0,
+      is_admin: true,
+      unlimited_credits: true,
+    };
+  }
+
   const { data, error } = await supabase
     .from("user_credits")
     .select("user_id, free_used, credits")
@@ -78,8 +107,60 @@ const consumeMessengerCredits = async (user_id) => {
     ok: true,
     credits_remaining: nextCredits,
     free_used: usage.free_used || 0,
+    is_admin: false,
+    unlimited_credits: false,
   };
 };
+
+const getDbCityPackByCity = async (city) => {
+  const normalized = normalizeCitySlug(city);
+  if (!normalized) return null;
+  const { data, error } = await supabase
+    .from("city_packs")
+    .select("*")
+    .eq("is_active", true)
+    .or(`slug.eq.${normalized},name.ilike.*${normalized}*`)
+    .limit(1);
+  if (error) return null;
+  return data?.[0] || null;
+};
+
+const getDbPackCheckpoints = async (packId, activeOnly = true) => {
+  let query = supabase
+    .from("city_checkpoints")
+    .select("*")
+    .eq("pack_id", packId)
+    .order("sort_weight", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (activeOnly) query = query.eq("is_active", true);
+  const { data, error } = await query;
+  if (error) return [];
+  return data || [];
+};
+
+const buildManifestFromDatabasePack = ({ pack, checkpoints, difficulty, style, seed }) =>
+  buildMessengerManifestFromPack({
+    pack: {
+      slug: pack.slug,
+      name: pack.name,
+      route_note: pack.route_note,
+      finish_label: pack.finish_label,
+      safety_note: pack.safety_note,
+    },
+    checkpoints: checkpoints.map((checkpoint) => ({
+      id: checkpoint.slug,
+      name: checkpoint.name,
+      lat: checkpoint.lat,
+      lng: checkpoint.lng,
+      hint: checkpoint.hint,
+      task_local: checkpoint.task_local,
+      task_fast: checkpoint.task_fast,
+      task_chaotic: checkpoint.task_chaotic,
+    })),
+    difficulty,
+    style,
+    seed,
+  });
 
 const getActiveMessengerRun = async (manifest_id, user_id) => {
   const { data, error } = await supabase
@@ -159,12 +240,15 @@ app.post("/api/usage/check", async (req, res) => {
     if (error) return res.status(500).json({ error: error.message });
 
     const usage = data || { user_id, free_used: 0, credits: 0 };
+    const isAdmin = isAdminEmail(authUser?.email || "");
     return res.json({
       user_id,
       free_used: usage.free_used,
       donation_credits: usage.credits,
-      free_remaining: Math.max(0, FREE_LIMIT - usage.free_used),
-      credits_remaining: usage.credits || 0,
+      free_remaining: isAdmin ? 9999 : Math.max(0, FREE_LIMIT - usage.free_used),
+      credits_remaining: isAdmin ? 9999 : usage.credits || 0,
+      is_admin: isAdmin,
+      unlimited_credits: isAdmin,
     });
   }
 
@@ -232,17 +316,48 @@ app.post("/api/admin/set-credits", requireAdmin, async (req, res) => {
 });
 
 app.post("/api/admin/overview", requireAdmin, async (req, res) => {
-  const [{ data: credits, error: creditsError }, { data: stripeSessions, error: stripeError }, { data: manifests, error: manifestsError }, { data: runs, error: runsError }, { data: challenges, error: challengesError }] =
+  const quarter = getQuarterWindow();
+  const [
+    { data: credits, error: creditsError },
+    { data: stripeSessions, error: stripeError },
+    { data: manifests, error: manifestsError },
+    { data: runs, error: runsError },
+    { data: challenges, error: challengesError },
+    { data: proofs, error: proofsError },
+    { data: quarterProofs, error: quarterProofsError },
+    { data: quarterRuns, error: quarterRunsError },
+  ] =
     await Promise.all([
       supabase.from("user_credits").select("user_id, credits, free_used"),
       supabase.from("stripe_sessions").select("session_id, status, amount_cents").order("created_at", { ascending: false }).limit(5),
       supabase.from("messenger_manifests").select("id"),
       supabase.from("messenger_runs").select("id, status"),
       supabase.from("messenger_challenges").select("id"),
+      supabase
+        .from("messenger_proof_posts")
+        .select("id, rider_name, city_name, checkpoint_name, is_public, created_at, public_url")
+        .order("created_at", { ascending: false })
+        .limit(12),
+      supabase
+        .from("messenger_proof_posts")
+        .select("user_id, rider_name, city_name, created_at")
+        .eq("is_public", true)
+        .gte("created_at", quarter.start.toISOString())
+        .lt("created_at", quarter.end.toISOString()),
+      supabase
+        .from("messenger_runs")
+        .select("user_id, finished_at")
+        .eq("status", "finished")
+        .gte("finished_at", quarter.start.toISOString())
+        .lt("finished_at", quarter.end.toISOString()),
     ]);
 
-  const error = creditsError || stripeError || manifestsError || runsError || challengesError;
+  const error = creditsError || stripeError || manifestsError || runsError || challengesError || proofsError || quarterProofsError || quarterRunsError;
   if (error) return res.status(500).json({ error: error.message });
+  const quarterLeaderboard = buildQuarterLeaderboard({
+    proofs: quarterProofs || [],
+    finishedRuns: quarterRuns || [],
+  });
 
   return res.json({
     ok: true,
@@ -256,6 +371,151 @@ app.post("/api/admin/overview", requireAdmin, async (req, res) => {
       shared_challenges: challenges?.length || 0,
     },
     recent_sessions: stripeSessions || [],
+    recent_proofs: proofs || [],
+    quarter: {
+      label: quarter.label,
+      leaders: quarterLeaderboard.slice(0, 3),
+    },
+  });
+});
+
+app.post("/api/admin/city-packs", requireAdmin, async (req, res) => {
+  if (req.body?.action === "save") {
+    const payload = {
+      id: req.body?.id || undefined,
+      slug: String(req.body?.slug || "").trim().toLowerCase(),
+      name: String(req.body?.name || "").trim(),
+      route_note: String(req.body?.route_note || "").trim(),
+      finish_label: String(req.body?.finish_label || "").trim(),
+      safety_note: String(req.body?.safety_note || "").trim(),
+      is_active: req.body?.is_active !== false,
+    };
+    if (!payload.slug || !payload.name) return res.status(400).json({ error: "slug and name required" });
+    const { data, error } = await supabase.from("city_packs").upsert(payload, { onConflict: "slug" }).select().limit(1);
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ ok: true, pack: data?.[0] || null });
+  }
+
+  const { data, error } = await supabase.from("city_packs").select("*").order("name", { ascending: true });
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ packs: data || [] });
+});
+
+app.post("/api/admin/city-checkpoints", requireAdmin, async (req, res) => {
+  const packId = String(req.body?.pack_id || "").trim();
+  if (req.body?.action === "save") {
+    const payload = {
+      id: req.body?.id || undefined,
+      pack_id: packId,
+      slug: String(req.body?.slug || "").trim().toLowerCase(),
+      name: String(req.body?.name || "").trim(),
+      lat: Number(req.body?.lat),
+      lng: Number(req.body?.lng),
+      district: String(req.body?.district || "").trim(),
+      category: String(req.body?.category || "").trim(),
+      vibe: String(req.body?.vibe || "").trim(),
+      hint: String(req.body?.hint || "").trim(),
+      task_local: String(req.body?.task_local || "").trim(),
+      task_fast: String(req.body?.task_fast || "").trim(),
+      task_chaotic: String(req.body?.task_chaotic || "").trim(),
+      sort_weight: Number(req.body?.sort_weight || 100),
+      is_active: req.body?.is_active !== false,
+    };
+    if (!payload.pack_id || !payload.slug || !payload.name || !Number.isFinite(payload.lat) || !Number.isFinite(payload.lng)) {
+      return res.status(400).json({ error: "pack_id, slug, name, lat, and lng required" });
+    }
+    if (!payload.hint || !payload.task_local || !payload.task_fast || !payload.task_chaotic) {
+      return res.status(400).json({ error: "hint and all task variants required" });
+    }
+    const { data, error } = await supabase.from("city_checkpoints").upsert(payload, { onConflict: "slug" }).select().limit(1);
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ ok: true, checkpoint: data?.[0] || null });
+  }
+  if (!packId) return res.json({ checkpoints: [] });
+  const { data, error } = await supabase
+    .from("city_checkpoints")
+    .select("*")
+    .eq("pack_id", packId)
+    .order("sort_weight", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ checkpoints: data || [] });
+});
+
+app.post("/api/admin/preview-manifest", requireAdmin, async (req, res) => {
+  const difficulty = String(req.body?.difficulty || "medium").trim().toLowerCase();
+  const style = String(req.body?.style || "local").trim().toLowerCase();
+  const seed = Number(req.body?.seed || 777);
+  const packId = String(req.body?.pack_id || "").trim();
+  const city = String(req.body?.city || "").trim();
+
+  let built;
+  if (packId) {
+    const { data: pack } = await supabase.from("city_packs").select("*").eq("id", packId).maybeSingle();
+    const checkpoints = pack ? await getDbPackCheckpoints(pack.id, false) : [];
+    built =
+      pack && checkpoints.length
+        ? buildManifestFromDatabasePack({ pack, checkpoints, difficulty, style, seed })
+        : { error: "Pack not found or empty." };
+  } else {
+    const pack = await getDbCityPackByCity(city);
+    const checkpoints = pack ? await getDbPackCheckpoints(pack.id, true) : [];
+    built =
+      pack && checkpoints.length
+        ? buildManifestFromDatabasePack({ pack, checkpoints, difficulty, style, seed })
+        : buildMessengerManifest({ city, difficulty, style, seed });
+  }
+
+  if (built.error) return res.status(400).json({ error: built.error });
+  return res.json({ manifest: built.manifest, source: packId || city ? "database-or-fallback" : "fallback" });
+});
+
+app.post("/api/admin/ai-draft", requireAdmin, async (req, res) => {
+  if (!OPENAI_API_KEY) return res.status(500).json({ error: "OPENAI_API_KEY missing" });
+  const kind = String(req.body?.kind || "").trim();
+  try {
+    if (kind === "checkpoint") {
+      const draft = await callOpenAIJson({
+        apiKey: OPENAI_API_KEY,
+        model: OPENAI_MODEL,
+        schemaName: "alleycat_checkpoint_draft",
+        schema: checkpointDraftSchema,
+        userPrompt: buildCheckpointDraftPrompt(req.body || {}),
+      });
+      return res.json({ ok: true, kind, draft });
+    }
+    if (kind === "pack") {
+      const draft = await callOpenAIJson({
+        apiKey: OPENAI_API_KEY,
+        model: OPENAI_MODEL,
+        schemaName: "alleycat_pack_draft",
+        schema: packDraftSchema,
+        userPrompt: buildPackDraftPrompt(req.body || {}),
+      });
+      return res.json({ ok: true, kind, draft });
+    }
+    return res.status(400).json({ error: "kind must be checkpoint or pack" });
+  } catch (error) {
+    return res.status(500).json({ error: error instanceof Error ? error.message : "AI draft failed" });
+  }
+});
+
+app.post("/api/admin/proof-visibility", requireAdmin, async (req, res) => {
+  const proof_id = String(req.body?.proof_id || "").trim();
+  const is_public = Boolean(req.body?.is_public);
+  if (!proof_id) return res.status(400).json({ error: "proof_id required" });
+
+  const { data, error } = await supabase
+    .from("messenger_proof_posts")
+    .update({ is_public })
+    .eq("id", proof_id)
+    .select("id, rider_name, city_name, checkpoint_name, is_public, created_at, public_url")
+    .limit(1);
+
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({
+    ok: true,
+    proof: data?.[0] || null,
   });
 });
 
@@ -263,8 +523,18 @@ app.post("/api/account/summary", async (req, res) => {
   const authUser = await getAuthUser(req);
   const user_id = authUser?.id || "";
   if (!user_id) return res.status(401).json({ error: "login required" });
+  const quarter = getQuarterWindow();
 
-  const [{ data: purchases, error: purchasesError }, { data: manifests, error: manifestsError }, { data: runs, error: runsError }, { data: challenges, error: challengesError }] =
+  const [
+    { data: purchases, error: purchasesError },
+    { data: loopHistory, error: loopHistoryError },
+    { data: manifests, error: manifestsError },
+    { data: runs, error: runsError },
+    { data: challengeEntries, error: challengeEntriesError },
+    { data: proofs, error: proofsError },
+    { data: quarterProofs, error: quarterProofsError },
+    { data: quarterRuns, error: quarterRunsError },
+  ] =
     await Promise.all([
       supabase
         .from("stripe_sessions")
@@ -272,22 +542,192 @@ app.post("/api/account/summary", async (req, res) => {
         .eq("user_id", user_id)
         .order("created_at", { ascending: false })
         .limit(5),
-      supabase.from("messenger_manifests").select("id").eq("user_id", user_id),
-      supabase.from("messenger_runs").select("id, status").eq("user_id", user_id),
-      supabase.from("messenger_challenge_entries").select("id").eq("user_id", user_id),
+      supabase
+        .from("loop_history")
+        .select("id, loop_point, distance_km, unit, terrain, surface, vibe, route_url, created_at")
+        .eq("user_id", user_id)
+        .order("created_at", { ascending: false })
+        .limit(8),
+      supabase
+        .from("messenger_manifests")
+        .select("id, city_name, manifest_title, difficulty, style, created_at, source_challenge_id, ghost_seconds")
+        .eq("user_id", user_id),
+      supabase
+        .from("messenger_runs")
+        .select("id, user_id, manifest_id, status, finish_seconds, finished_at, started_at")
+        .eq("user_id", user_id),
+      supabase
+        .from("messenger_challenge_entries")
+        .select("id, challenge_id, user_id, manifest_id, joined_at")
+        .eq("user_id", user_id),
+      supabase
+        .from("messenger_proof_posts")
+        .select("id, user_id, is_public, city_name, manifest_id, created_at")
+        .eq("user_id", user_id),
+      supabase
+        .from("messenger_proof_posts")
+        .select("user_id, rider_name, city_name, created_at")
+        .eq("is_public", true)
+        .gte("created_at", quarter.start.toISOString())
+        .lt("created_at", quarter.end.toISOString()),
+      supabase
+        .from("messenger_runs")
+        .select("user_id, finished_at")
+        .eq("status", "finished")
+        .gte("finished_at", quarter.start.toISOString())
+        .lt("finished_at", quarter.end.toISOString()),
     ]);
 
-  const error = purchasesError || manifestsError || runsError || challengesError;
+  const error =
+    purchasesError ||
+    loopHistoryError ||
+    manifestsError ||
+    runsError ||
+    challengeEntriesError ||
+    proofsError ||
+    quarterProofsError ||
+    quarterRunsError;
   if (error) return res.status(500).json({ error: error.message });
+
+  const userRuns = runs || [];
+  const userProofs = proofs || [];
+  const userManifests = manifests || [];
+  const userChallengeEntries = challengeEntries || [];
+  const challengeIds = [...new Set(userChallengeEntries.map((entry) => entry.challenge_id))];
+  const [userChallenges, challengeEntriesByChallenge, challengeManifests, challengeRuns, challengeProofNames] = await Promise.all([
+    challengeIds.length
+      ? Promise.all(
+          challengeIds.map(async (challengeId) => {
+            const { data } = await supabase
+              .from("messenger_challenges")
+              .select("id, code, creator_user_id, claimed_by_user_id, created_at")
+              .eq("id", challengeId)
+              .limit(1);
+            return data?.[0] || null;
+          })
+        ).then((rows) => rows.filter(Boolean))
+      : Promise.resolve([]),
+    challengeIds.length
+      ? Promise.all(
+          challengeIds.map(async (challengeId) => {
+            const { data } = await supabase
+              .from("messenger_challenge_entries")
+              .select("id, challenge_id, user_id, manifest_id, joined_at")
+              .eq("challenge_id", challengeId);
+            return data || [];
+          })
+        ).then((rows) => rows.flat())
+      : Promise.resolve([]),
+    challengeIds.length
+      ? Promise.all(
+          challengeIds.map(async (challengeId) => {
+            const { data: entriesData } = await supabase
+              .from("messenger_challenge_entries")
+              .select("manifest_id")
+              .eq("challenge_id", challengeId);
+            const manifestIds = (entriesData || []).map((entry) => entry.manifest_id);
+            if (!manifestIds.length) return [];
+            const { data } = await supabase
+              .from("messenger_manifests")
+              .select("id, city_name, manifest_title, difficulty, style, created_at, source_challenge_id, ghost_seconds")
+              .in("id", manifestIds);
+            return data || [];
+          })
+        ).then((rows) => rows.flat())
+      : Promise.resolve([]),
+    challengeIds.length
+      ? Promise.all(
+          challengeIds.map(async (challengeId) => {
+            const { data: entriesData } = await supabase
+              .from("messenger_challenge_entries")
+              .select("manifest_id")
+              .eq("challenge_id", challengeId);
+            const manifestIds = (entriesData || []).map((entry) => entry.manifest_id);
+            if (!manifestIds.length) return [];
+            const { data } = await supabase
+              .from("messenger_runs")
+              .select("id, user_id, manifest_id, status, finish_seconds, finished_at, started_at")
+              .in("manifest_id", manifestIds);
+            return data || [];
+          })
+        ).then((rows) => rows.flat())
+      : Promise.resolve([]),
+    challengeIds.length
+      ? Promise.all(
+          challengeIds.map(async (challengeId) => {
+            const { data: entriesData } = await supabase
+              .from("messenger_challenge_entries")
+              .select("manifest_id")
+              .eq("challenge_id", challengeId);
+            const manifestIds = (entriesData || []).map((entry) => entry.manifest_id);
+            if (!manifestIds.length) return [];
+            const { data } = await supabase.from("messenger_proof_posts").select("user_id, rider_name").in("manifest_id", manifestIds);
+            return data || [];
+          })
+        ).then((rows) => rows.flat())
+      : Promise.resolve([]),
+  ]);
+  const quarterLeaderboard = buildQuarterLeaderboard({
+    proofs: quarterProofs || [],
+    finishedRuns: quarterRuns || [],
+  });
+  const userQuarterRuns = userRuns.filter((run) => run.status === "finished" && isInWindow(run.finished_at, quarter.start, quarter.end));
+  const userQuarterProofs = userProofs.filter((proof) => proof.is_public && isInWindow(proof.created_at, quarter.start, quarter.end));
+  const challengeManifestIds = new Set(userManifests.filter((manifest) => manifest.source_challenge_id).map((manifest) => manifest.id));
+  const userQuarterRank = quarterLeaderboard.find((entry) => entry.user_id === user_id)?.rank || null;
+  const badges = deriveBadges({
+    quarterStats: {
+      rank: userQuarterRank,
+      finished_runs: userQuarterRuns.length,
+    },
+    proofs: userProofs,
+    manifests: userManifests,
+    challenges: userRuns.map((run) => ({
+      status: run.status,
+      source_challenge_id: challengeManifestIds.has(run.manifest_id),
+    })),
+  });
 
   return res.json({
     purchases: purchases || [],
     alleycat: {
-      manifests: manifests?.length || 0,
-      runs: runs?.length || 0,
-      finished_runs: (runs || []).filter((run) => run.status === "finished").length,
+      manifests: userManifests.length,
+      runs: userRuns.length,
+      finished_runs: userRuns.filter((run) => run.status === "finished").length,
       challenges: challenges?.length || 0,
+      proofs: userProofs.length,
+      public_proofs: userProofs.filter((proof) => proof.is_public).length,
     },
+    quarter: {
+      label: quarter.label,
+      public_proofs: userQuarterProofs.length,
+      finished_runs: userQuarterRuns.length,
+      rank: userQuarterRank,
+      total_ranked_riders: quarterLeaderboard.length,
+      leaders: quarterLeaderboard.slice(0, 3),
+    },
+    badges,
+    loop_history: loopHistory || [],
+    alleycat_history: buildAlleycatHistory({
+      manifests: [...userManifests, ...challengeManifests.filter((item) => !userManifests.find((own) => own.id === item.id))],
+      runs: [...userRuns, ...challengeRuns.filter((item) => !userRuns.find((own) => own.id === item.id))],
+      proofs: userProofs,
+    }),
+    challenge_history: buildChallengeHistory({
+      userId: user_id,
+      entries: userChallengeEntries,
+      allEntries: challengeEntriesByChallenge,
+      challenges: userChallenges,
+      manifests: challengeManifests,
+      runs: challengeRuns,
+    }),
+    shared_riders: buildSharedRiders({
+      userId: user_id,
+      allEntries: challengeEntriesByChallenge,
+      challenges: userChallenges,
+      manifests: challengeManifests,
+      proofs: challengeProofNames,
+    }),
   });
 });
 
@@ -295,7 +735,19 @@ app.post("/api/usage/consume", async (req, res) => {
   const { device_id } = req.body || {};
   const authUser = await getAuthUser(req);
   const user_id = authUser?.id || "";
+  const isAdmin = isAdminEmail(authUser?.email || "");
   if (!device_id && !user_id) return res.status(400).json({ error: "device_id or user_id required" });
+
+  if (isAdmin) {
+    return res.json({
+      allowed: true,
+      free_used: 0,
+      donation_credits: 9999,
+      credits_remaining: 9999,
+      is_admin: true,
+      unlimited_credits: true,
+    });
+  }
 
   if (user_id) {
     const { data, error } = await supabase
@@ -335,6 +787,8 @@ app.post("/api/usage/consume", async (req, res) => {
       free_used,
       donation_credits: credits,
       credits_remaining: credits,
+      is_admin: false,
+      unlimited_credits: false,
     });
   }
 
@@ -370,7 +824,7 @@ app.post("/api/usage/consume", async (req, res) => {
 
   if (upsertError) return res.status(500).json({ error: upsertError.message });
 
-  res.json({ allowed: true, free_used, donation_credits, credits_remaining: donation_credits });
+  res.json({ allowed: true, free_used, donation_credits, credits_remaining: donation_credits, is_admin: false, unlimited_credits: false });
 });
 
 app.post("/api/save-setup", async (req, res) => {
@@ -464,23 +918,71 @@ app.post("/api/loop", async (req, res) => {
   res.json(data);
 });
 
+app.post("/api/loop-history", async (req, res) => {
+  const authUser = await getAuthUser(req);
+  const user_id = authUser?.id || "";
+  if (!user_id) return res.status(401).json({ error: "login required" });
+
+  const loop_point = String(req.body?.loop_point || "").trim();
+  const route_url = String(req.body?.route_url || "").trim();
+  const distance_km = Number(req.body?.distance_km || 0);
+  const unit = String(req.body?.unit || "").trim();
+  const terrain = String(req.body?.terrain || "").trim();
+  const surface = String(req.body?.surface || "").trim();
+  const vibe = String(req.body?.vibe || "").trim();
+
+  if (!loop_point || !route_url || !distance_km || !unit || !terrain || !surface || !vibe) {
+    return res.status(400).json({ error: "missing loop history fields" });
+  }
+
+  const { data, error } = await supabase
+    .from("loop_history")
+    .insert({
+      user_id,
+      loop_point,
+      distance_km,
+      unit,
+      terrain,
+      surface,
+      vibe,
+      route_url,
+    })
+    .select("id, loop_point, distance_km, unit, terrain, surface, vibe, route_url, created_at")
+    .limit(1);
+
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ ok: true, loop: data?.[0] || null });
+});
+
 app.post("/api/messenger/generate", async (req, res) => {
   const authUser = await getAuthUser(req);
   const user_id = authUser?.id || "";
   if (!user_id) return res.status(401).json({ error: "login required" });
 
   const { city, difficulty, style } = req.body || {};
-  const built = buildMessengerManifest({
-    city,
-    difficulty,
-    style,
-    seed: Math.floor(Math.random() * 100000),
-  });
+  const seed = Math.floor(Math.random() * 100000);
+  const dbPack = await getDbCityPackByCity(city);
+  const dbCheckpoints = dbPack ? await getDbPackCheckpoints(dbPack.id, true) : [];
+  const built =
+    dbPack && dbCheckpoints.length
+      ? buildManifestFromDatabasePack({
+          pack: dbPack,
+          checkpoints: dbCheckpoints,
+          difficulty,
+          style,
+          seed,
+        })
+      : buildMessengerManifest({
+          city,
+          difficulty,
+          style,
+          seed,
+        });
 
   if (built.error) return res.status(400).json({ error: built.error });
 
   try {
-    const creditResult = await consumeMessengerCredits(user_id);
+    const creditResult = await consumeMessengerCredits(user_id, authUser?.email || "");
     if (!creditResult.ok) {
       return res.status(402).json({
         error: creditResult.error,
@@ -514,6 +1016,8 @@ app.post("/api/messenger/generate", async (req, res) => {
       manifest_id: data.id,
       manifest,
       credits_remaining: creditResult.credits_remaining,
+      is_admin: creditResult.is_admin || false,
+      unlimited_credits: creditResult.unlimited_credits || false,
       premium_cost: MESSENGER_CREDIT_COST,
     });
   } catch (error) {
@@ -575,6 +1079,81 @@ app.post("/api/messenger/start", async (req, res) => {
   });
 });
 
+app.post("/api/messenger/abandon", async (req, res) => {
+  const authUser = await getAuthUser(req);
+  const user_id = authUser?.id || "";
+  if (!user_id) return res.status(401).json({ error: "login required" });
+
+  const runId = String(req.body?.run_id || "").trim();
+  if (!runId) return res.status(400).json({ error: "run_id required" });
+
+  const { data: run, error: runError } = await supabase
+    .from("messenger_runs")
+    .select("*")
+    .eq("id", runId)
+    .eq("user_id", user_id)
+    .maybeSingle();
+  if (runError) return res.status(500).json({ error: runError.message });
+  if (!run) return res.status(404).json({ error: "run not found" });
+  if (run.status !== "active") return res.status(400).json({ error: "run is not active" });
+
+  const { data: updated, error: updateError } = await supabase
+    .from("messenger_runs")
+    .update({ status: "abandoned", finished_at: new Date().toISOString() })
+    .eq("id", runId)
+    .select()
+    .single();
+  if (updateError) return res.status(500).json({ error: updateError.message });
+  return res.json({ ok: true, run: updated });
+});
+
+app.post("/api/messenger/restart", async (req, res) => {
+  const authUser = await getAuthUser(req);
+  const user_id = authUser?.id || "";
+  if (!user_id) return res.status(401).json({ error: "login required" });
+
+  const manifestIdInput = String(req.body?.manifest_id || "").trim();
+  const runId = String(req.body?.run_id || "").trim();
+  if (!manifestIdInput && !runId) return res.status(400).json({ error: "manifest_id or run_id required" });
+
+  let effectiveManifestId = manifestIdInput;
+  if (runId) {
+    const { data: sourceRun } = await supabase
+      .from("messenger_runs")
+      .select("*")
+      .eq("id", runId)
+      .eq("user_id", user_id)
+      .maybeSingle();
+    if (!sourceRun) return res.status(404).json({ error: "run not found" });
+    effectiveManifestId = sourceRun.manifest_id;
+  }
+
+  const { data: manifest, error: manifestError } = await supabase
+    .from("messenger_manifests")
+    .select("*")
+    .eq("id", effectiveManifestId)
+    .eq("user_id", user_id)
+    .maybeSingle();
+  if (manifestError) return res.status(500).json({ error: manifestError.message });
+  if (!manifest) return res.status(404).json({ error: "manifest not found" });
+
+  await supabase
+    .from("messenger_runs")
+    .update({ status: "abandoned", finished_at: new Date().toISOString() })
+    .eq("manifest_id", effectiveManifestId)
+    .eq("user_id", user_id)
+    .eq("status", "active");
+
+  const { data: run, error: createError } = await supabase
+    .from("messenger_runs")
+    .insert({ manifest_id: effectiveManifestId, user_id, status: "active" })
+    .select()
+    .single();
+  if (createError) return res.status(500).json({ error: createError.message });
+
+  return res.json({ ok: true, run, manifest_id: effectiveManifestId });
+});
+
 app.post("/api/messenger/check-in", async (req, res) => {
   const authUser = await getAuthUser(req);
   const user_id = authUser?.id || "";
@@ -609,6 +1188,20 @@ app.post("/api/messenger/check-in", async (req, res) => {
   if (!checkpoint) {
     return res.status(400).json({ error: "checkpoint not part of manifest" });
   }
+  const { data: existingCheckins } = await supabase
+    .from("messenger_run_checkins")
+    .select("checkpoint_id")
+    .eq("run_id", runId);
+  if ((existingCheckins || []).some((item) => item.checkpoint_id === checkpointId)) {
+    return res.json({
+      ok: true,
+      already_checked_in: true,
+      run_id: runId,
+      checkpoint_id: checkpointId,
+      completed_ids: (existingCheckins || []).map((row) => row.checkpoint_id),
+      message: `${checkpoint.name} is already checked in.`,
+    });
+  }
 
   const distanceMeters = distanceBetweenMeters(
     { lat, lng },
@@ -616,9 +1209,10 @@ app.post("/api/messenger/check-in", async (req, res) => {
   );
   if (distanceMeters > ALLEYCAT_CHECKIN_RADIUS_METERS) {
     return res.status(400).json({
-      error: `Move closer to ${checkpoint.name} before checking in.`,
+      error: `Move closer to ${checkpoint.name} before checking in. You are ${distanceMeters}m away.`,
       distance_meters: distanceMeters,
       max_distance_meters: ALLEYCAT_CHECKIN_RADIUS_METERS,
+      meters_to_move: distanceMeters - ALLEYCAT_CHECKIN_RADIUS_METERS,
     });
   }
 
@@ -751,6 +1345,14 @@ app.all("/api/messenger/run-state", async (req, res) => {
 
   if (checkinsError) return res.status(500).json({ error: checkinsError.message });
 
+  const { data: proofs, error: proofsError } = await supabase
+    .from("messenger_proof_posts")
+    .select("id, checkpoint_id, checkpoint_name, public_url, location_label, is_public, created_at")
+    .eq("run_id", runId)
+    .order("created_at", { ascending: true });
+
+  if (proofsError) return res.status(500).json({ error: proofsError.message });
+
   let challenge = null;
   if (manifest?.source_challenge_id) {
     const { data: challengeRow } = await supabase
@@ -777,8 +1379,120 @@ app.all("/api/messenger/run-state", async (req, res) => {
     },
     manifest_id: manifest?.id || run.manifest_id,
     manifest: manifest?.manifest || null,
+    proofs: proofs || [],
     challenge,
   });
+});
+
+app.post("/api/messenger/proof", async (req, res) => {
+  const authUser = await getAuthUser(req);
+  const user_id = authUser?.id || "";
+  if (!user_id) return res.status(401).json({ error: "login required" });
+
+  const { run_id: runId, checkpoint_id: checkpointId, storage_path: storagePath, public_url: publicUrl, is_public: isPublic } = req.body || {};
+  if (!runId || !checkpointId || !storagePath || !publicUrl) {
+    return res.status(400).json({ error: "run_id, checkpoint_id, storage_path, and public_url required" });
+  }
+
+  const { data: run, error: runError } = await supabase
+    .from("messenger_runs")
+    .select("*")
+    .eq("id", runId)
+    .eq("user_id", user_id)
+    .maybeSingle();
+
+  if (runError) return res.status(500).json({ error: runError.message });
+  if (!run) return res.status(404).json({ error: "run not found" });
+
+  const { data: checkins, error: checkinsError } = await supabase
+    .from("messenger_run_checkins")
+    .select("checkpoint_id")
+    .eq("run_id", runId);
+
+  if (checkinsError) return res.status(500).json({ error: checkinsError.message });
+  if (!(checkins || []).some((row) => row.checkpoint_id === checkpointId)) {
+    return res.status(400).json({ error: "check in at the checkpoint before posting proof" });
+  }
+  const { data: existingProofs, error: existingProofsError } = await supabase
+    .from("messenger_proof_posts")
+    .select("id, checkpoint_id, checkpoint_name, public_url, location_label, is_public, created_at")
+    .eq("run_id", runId)
+    .order("created_at", { ascending: true });
+
+  if (existingProofsError) return res.status(500).json({ error: existingProofsError.message });
+  const existingProof = (existingProofs || []).find((item) => item.checkpoint_id === checkpointId);
+  if (existingProof) {
+    return res.status(409).json({
+      error: "proof already uploaded for this checkpoint",
+      proof: existingProof,
+      proofs: existingProofs || [],
+    });
+  }
+
+  const { data: manifest, error: manifestError } = await supabase
+    .from("messenger_manifests")
+    .select("*")
+    .eq("id", run.manifest_id)
+    .maybeSingle();
+
+  if (manifestError) return res.status(500).json({ error: manifestError.message });
+  const checkpoints = manifest?.manifest?.checkpoints || [];
+  const checkpoint = checkpoints.find((item) => item.id === checkpointId);
+  if (!checkpoint) return res.status(400).json({ error: "checkpoint not part of manifest" });
+
+  const riderName = String(authUser?.email || "rider").split("@")[0].slice(0, 24) || "rider";
+  const { data: proofRows, error: proofError } = await supabase
+    .from("messenger_proof_posts")
+    .upsert(
+      {
+        user_id,
+        run_id: runId,
+        manifest_id: run.manifest_id,
+        checkpoint_id: checkpointId,
+        checkpoint_name: checkpoint.name,
+        city_slug: manifest?.city_slug || manifest?.manifest?.city_slug || "",
+        city_name: manifest?.city_name || manifest?.manifest?.city || "",
+        rider_name: riderName,
+        media_type: "image",
+        storage_path: storagePath,
+        public_url: publicUrl,
+        location_label: checkpoint.name,
+        is_public: isPublic !== false,
+      },
+      { onConflict: "run_id,checkpoint_id" }
+    )
+    .select();
+
+  if (proofError) return res.status(500).json({ error: proofError.message });
+
+  const { data: proofs, error: proofsError } = await supabase
+    .from("messenger_proof_posts")
+    .select("id, checkpoint_id, checkpoint_name, public_url, location_label, is_public, created_at")
+    .eq("run_id", runId)
+    .order("created_at", { ascending: true });
+
+  if (proofsError) return res.status(500).json({ error: proofsError.message });
+
+  return res.json({
+    ok: true,
+    proof: proofRows?.[0] || null,
+    proofs: proofs || [],
+  });
+});
+
+app.get("/api/wall", async (req, res) => {
+  const city = String(req.query.city || "").trim().toLowerCase();
+  let query = supabase
+    .from("messenger_proof_posts")
+    .select("id, rider_name, city_name, city_slug, checkpoint_name, location_label, public_url, created_at")
+    .eq("is_public", true)
+    .order("created_at", { ascending: false })
+    .limit(40);
+
+  if (city) query = query.eq("city_slug", city);
+  const { data, error } = await query;
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ posts: data || [] });
 });
 
 app.post("/api/messenger/share", async (req, res) => {
@@ -796,6 +1510,29 @@ app.post("/api/messenger/share", async (req, res) => {
 
     if (challengeError) return res.status(500).json({ error: challengeError.message });
     if (!challenge) return res.status(404).json({ error: "share code not found" });
+
+    const { data: challengeEntriesForStatus } = await supabase
+      .from("messenger_challenge_entries")
+      .select("*")
+      .eq("challenge_id", challenge.id)
+      .order("joined_at", { ascending: true });
+    const challengeStatusRows = [];
+    for (const entry of challengeEntriesForStatus || []) {
+      const { data: runs } = await supabase
+        .from("messenger_runs")
+        .select("*")
+        .eq("manifest_id", entry.manifest_id)
+        .eq("user_id", entry.user_id)
+        .order("finish_seconds", { ascending: true, nullsFirst: false })
+        .order("started_at", { ascending: true });
+      const bestRun = (runs || []).find((run) => run.status === "finished" && typeof run.finish_seconds === "number") || null;
+      challengeStatusRows.push({
+        user_id: entry.user_id,
+        status: bestRun ? "finished" : "open",
+        best_seconds: bestRun?.finish_seconds || null,
+      });
+    }
+    const joinStatus = deriveChallengeStatus(challenge, challengeStatusRows);
 
     const { data: existingEntry } = await supabase
       .from("messenger_challenge_entries")
@@ -818,6 +1555,13 @@ app.post("/api/messenger/share", async (req, res) => {
         challenge_id: challenge.id,
         reused: true,
       });
+    }
+
+    if (joinStatus === "expired") {
+      return res.status(410).json({ error: "share code expired" });
+    }
+    if (joinStatus === "finished") {
+      return res.status(409).json({ error: "challenge already closed" });
     }
 
     const { data: sourceManifest, error: sourceManifestError } = await supabase
@@ -963,6 +1707,14 @@ app.all("/api/messenger/leaderboard", async (req, res) => {
     .eq("challenge_id", challengeId)
     .order("joined_at", { ascending: true });
   if (entriesError) return res.status(500).json({ error: entriesError.message });
+  const manifestIds = (entries || []).map((entry) => entry.manifest_id);
+  const { data: proofNames } = manifestIds.length
+    ? await supabase.from("messenger_proof_posts").select("user_id, rider_name").in("manifest_id", manifestIds)
+    : { data: [] };
+  const riderNames = new Map();
+  for (const proof of proofNames || []) {
+    if (proof?.user_id && proof?.rider_name && !riderNames.has(proof.user_id)) riderNames.set(proof.user_id, proof.rider_name);
+  }
 
   const leaderboard = [];
   for (const entry of entries || []) {
@@ -979,10 +1731,14 @@ app.all("/api/messenger/leaderboard", async (req, res) => {
       .order("finish_seconds", { ascending: true, nullsFirst: false })
       .order("started_at", { ascending: true });
     const bestRun = (runs || []).find((run) => run.status === "finished" && typeof run.finish_seconds === "number") || null;
+    const riderName =
+      riderNames.get(entry.user_id) ||
+      (entry.user_id === challenge.creator_user_id ? "Creator" : `Rider ${String(entry.user_id).slice(0, 4)}`);
     leaderboard.push({
       user_id: entry.user_id,
       manifest_id: entry.manifest_id,
       joined_at: entry.joined_at,
+      rider_name: riderName,
       city_name: manifest?.city_name || manifest?.manifest?.city || "",
       best_seconds: bestRun?.finish_seconds || null,
       best_run_id: bestRun?.id || null,
@@ -1003,8 +1759,11 @@ app.all("/api/messenger/leaderboard", async (req, res) => {
       id: challenge.id,
       code: challenge.code,
       creator_user_id: challenge.creator_user_id,
+      created_at: challenge.created_at,
+      status: deriveChallengeStatus(challenge, leaderboard),
     },
     leaderboard,
+    summary: buildChallengeSummary({ challenge, leaderboard, userId: user_id }),
   });
 });
 

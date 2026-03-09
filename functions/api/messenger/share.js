@@ -1,4 +1,5 @@
 import { json, parseJSON, getAuthUser, supabaseRequest } from "../../_utils.js";
+import { deriveChallengeStatus } from "../../../shared/challenges.js";
 import {
   createChallengeCode,
   getManifest,
@@ -16,8 +17,26 @@ export async function onRequest({ request, env }) {
   if (body?.code) {
     const challenge = await getChallengeByCode(env, String(body.code).trim().toUpperCase());
     if (!challenge) return json({ error: "share code not found" }, { status: 404 });
+    const challengeEntriesForStatus = await getChallengeEntries(env, challenge.id);
+    const challengeStatusRows = [];
+    for (const entry of challengeEntriesForStatus || []) {
+      const runs = await supabaseRequest(
+        env,
+        `${MESSENGER_TABLES.runs}?manifest_id=eq.${encodeURIComponent(entry.manifest_id)}&user_id=eq.${encodeURIComponent(
+          entry.user_id
+        )}&order=finish_seconds.asc.nullslast,started_at.asc&select=*`,
+        { method: "GET" }
+      );
+      const bestRun = (runs || []).find((run) => run.status === "finished" && typeof run.finish_seconds === "number") || null;
+      challengeStatusRows.push({
+        user_id: entry.user_id,
+        status: bestRun ? "finished" : "open",
+        best_seconds: bestRun?.finish_seconds || null,
+      });
+    }
+    const joinStatus = deriveChallengeStatus(challenge, challengeStatusRows);
 
-    const existingEntries = await getChallengeEntries(env, challenge.id);
+    const existingEntries = challengeEntriesForStatus;
     const existingEntry = existingEntries.find((entry) => entry.user_id === userId);
     if (existingEntry) {
       const existingManifest = await getManifest(env, existingEntry.manifest_id);
@@ -28,6 +47,13 @@ export async function onRequest({ request, env }) {
         challenge_id: challenge.id,
         reused: true,
       });
+    }
+
+    if (joinStatus === "expired") {
+      return json({ error: "share code expired" }, { status: 410 });
+    }
+    if (joinStatus === "finished") {
+      return json({ error: "challenge already closed" }, { status: 409 });
     }
 
     const sourceManifest = await getManifest(env, challenge.manifest_id);

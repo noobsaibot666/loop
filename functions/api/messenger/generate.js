@@ -1,6 +1,6 @@
 import { json, parseJSON, getAuthUser } from "../../_utils.js";
-import { buildMessengerManifest, MESSENGER_CREDIT_COST } from "../../../shared/messenger.js";
-import { consumeMessengerCredits, persistManifest } from "./_helpers.js";
+import { buildMessengerManifest, buildMessengerManifestFromPack, MESSENGER_CREDIT_COST, normalizeCitySlug } from "../../../shared/messenger.js";
+import { consumeMessengerCredits, getPackCheckpoints, getPublishedCityPackByCity, persistManifest } from "./_helpers.js";
 
 export async function onRequest({ request, env }) {
   const body = await parseJSON(request);
@@ -9,18 +9,45 @@ export async function onRequest({ request, env }) {
   if (!userId) return json({ error: "login required" }, { status: 401 });
 
   const { city, difficulty, style } = body;
-  const built = buildMessengerManifest({
-    city,
-    difficulty,
-    style,
-    seed: Math.floor(Math.random() * 100000),
-  });
+  const seed = Math.floor(Math.random() * 100000);
+  const dbPack = await getPublishedCityPackByCity(env, normalizeCitySlug(city));
+  const dbCheckpoints = dbPack ? await getPackCheckpoints(env, dbPack.id, true) : [];
+  const built =
+    dbPack && dbCheckpoints.length
+      ? buildMessengerManifestFromPack({
+          pack: {
+            slug: dbPack.slug,
+            name: dbPack.name,
+            route_note: dbPack.route_note,
+            finish_label: dbPack.finish_label,
+            safety_note: dbPack.safety_note,
+          },
+          checkpoints: dbCheckpoints.map((checkpoint) => ({
+            id: checkpoint.slug,
+            name: checkpoint.name,
+            lat: checkpoint.lat,
+            lng: checkpoint.lng,
+            hint: checkpoint.hint,
+            task_local: checkpoint.task_local,
+            task_fast: checkpoint.task_fast,
+            task_chaotic: checkpoint.task_chaotic,
+          })),
+          difficulty,
+          style,
+          seed,
+        })
+      : buildMessengerManifest({
+          city,
+          difficulty,
+          style,
+          seed,
+        });
 
   if (built.error) {
     return json({ error: built.error }, { status: 400 });
   }
 
-  const creditResult = await consumeMessengerCredits(env, userId, MESSENGER_CREDIT_COST);
+  const creditResult = await consumeMessengerCredits(env, userId, MESSENGER_CREDIT_COST, authUser?.email || "");
   if (!creditResult.ok) return creditResult.response;
 
   const manifest = built.manifest;
@@ -42,6 +69,8 @@ export async function onRequest({ request, env }) {
     manifest_id: persisted?.id || manifest.id,
     manifest,
     credits_remaining: creditResult.credits_remaining,
+    is_admin: creditResult.is_admin || false,
+    unlimited_credits: creditResult.unlimited_credits || false,
     premium_cost: MESSENGER_CREDIT_COST,
   });
 }

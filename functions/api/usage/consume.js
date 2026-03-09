@@ -1,10 +1,21 @@
-import { json, parseJSON, supabaseRequest, getAuthUser } from "../../_utils.js";
+import { json, parseJSON, supabaseRequest, getAuthUser, isAdminEmail } from "../../_utils.js";
 
 export async function onRequest({ request, env }) {
   await parseJSON(request);
   const authUser = await getAuthUser(env, request);
   const user_id = authUser?.id || "";
   if (!user_id) return json({ error: "login required" }, { status: 401 });
+  const isAdmin = isAdminEmail(env, authUser?.email || "");
+  if (isAdmin) {
+    return json({
+      allowed: true,
+      free_used: 0,
+      donation_credits: 9999,
+      credits_remaining: 9999,
+      is_admin: true,
+      unlimited_credits: true,
+    });
+  }
 
   // Prefer atomic consume via SQL function to prevent race conditions.
   try {
