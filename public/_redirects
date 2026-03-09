@@ -1,4 +1,8 @@
-/messenger /index.html 200
-/messenger/* /index.html 200
-/account /index.html 200
-/account/* /index.html 200
+/loop / 200
+/loop/* / 200
+/messenger / 200
+/messenger/* / 200
+/account / 200
+/account/* / 200
+/wall / 200
+/wall/* / 200

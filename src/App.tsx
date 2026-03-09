@@ -3,7 +3,7 @@ import { motion, useMotionTemplate, useScroll, useSpring, useTransform } from "f
 import { createClient } from "@supabase/supabase-js";
 import heroImage from "./images/hero_6.png";
 
-type PageView = "home" | "messenger" | "account" | "wall";
+type PageView = "home" | "loop" | "messenger" | "account" | "wall";
 type Usage = {
   free_used: number;
   donation_credits: number;
@@ -211,6 +211,21 @@ const loopSteps = [
   },
 ];
 
+const productHighlights = [
+  {
+    title: "Loop",
+    body: "Fast return routes with almost no friction. Drop a point, set the ride, open Maps, move.",
+    action: "Open Loop",
+    page: "loop" as PageView,
+  },
+  {
+    title: "Alleycat Mode",
+    body: "Curated checkpoint runs with ghost pressure, proof, shared codes, and city-specific manifests.",
+    action: "Open Alleycat",
+    page: "messenger" as PageView,
+  },
+];
+
 const messengerFlow = [
   {
     number: "01",
@@ -247,6 +262,7 @@ const formatDuration = (totalSeconds: number) => {
 };
 
 const getPageView = (): PageView => {
+  if (window.location.pathname.startsWith("/loop")) return "loop";
   if (window.location.pathname.startsWith("/messenger")) return "messenger";
   if (window.location.pathname.startsWith("/account")) return "account";
   if (window.location.pathname.startsWith("/wall")) return "wall";
@@ -675,6 +691,8 @@ export default function App() {
   const completedCount = messengerRun?.completedIds.length || 0;
   const totalCheckpoints = messengerManifest?.checkpoints.length || 0;
   const remainingCount = Math.max(0, totalCheckpoints - completedCount);
+  const finishedRiders = leaderboard.filter((entry) => entry.status === "finished").length;
+  const boardLeader = leaderboard.find((entry) => entry.best_seconds !== null) || null;
 
   const parseLatLng = (value: string) => {
     const match = value.match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
@@ -706,27 +724,20 @@ export default function App() {
   };
 
   const handleNavigate = (target: PageView) => {
-    const path = target === "messenger" ? "/messenger" : target === "account" ? "/account" : target === "wall" ? "/wall" : "/";
+    const path =
+      target === "loop"
+        ? "/loop"
+        : target === "messenger"
+          ? "/messenger"
+          : target === "account"
+            ? "/account"
+            : target === "wall"
+              ? "/wall"
+              : "/";
     window.history.pushState({}, "", path);
     setPageView(target);
     setMenuOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const handleBoardShortcut = () => {
-    const scrollToBoard = () => {
-      const board = document.getElementById("challenge-board");
-      if (board) board.scrollIntoView({ behavior: "smooth", block: "start" });
-    };
-    if (pageView === "messenger") {
-      scrollToBoard();
-      return;
-    }
-    window.history.pushState({}, "", "/messenger");
-    setPageView("messenger");
-    setMenuOpen(false);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    window.setTimeout(scrollToBoard, 120);
   };
 
   const openAuth = (mode: "login" | "signup" = "login", message = "") => {
@@ -1286,11 +1297,15 @@ export default function App() {
           <span>
           <span className="brand-title">Gimme The Loop</span>
           <span className="brand-subtitle">
-            {pageView === "messenger"
+            {pageView === "home"
+              ? "Loop routes and alleycat runs for the city."
+              : pageView === "loop"
+                ? "Loop routes built for the return."
+              : pageView === "messenger"
               ? "Premium alleycat challenge mode."
               : pageView === "account"
                 ? "Account, credits, and purchase history."
-                : "Loop routes built for the return."}
+                : "Public proof from alleycat runs."}
           </span>
         </span>
       </button>
@@ -1301,6 +1316,9 @@ export default function App() {
 
       <div className={`header-actions ${menuOpen ? "open" : ""}`}>
         <button className={`nav-link ${pageView === "home" ? "active" : ""}`} type="button" onClick={() => handleNavigate("home")}>
+          Home
+        </button>
+        <button className={`nav-link ${pageView === "loop" ? "active" : ""}`} type="button" onClick={() => handleNavigate("loop")}>
           Loop
         </button>
         <button
@@ -1312,9 +1330,6 @@ export default function App() {
         </button>
         <button className={`nav-link ${pageView === "wall" ? "active" : ""}`} type="button" onClick={() => handleNavigate("wall")}>
           Wall
-        </button>
-        <button className="nav-link" type="button" onClick={handleBoardShortcut}>
-          Board
         </button>
         <button className="nav-link" type="button" onClick={handleDonate}>
           Add credits
@@ -1791,32 +1806,32 @@ export default function App() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: "easeOut" }}
         >
-          <div className="hero-eyebrow">Loop Product</div>
-          <h1>Clean loops back to where you started.</h1>
-          <p>Drop a point, shape the ride, and get a clean return route.</p>
+          <div className="hero-eyebrow">City riding tools</div>
+          <h1>One product page. Two ways to ride the city.</h1>
+          <p>Loop gives you the fast return route. Alleycat gives you the pressure, checkpoints, and shared city game.</p>
           <div className="hero-actions">
-            <a className="primary-button" href="#loop-builder">
-              Build a loop
-            </a>
+            <button className="primary-button" type="button" onClick={() => handleNavigate("loop")}>
+              Open Loop
+            </button>
             <button className="ghost-button" type="button" onClick={() => handleNavigate("messenger")}>
-              Explore Alleycat Mode
+              Open Alleycat
             </button>
             <button className="ghost-button" type="button" onClick={() => handleNavigate("wall")}>
-              Open the Wall
+              Open Wall
             </button>
           </div>
           <div className="hero-metadata">
             <div>
-              <div className="metric">3</div>
-              <div className="metric-label">Free loops</div>
+              <div className="metric">Loop</div>
+              <div className="metric-label">Clean return routes</div>
             </div>
             <div>
-              <div className="metric">1 tap</div>
-              <div className="metric-label">Open in Maps</div>
+              <div className="metric">Alleycat</div>
+              <div className="metric-label">Checkpoint city mode</div>
             </div>
             <div>
-              <div className="metric">$5</div>
-              <div className="metric-label">Adds 10 credits</div>
+              <div className="metric">Wall</div>
+              <div className="metric-label">Public proof feed</div>
             </div>
           </div>
         </motion.div>
@@ -1828,12 +1843,84 @@ export default function App() {
           transition={{ duration: 0.8, ease: "easeOut", delay: 0.15 }}
         >
           <motion.div className="hero-image" style={{ y: parallaxY, x: parallaxX }}>
-            <img src={heroImage} alt="Cyclist moving through a city loop" />
+            <img src={heroImage} alt="Cyclist moving through a city ride product" />
           </motion.div>
         </motion.div>
       </section>
+
+      <section className="feature-link-section">
+        <div className="section-title">Pick a mode</div>
+        <div className="offer-grid product-card-grid">
+          {productHighlights.map((item) => (
+            <div key={item.title} className="glass-card offer-card product-card">
+              <div className="offer-title">{item.title}</div>
+              <div className="offer-body">{item.body}</div>
+              <button className="ghost-button" type="button" onClick={() => handleNavigate(item.page)}>
+                {item.action}
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <section className="loop-progress">
+        <div className="section-title">How it lands</div>
         <div className="progress-track three-up">
+          {[
+            {
+              number: "01",
+              title: "Open the right tool",
+              body: "Use Loop when you want the ride fast. Use Alleycat when you want the city to push back.",
+            },
+            {
+              number: "02",
+              title: "Ride with less friction",
+              body: "Both flows stay direct on mobile so you can scroll, act, and get moving without reading a manual.",
+            },
+            {
+              number: "03",
+              title: "Keep the city visible",
+              body: "Proof posts, shared codes, and rider history keep the product feeling alive after the run is done.",
+            },
+          ].map((step, index) => (
+            <motion.div
+              key={step.number}
+              className={`progress-step ${activeStep === index ? "active" : ""}`}
+              onHoverStart={() => setActiveStep(index)}
+              onHoverEnd={() => setActiveStep(-1)}
+            >
+              <div className="progress-dot">
+                <span>{step.number}</span>
+              </div>
+              <div className="progress-number">Step {step.number}</div>
+              <div className="progress-title">{step.title}</div>
+              <div className="progress-body">{step.body}</div>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+    </>
+  );
+
+  const renderLoop = () => (
+    <>
+      <section className="builder-section product-page-section">
+        <div className="product-page-intro">
+          <div>
+            <div className="section-title">Loop</div>
+            <div className="product-page-title">Fast route builder</div>
+            <div className="product-page-copy">Build a clean return route and get out of the browser fast.</div>
+          </div>
+          <div className="product-page-actions">
+            <button className="ghost-button" type="button" onClick={() => handleNavigate("home")}>
+              Back to Home
+            </button>
+            <button className="ghost-button" type="button" onClick={() => handleNavigate("messenger")}>
+              Open Alleycat
+            </button>
+          </div>
+        </div>
+        <div className="progress-track three-up compact-progress">
           {loopSteps.map((step, index) => (
             <motion.div
               key={step.number}
@@ -2030,56 +2117,27 @@ export default function App() {
           </div>
         </div>
       </section>
-
     </>
   );
 
   const renderMessenger = () => (
     <>
-      <section className="hero messenger-hero" ref={heroRef}>
-        <motion.div
-          className="hero-copy"
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: "easeOut" }}
-        >
-          <div className="hero-eyebrow">Alleycat Mode</div>
-          <h1>City pressure. Your line.</h1>
-          <p>Curated checkpoints and a ghost to beat.</p>
-          <div className="hero-actions">
-            <a className="primary-button" href="#messenger-builder">
-              Build a manifest
-            </a>
+      <section className="builder-section product-page-section">
+        <div className="product-page-intro">
+          <div>
+            <div className="section-title">Alleycat Mode</div>
+            <div className="product-page-title">Checkpoint city pressure</div>
+            <div className="product-page-copy">Curated manifests, proof, ghost time, shared codes, and your own line through the city.</div>
+          </div>
+          <div className="product-page-actions">
             <button className="ghost-button" type="button" onClick={() => handleNavigate("home")}>
-              Back to Loop
+              Back to Home
+            </button>
+            <button className="ghost-button" type="button" onClick={() => handleNavigate("loop")}>
+              Open Loop
             </button>
           </div>
-          <div className="hero-metadata">
-            <div>
-              <div className="metric">{MESSENGER_CREDIT_COST}</div>
-              <div className="metric-label">Credits per manifest</div>
-            </div>
-            <div>
-              <div className="metric">Solo</div>
-              <div className="metric-label">Ghost race format</div>
-            </div>
-            <div>
-              <div className="metric">Any order</div>
-              <div className="metric-label">Route choice stays yours</div>
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          className="hero-visual"
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut", delay: 0.15 }}
-        >
-          <motion.div className="hero-image messenger-image" style={{ y: parallaxY, x: parallaxX }}>
-            <img src={heroImage} alt="Rider in a city challenge flow" />
-          </motion.div>
-        </motion.div>
+        </div>
       </section>
 
       <section className="loop-progress messenger-flow">
@@ -2447,70 +2505,106 @@ export default function App() {
                 )}
 
                 {(challenge || leaderboard.length > 0 || isLoadingLeaderboard) && (
-                  <div className="result-card leaderboard-card" id="challenge-board">
-                    <div className="result-title">Friend challenge</div>
-                    {challenge && (
-                      <div className="challenge-summary-head">
-                        <div className="manifest-subtitle">Code {challenge.code}</div>
-                        <span className={`status-chip ${challengeSummary?.status || "open"}`}>{challengeStatusLabel}</span>
+                  <section className="challenge-board-shell" id="challenge-board">
+                    <div className="challenge-board-header">
+                      <div>
+                        <div className="section-label">Challenge board</div>
+                        <div className="result-title">Shared run standings</div>
                       </div>
-                    )}
-                    {challengeSummary && (
-                      <div className="challenge-summary-copy">
-                        <strong>
-                          {challengeSummary.winner_name
-                            ? `${challengeSummary.winner_name} is leading.`
-                            : "No winner yet."}
-                        </strong>
-                        <span>{challengeSummary.rivalry}</span>
-                        {challengeSummary.expires_at && challengeSummary.status === "open" && (
-                          <span>Code stays live until {new Date(challengeSummary.expires_at).toLocaleDateString()}.</span>
-                        )}
-                      </div>
-                    )}
-                    {isLoadingLeaderboard && <div className="status-message compact-status">Refreshing leaderboard…</div>}
-                    {!isLoadingLeaderboard && leaderboard.length === 0 && (
-                      <div className="empty-state">
-                        <div className="empty-state-body">
-                          {challengeSummary?.status === "expired"
-                            ? "This challenge expired before any finished times landed."
-                            : "No finished runs yet. Share the code and race it out."}
+                      {challenge && (
+                        <div className="challenge-board-code">
+                          <span>Code {challenge.code}</span>
+                          <span className={`status-chip ${challengeSummary?.status || "open"}`}>{challengeStatusLabel}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="challenge-board-grid">
+                      <div className="challenge-overview-card">
+                        <div className="challenge-summary-copy">
+                          <strong>
+                            {challengeSummary?.winner_name
+                              ? `${challengeSummary.winner_name} is leading.`
+                              : "No winner yet."}
+                          </strong>
+                          <span>{challengeSummary?.rivalry || "Share the code and let a few riders land times."}</span>
+                          {challengeSummary?.expires_at && challengeSummary.status === "open" && (
+                            <span>Code stays live until {new Date(challengeSummary.expires_at).toLocaleDateString()}.</span>
+                          )}
+                        </div>
+
+                        <div className="challenge-stats-grid">
+                          <div className="challenge-stat">
+                            <span>Status</span>
+                            <strong>{challengeStatusLabel}</strong>
+                          </div>
+                          <div className="challenge-stat">
+                            <span>Riders</span>
+                            <strong>{leaderboard.length || 0}</strong>
+                          </div>
+                          <div className="challenge-stat">
+                            <span>Finished</span>
+                            <strong>{finishedRiders}</strong>
+                          </div>
+                          <div className="challenge-stat">
+                            <span>Best time</span>
+                            <strong>{boardLeader?.best_seconds !== null && boardLeader?.best_seconds !== undefined ? formatDuration(boardLeader.best_seconds) : "--:--"}</strong>
+                          </div>
                         </div>
                       </div>
-                    )}
-                    {leaderboard.length > 0 && (
-                      <div className="leaderboard-list">
-                        {leaderboard.map((entry, index) => (
-                          <div key={`${entry.user_id}-${entry.manifest_id}`} className="leaderboard-row">
-                            <div className="leaderboard-rank">#{index + 1}</div>
-                            <div className="leaderboard-main">
-                              <strong>
-                                {entry.user_id === user?.id
-                                  ? entry.is_creator
-                                    ? "You / creator"
-                                    : "You"
-                                  : entry.is_creator
-                                    ? `${entry.rider_name} / creator`
-                                    : entry.rider_name}
-                              </strong>
-                              <span>
-                                {entry.status === "finished"
-                                  ? challengeSummary?.winner_user_id === entry.user_id
-                                    ? "Fastest finished time"
-                                    : "Finished"
-                                  : challengeSummary?.status === "expired"
-                                    ? "Expired open run"
-                                    : "Open run"}
-                              </span>
-                            </div>
-                            <div className="leaderboard-time">
-                              {entry.best_seconds !== null ? formatDuration(entry.best_seconds) : "--:--"}
+
+                      <div className="challenge-leaderboard-card">
+                        <div className="challenge-card-head">
+                          <div>
+                            <div className="manifest-subtitle">Leaderboard</div>
+                            <div className="challenge-card-copy">Fastest finished run sits on top. Open riders stay visible until they land a time.</div>
+                          </div>
+                        </div>
+                        {isLoadingLeaderboard && <div className="status-message compact-status">Refreshing leaderboard…</div>}
+                        {!isLoadingLeaderboard && leaderboard.length === 0 && (
+                          <div className="empty-state">
+                            <div className="empty-state-body">
+                              {challengeSummary?.status === "expired"
+                                ? "This challenge expired before any finished times landed."
+                                : "No finished runs yet. Share the code and race it out."}
                             </div>
                           </div>
-                        ))}
+                        )}
+                        {leaderboard.length > 0 && (
+                          <div className="leaderboard-list">
+                            {leaderboard.map((entry, index) => (
+                              <div key={`${entry.user_id}-${entry.manifest_id}`} className="leaderboard-row">
+                                <div className="leaderboard-rank">#{index + 1}</div>
+                                <div className="leaderboard-main">
+                                  <strong>
+                                    {entry.user_id === user?.id
+                                      ? entry.is_creator
+                                        ? "You / creator"
+                                        : "You"
+                                      : entry.is_creator
+                                        ? `${entry.rider_name} / creator`
+                                        : entry.rider_name}
+                                  </strong>
+                                  <span>
+                                    {entry.status === "finished"
+                                      ? challengeSummary?.winner_user_id === entry.user_id
+                                        ? "Fastest finished time"
+                                        : "Finished"
+                                      : challengeSummary?.status === "expired"
+                                        ? "Expired open run"
+                                        : "Open run"}
+                                  </span>
+                                </div>
+                                <div className="leaderboard-time">
+                                  {entry.best_seconds !== null ? formatDuration(entry.best_seconds) : "--:--"}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  </section>
                 )}
               </div>
             </div>
@@ -2579,18 +2673,30 @@ export default function App() {
     >
       {renderHeader()}
       {renderModals()}
-      {pageView === "messenger" ? renderMessenger() : pageView === "account" ? renderAccount() : pageView === "wall" ? renderWall() : renderHome()}
+      {pageView === "messenger"
+        ? renderMessenger()
+        : pageView === "loop"
+          ? renderLoop()
+          : pageView === "account"
+            ? renderAccount()
+            : pageView === "wall"
+              ? renderWall()
+              : renderHome()}
       <footer className="site-footer">
         <div>
           <div className="footer-title">Gimme The Loop</div>
           <div className="footer-subtitle">
-            {pageView === "messenger"
+            {pageView === "home"
+              ? "Home is the product page. Loop and Alleycat stay as the focused ride tools."
+              : pageView === "messenger"
               ? "Alleycat Mode is the premium city challenge layer built on top of the route product."
+              : pageView === "loop"
+                ? "Loop is the fast route product for clean return rides."
               : pageView === "account"
                 ? "Account keeps credits, purchases, and profile controls in one clean place."
                 : pageView === "wall"
                   ? "Wall is the public layer for Alleycat proof and city moments."
-              : "Loop is the fast route product. Alleycat Mode adds the premium city challenge layer."}
+                  : "Loop is the fast route product. Alleycat Mode adds the premium city challenge layer."}
           </div>
         </div>
         <div className="footer-links">
@@ -2602,6 +2708,9 @@ export default function App() {
           </a>
           <a className="ghost-link" href="/how.html">
             How it works
+          </a>
+          <a className="ghost-link" href="/admin.html">
+            Admin
           </a>
           <a className="ghost-link" href="https://buymeacoffee.com/js4mhwqrdjd">
             Buy me a coffee
