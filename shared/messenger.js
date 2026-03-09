@@ -150,6 +150,80 @@ const checkpointsByCity = {
       },
     },
   ],
+  tokyo: [
+    {
+      id: "tokyo-shibuya-scramble",
+      name: "Shibuya Scramble Edge",
+      lat: 35.6595,
+      lng: 139.7005,
+      hint: "Too many flows, too many faces, no sympathy.",
+      tasks: {
+        local: "Clock the cleanest gap in the human mess and remember it like it owes you money.",
+        fast: "Hit the edge, pick your exit in one glance, and leave before hesitation gets expensive.",
+        chaotic: "Give the crossing your best fake race-face for two seconds, then vanish like nothing happened.",
+      },
+    },
+    {
+      id: "tokyo-yoyogi-entry",
+      name: "Yoyogi Park South Gate",
+      lat: 35.6673,
+      lng: 139.6949,
+      hint: "Open calm with city noise still hanging around it.",
+      tasks: {
+        local: "Notice the first sound that proves this place is still Tokyo and not an escape hatch.",
+        fast: "Touch the gate, reset your breathing once, and get back to work.",
+        chaotic: "Bow to the park like it saved your life, then leave before anyone clocks you.",
+      },
+    },
+    {
+      id: "tokyo-nakameguro-tracks",
+      name: "Nakameguro Under Tracks",
+      lat: 35.6442,
+      lng: 139.6986,
+      hint: "Tight lanes, side-glances, and no wasted motion.",
+      tasks: {
+        local: "Find one detail under the tracks that feels more night ride than daytime city.",
+        fast: "Read the lane, trust the line, and keep your cadence cleaner than the street deserves.",
+        chaotic: "Quietly rate the whole block out of ten with full confidence and absolutely no evidence.",
+      },
+    },
+    {
+      id: "tokyo-akihabara-udx",
+      name: "Akihabara UDX Edge",
+      lat: 35.7006,
+      lng: 139.772,
+      hint: "Neon pressure, layered traffic, zero softness.",
+      tasks: {
+        local: "Clock the exact point where commuter energy flips into full weirdness.",
+        fast: "Touch the edge, cut the noise, and move before the lights start bossing you around.",
+        chaotic: "Name your bike like it is an anime side character and roll to the next stop.",
+      },
+    },
+    {
+      id: "tokyo-ryogoku-river",
+      name: "Ryogoku River Walk Drop",
+      lat: 35.6962,
+      lng: 139.7934,
+      hint: "Waterline reset, but never fully relaxed.",
+      tasks: {
+        local: "Notice what changes in the wind and decide if it helped or insulted you.",
+        fast: "Use the river as a reset seam, then snap back into the grid with intent.",
+        chaotic: "Throw one fake championship nod at the water and act like you just defended a title.",
+      },
+    },
+    {
+      id: "tokyo-odaiba-decks",
+      name: "Odaiba Decks Cut",
+      lat: 35.6275,
+      lng: 139.7753,
+      hint: "Wide views, awkward edges, too much temptation to coast.",
+      tasks: {
+        local: "Find the least postcard-worthy angle and trust it more than the obvious one.",
+        fast: "Touch the deck zone, skip the view trap, and get moving again.",
+        chaotic: "Give the skyline a sarcastic compliment under your breath and disappear before it answers back.",
+      },
+    },
+  ],
 };
 
 const difficultyConfig = {
@@ -178,6 +252,8 @@ export const getMessengerCityPack = (city = "") => {
   };
 };
 
+export const normalizeCitySlug = normalize;
+
 const seededOrder = (items, seed) => {
   const copy = [...items];
   let state = seed || 1;
@@ -189,21 +265,21 @@ const seededOrder = (items, seed) => {
   return copy;
 };
 
-export const buildMessengerManifest = ({
-  city,
+export const buildMessengerManifestFromPack = ({
+  pack,
+  checkpoints: sourceCheckpoints,
   difficulty = "medium",
   style = "local",
   seed = Date.now(),
 }) => {
-  const pack = getMessengerCityPack(city);
-  if (!pack) {
-    return { error: "City not supported yet. Start with Berlin or London." };
+  if (!pack || !Array.isArray(sourceCheckpoints) || !sourceCheckpoints.length) {
+    return { error: "City pack is empty." };
   }
 
   const difficultyKey = difficultyConfig[difficulty] ? difficulty : "medium";
   const styleKey = ["local", "fast", "chaotic"].includes(style) ? style : "local";
   const config = difficultyConfig[difficultyKey];
-  const ordered = seededOrder(pack.checkpoints, seed).slice(0, config.count);
+  const ordered = seededOrder(sourceCheckpoints, seed).slice(0, Math.min(config.count, sourceCheckpoints.length));
 
   const checkpoints = ordered.map((checkpoint, index) => ({
     id: checkpoint.id,
@@ -212,7 +288,12 @@ export const buildMessengerManifest = ({
     lat: checkpoint.lat,
     lng: checkpoint.lng,
     hint: checkpoint.hint,
-    task: checkpoint.tasks[styleKey],
+    task:
+      checkpoint.tasks?.[styleKey] ||
+      checkpoint.task_local ||
+      checkpoint.task_fast ||
+      checkpoint.task_chaotic ||
+      "Read the street, clear the spot, and keep moving.",
   }));
 
   const title = `${pack.name} ${titleTokens[styleKey]} ${difficultyKey.charAt(0).toUpperCase()}${difficultyKey.slice(1)}`;
@@ -228,12 +309,34 @@ export const buildMessengerManifest = ({
       estimated_minutes: config.estimatedMinutes,
       ghost_seconds: config.ghostSeconds,
       checkpoint_count: checkpoints.length,
-      route_note: "Any order. Pick your own line through the city and clear every checkpoint before the finish.",
-      finish_label: "Final proof at your last checkpoint. When the list is clear, stop the clock.",
-      safety_note: "Ride within local laws, stay aware in traffic, and treat this as a self-directed challenge.",
+      route_note:
+        pack.route_note || "Any order. Pick your own line through the city and clear every checkpoint before the finish.",
+      finish_label:
+        pack.finish_label || "Final proof at your last checkpoint. When the list is clear, stop the clock.",
+      safety_note:
+        pack.safety_note || "Ride within local laws, stay aware in traffic, and treat this as a self-directed challenge.",
       checkpoints,
     },
   };
+};
+
+export const buildMessengerManifest = ({
+  city,
+  difficulty = "medium",
+  style = "local",
+  seed = Date.now(),
+}) => {
+  const pack = getMessengerCityPack(city);
+  if (!pack) {
+    return { error: "City not supported yet. Start with Berlin, London, or Tokyo." };
+  }
+  return buildMessengerManifestFromPack({
+    pack,
+    checkpoints: pack.checkpoints,
+    difficulty,
+    style,
+    seed,
+  });
 };
 
 export const formatDurationLabel = (totalSeconds = 0) => {

@@ -1,5 +1,10 @@
 # Gimme The Loop V1
 
+Related planning docs:
+- [v1-1-roadmap.md](/Users/alan/_localDEV/Loop/docs/v1-1-roadmap.md)
+- [v1-1-checklist.md](/Users/alan/_localDEV/Loop/reports/v1-1-checklist.md)
+- [city-rollout.md](/Users/alan/_localDEV/Loop/docs/city-rollout.md)
+
 ## Product shape
 Gimme The Loop V1 has two product surfaces:
 
@@ -20,6 +25,11 @@ Gimme The Loop V1 has two product surfaces:
    - Email/password auth
    - Credits, purchase history, and basic account controls
 
+4. `Wall`
+   - Dedicated `/wall` page
+   - Public Alleycat proof feed
+   - Rider photo proof cards with city and checkpoint context
+
 ## Loop capabilities
 - Build a loop from one point
 - Switch between KM and miles
@@ -27,11 +37,12 @@ Gimme The Loop V1 has two product surfaces:
 - Use location suggestions from geocoding
 - Open generated route in Google Maps
 - Consume free or paid loop credits
+- Persist recent loop history to the rider account
 
 ## Alleycat Mode capabilities
 - Dedicated `/messenger` page with separate communication and layout
 - Premium manifest generation
-- Supported city packs in V1: `Berlin`, `London`
+- Supported city packs in V1: `Berlin`, `London`, `Tokyo`
 - Difficulty levels: `Easy`, `Medium`, `Hard`
 - Street tones: `Local`, `Fast`, `Chaotic`
 - Curated checkpoint list with task prompt and hint
@@ -41,6 +52,14 @@ Gimme The Loop V1 has two product surfaces:
 - Ghost target comparison on completion
 - Friend challenge sharing via share code
 - Friend leaderboard for shared challenges
+- Derived challenge states: `open`, `finished`, `expired`
+- Rivalry summary and winner state in the run panel
+- One-photo checkpoint proof upload
+- Optional public proof visibility
+- Public proof wall feed on `/wall`
+- Abandon active run
+- Restart the same manifest with a fresh clock
+- Clearer duplicate, distance, and location-permission feedback
 
 ## Account and auth capabilities
 - Email/password sign in
@@ -50,12 +69,23 @@ Gimme The Loop V1 has two product surfaces:
 - Credit top-up access from account
 - Recent Stripe purchase list for quick verification
 - V1 activity summary for Alleycat usage
+- Quarter board with current rank, proof count, and top 3
+- Rider badges derived from proof and finish behavior
+- Recent loop history with reopen links
+- Alleycat manifest/run history with best time and ghost delta
+- Shared challenge history
+- Riders-you-raced-with list limited to shared challenge links
 
 ## Admin capabilities
 - Minimal standalone `/admin.html` page
 - Email/password admin login
 - Website health check
 - Small ops overview for credits, manifests, runs, and top-ups
+- Minimal wall moderation through proof hide/show controls
+- Quarter leaderboard visibility for award review
+- City studio for DB-backed city packs and checkpoints
+- AI-assisted checkpoint and pack drafting in the city studio
+- Preview manifest generation from admin-managed content
 - Reset rider usage
 - Reset guest usage
 - Set rider credits
@@ -92,12 +122,18 @@ Gimme The Loop V1 has two product surfaces:
 4. Top up credits when needed.
 5. Update password if the account is staying in regular use.
 
+### Wall
+1. Open `/wall`.
+2. Browse public Alleycat proof cards from riders.
+3. Use it as a read-only feed for checkpoint moments across supported cities.
+
 ### Admin
 1. Create or update an admin auth user with `npm run admin:create -- admin@email.com strong-password`.
 2. Add that email to `ADMIN_EMAILS` in the backend environment.
 3. Open `/admin.html`.
 4. Sign in with email and password.
-5. Use overview, reset, and credit controls to keep V1 testable.
+5. Use overview, reset, credit, wall moderation, and city studio controls to keep V1 testable.
+6. Use AI draft buttons to generate copy suggestions, then review and save them manually.
 
 ## Mobile behavior
 - Home page keeps the loop builder immediately accessible.
@@ -121,6 +157,12 @@ Gimme The Loop V1 has two product surfaces:
 - Supabase leaked password protection remains unavailable on the Free plan.
 - Email/password auth is live anyway and the product is test-ready without that toggle.
 - Keep passwords strong for admin and rider accounts until the project is upgraded.
+
+## AI draft note
+- AI drafting is admin-only and review-gated.
+- The OpenAI key is not exposed to the browser.
+- Local development reads `OPENAI_API_KEY` from `.env`.
+- Production should set `OPENAI_API_KEY` as a deployment secret.
 
 ## Final test checklist
 - Sign in and sign out on `/account`

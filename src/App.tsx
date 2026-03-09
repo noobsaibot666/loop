@@ -3,12 +3,14 @@ import { motion, useMotionTemplate, useScroll, useSpring, useTransform } from "f
 import { createClient } from "@supabase/supabase-js";
 import heroImage from "./images/hero_6.png";
 
-type PageView = "home" | "messenger" | "account";
+type PageView = "home" | "messenger" | "account" | "wall";
 type Usage = {
   free_used: number;
   donation_credits: number;
   free_remaining: number;
   credits_remaining: number;
+  is_admin?: boolean;
+  unlimited_credits?: boolean;
 };
 type Suggestion = {
   label: string;
@@ -46,20 +48,41 @@ type MessengerRun = {
   finishSeconds: number | null;
   finishedAt: string | null;
   status?: string;
+  proofs?: MessengerProof[];
+};
+type MessengerProof = {
+  id: string;
+  checkpoint_id: string;
+  checkpoint_name: string;
+  public_url: string;
+  location_label: string;
+  is_public: boolean;
+  created_at: string;
 };
 type AlleycatChallenge = {
   id: string;
   code: string;
+  created_at?: string;
+  status?: string;
 };
 type AlleycatLeaderboardEntry = {
   user_id: string;
   manifest_id: string;
   joined_at: string;
+  rider_name: string;
   city_name: string;
   best_seconds: number | null;
   best_run_id: string | null;
   status: string;
   is_creator: boolean;
+};
+type AlleycatChallengeSummary = {
+  status: string;
+  expires_at: string | null;
+  winner_user_id: string | null;
+  winner_name: string | null;
+  best_seconds: number | null;
+  rivalry: string;
 };
 type AccountSummary = {
   purchases: {
@@ -74,7 +97,80 @@ type AccountSummary = {
     runs: number;
     finished_runs: number;
     challenges: number;
+    proofs: number;
+    public_proofs: number;
   };
+  quarter: {
+    label: string;
+    public_proofs: number;
+    finished_runs: number;
+    rank: number | null;
+    total_ranked_riders: number;
+    leaders: {
+      user_id: string;
+      rider_name: string;
+      public_proofs: number;
+      finished_runs: number;
+      rank: number;
+    }[];
+  };
+  badges: {
+    id: string;
+    label: string;
+    description: string;
+  }[];
+  loop_history: {
+    id: string;
+    loop_point: string;
+    distance_km: number;
+    unit: string;
+    terrain: string;
+    surface: string;
+    vibe: string;
+    route_url: string;
+    created_at: string;
+  }[];
+  alleycat_history: {
+    id: string;
+    city_name: string;
+    manifest_title: string;
+    difficulty: string;
+    style: string;
+    created_at: string;
+    status: string;
+    best_seconds: number | null;
+    ghost_seconds: number | null;
+    ghost_delta: number | null;
+    proof_count: number;
+    source_challenge_id: string | null;
+  }[];
+  challenge_history: {
+    challenge_id: string;
+    code: string;
+    city_name: string;
+    manifest_title: string;
+    joined_at: string;
+    status: string;
+    best_seconds: number | null;
+    rival_count: number;
+  }[];
+  shared_riders: {
+    user_id: string;
+    rider_name: string;
+    shared_challenges: number;
+    last_joined_at: string;
+    cities: string[];
+  }[];
+};
+type WallPost = {
+  id: string;
+  rider_name: string;
+  city_name: string;
+  city_slug: string;
+  checkpoint_name: string;
+  location_label: string;
+  public_url: string;
+  created_at: string;
 };
 
 const API_BASE = (() => {
@@ -94,7 +190,8 @@ const supabase = supabaseUrl && supabaseAnon ? createClient(supabaseUrl, supabas
 const LOOP_FREE_LIMIT = 3;
 const MESSENGER_CREDIT_COST = 3;
 const ALLEYCAT_STORAGE_KEY = "loop_alleycat_state";
-const ALLEYCAT_CITY_PRESETS = ["Berlin", "London"];
+const ALLEYCAT_CITY_PRESETS = ["Berlin", "London", "Tokyo"];
+const PROOF_BUCKET = "alleycat-proofs";
 
 const loopSteps = [
   {
@@ -152,6 +249,7 @@ const formatDuration = (totalSeconds: number) => {
 const getPageView = (): PageView => {
   if (window.location.pathname.startsWith("/messenger")) return "messenger";
   if (window.location.pathname.startsWith("/account")) return "account";
+  if (window.location.pathname.startsWith("/wall")) return "wall";
   return "home";
 };
 
@@ -192,6 +290,8 @@ export default function App() {
   const [accountStatus, setAccountStatus] = useState("");
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [isSendingReset, setIsSendingReset] = useState(false);
+  const [wallPosts, setWallPosts] = useState<WallPost[]>([]);
+  const [isLoadingWall, setIsLoadingWall] = useState(false);
 
   const [loopPoint, setLoopPoint] = useState("");
   const [distance, setDistance] = useState(14);
@@ -224,8 +324,13 @@ export default function App() {
   const [isSharingManifest, setIsSharingManifest] = useState(false);
   const [isLoadingSharedManifest, setIsLoadingSharedManifest] = useState(false);
   const [challenge, setChallenge] = useState<AlleycatChallenge | null>(null);
+  const [challengeSummary, setChallengeSummary] = useState<AlleycatChallengeSummary | null>(null);
   const [leaderboard, setLeaderboard] = useState<AlleycatLeaderboardEntry[]>([]);
   const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
+  const [proofVisibility, setProofVisibility] = useState<Record<string, boolean>>({});
+  const [proofFiles, setProofFiles] = useState<Record<string, File | null>>({});
+  const [proofStatus, setProofStatus] = useState<Record<string, string>>({});
+  const [isUploadingProof, setIsUploadingProof] = useState<Record<string, boolean>>({});
 
   const isMobile = useMemo(() => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent), []);
 
@@ -460,6 +565,7 @@ export default function App() {
   useEffect(() => {
     if (!user?.id || (!challenge?.id && !messengerManifestId)) {
       setLeaderboard([]);
+      setChallengeSummary(null);
       return;
     }
     let cancelled = false;
@@ -469,6 +575,7 @@ export default function App() {
         const data = await postJSON<{
           challenge: AlleycatChallenge | null;
           leaderboard: AlleycatLeaderboardEntry[];
+          summary?: AlleycatChallengeSummary | null;
         }>("/api/messenger/leaderboard", {
           challenge_id: challenge?.id || "",
           manifest_id: messengerManifestId || "",
@@ -479,8 +586,12 @@ export default function App() {
           setShareCode(data.challenge.code);
         }
         setLeaderboard(data.leaderboard || []);
+        setChallengeSummary(data.summary || null);
       } catch {
-        if (!cancelled) setLeaderboard([]);
+        if (!cancelled) {
+          setLeaderboard([]);
+          setChallengeSummary(null);
+        }
       } finally {
         if (!cancelled) setIsLoadingLeaderboard(false);
       }
@@ -489,6 +600,26 @@ export default function App() {
       cancelled = true;
     };
   }, [user?.id, challenge?.id, messengerManifestId, messengerRun?.finishSeconds, messengerRun?.completedIds.length]);
+
+  useEffect(() => {
+    if (pageView !== "wall") return;
+    let cancelled = false;
+    setIsLoadingWall(true);
+    (async () => {
+      try {
+        const response = await fetch(`${API_BASE}/api/wall`);
+        const data = (await response.json()) as { posts: WallPost[] };
+        if (!cancelled) setWallPosts(data.posts || []);
+      } catch {
+        if (!cancelled) setWallPosts([]);
+      } finally {
+        if (!cancelled) setIsLoadingWall(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pageView]);
 
   useEffect(() => {
     if (!loopPoint || loopPoint.length < 3) {
@@ -525,8 +656,11 @@ export default function App() {
   const step3Done = step3Touched;
   const allLoopDone = step1Done && step2Done && step3Done;
 
-  const totalCredits = Math.max(0, (usage?.credits_remaining || 0) + (usage?.free_remaining || 0));
-  const messengerCreditsOnly = Math.max(0, usage?.credits_remaining || 0);
+  const hasUnlimitedCredits = Boolean(usage?.unlimited_credits || usage?.is_admin);
+  const totalCredits = hasUnlimitedCredits ? 9999 : Math.max(0, (usage?.credits_remaining || 0) + (usage?.free_remaining || 0));
+  const messengerCreditsOnly = hasUnlimitedCredits ? 9999 : Math.max(0, usage?.credits_remaining || 0);
+  const riderHandle = (user?.email || "").split("@")[0] || "rider";
+  const accountGreeting = hasUnlimitedCredits ? `Hello admin ${riderHandle}.` : `Hello ${riderHandle}.`;
   const currentElapsed = useMemo(() => {
     if (!messengerRun) return 0;
     if (messengerRun.finishSeconds) return messengerRun.finishSeconds;
@@ -536,6 +670,8 @@ export default function App() {
     messengerManifest && messengerRun?.finishSeconds
       ? messengerRun.finishSeconds - messengerManifest.ghost_seconds
       : null;
+  const challengeStatusLabel =
+    challengeSummary?.status === "expired" ? "Expired" : challengeSummary?.status === "finished" ? "Finished" : "Open";
   const completedCount = messengerRun?.completedIds.length || 0;
   const totalCheckpoints = messengerManifest?.checkpoints.length || 0;
   const remainingCount = Math.max(0, totalCheckpoints - completedCount);
@@ -570,11 +706,27 @@ export default function App() {
   };
 
   const handleNavigate = (target: PageView) => {
-    const path = target === "messenger" ? "/messenger" : target === "account" ? "/account" : "/";
+    const path = target === "messenger" ? "/messenger" : target === "account" ? "/account" : target === "wall" ? "/wall" : "/";
     window.history.pushState({}, "", path);
     setPageView(target);
     setMenuOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleBoardShortcut = () => {
+    const scrollToBoard = () => {
+      const board = document.getElementById("challenge-board");
+      if (board) board.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+    if (pageView === "messenger") {
+      scrollToBoard();
+      return;
+    }
+    window.history.pushState({}, "", "/messenger");
+    setPageView("messenger");
+    setMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.setTimeout(scrollToBoard, 120);
   };
 
   const openAuth = (mode: "login" | "signup" = "login", message = "") => {
@@ -604,7 +756,17 @@ export default function App() {
             lng: position.coords.longitude,
           });
         },
-        () => reject(new Error("Location permission is required for checkpoint check-in.")),
+        (error) => {
+          if (error.code === error.PERMISSION_DENIED) {
+            reject(new Error("Location access is blocked. Turn it on in browser settings, then try the checkpoint again."));
+            return;
+          }
+          if (error.code === error.TIMEOUT) {
+            reject(new Error("Location timed out. Pause in a clear spot and try again."));
+            return;
+          }
+          reject(new Error("Could not lock your location. Check signal and try again."));
+        },
         {
           enableHighAccuracy: true,
           timeout: 12000,
@@ -623,10 +785,48 @@ export default function App() {
     setShareInput("");
     setShareStatus("");
     setLeaderboard([]);
+    setChallengeSummary(null);
     try {
       localStorage.removeItem(ALLEYCAT_STORAGE_KEY);
     } catch {
       // Ignore storage failures.
+    }
+  };
+
+  const handleAbandonMessenger = async () => {
+    if (!messengerRun) return;
+    try {
+      const data = await postJSON<{ run: { status: string } }>("/api/messenger/abandon", {
+        run_id: messengerRun.runId,
+      });
+      setMessengerRun((current) => (current ? { ...current, status: data.run?.status || "abandoned", finishedAt: new Date().toISOString() } : current));
+      setMessengerStatus("Run abandoned. You can restart the manifest whenever you want.");
+    } catch (error) {
+      setMessengerStatus(error instanceof Error ? error.message : "Could not abandon the run.");
+    }
+  };
+
+  const handleRestartMessenger = async () => {
+    if (!messengerManifestId && !messengerRun?.runId) return;
+    try {
+      const data = await postJSON<{ run: { id: string; started_at: string; status: string } }>("/api/messenger/restart", {
+        manifest_id: messengerManifestId,
+        run_id: messengerRun?.runId || "",
+      });
+      setMessengerRun({
+        runId: data.run.id,
+        startedAt: data.run.started_at,
+        completedIds: [],
+        finishSeconds: null,
+        finishedAt: null,
+        status: data.run.status,
+        proofs: [],
+      });
+      setProofFiles({});
+      setProofStatus({});
+      setMessengerStatus("Fresh run started on the same manifest.");
+    } catch (error) {
+      setMessengerStatus(error instanceof Error ? error.message : "Could not restart the run.");
     }
   };
 
@@ -835,6 +1035,54 @@ export default function App() {
     }
   };
 
+  const handleProofUpload = async (checkpoint: MessengerCheckpoint) => {
+    if (!supabase || !user?.id || !messengerRun?.runId) return;
+    const file = proofFiles[checkpoint.id];
+    if (!file) {
+      setProofStatus((current) => ({ ...current, [checkpoint.id]: "Pick a photo first." }));
+      return;
+    }
+
+    setIsUploadingProof((current) => ({ ...current, [checkpoint.id]: true }));
+    setProofStatus((current) => ({ ...current, [checkpoint.id]: "" }));
+    try {
+      const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const storagePath = `${user.id}/${messengerRun.runId}/${checkpoint.id}-${Date.now()}.${extension}`;
+      const upload = await supabase.storage.from(PROOF_BUCKET).upload(storagePath, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+      if (upload.error) throw upload.error;
+
+      const { data: publicData } = supabase.storage.from(PROOF_BUCKET).getPublicUrl(storagePath);
+      const proofResponse = await postJSON<{ proofs: MessengerProof[] }>("/api/messenger/proof", {
+        run_id: messengerRun.runId,
+        checkpoint_id: checkpoint.id,
+        storage_path: storagePath,
+        public_url: publicData.publicUrl,
+        is_public: proofVisibility[checkpoint.id] !== false,
+      });
+
+      setMessengerRun((current) =>
+        current
+          ? {
+              ...current,
+              proofs: proofResponse.proofs || [],
+            }
+          : current
+      );
+      setProofFiles((current) => ({ ...current, [checkpoint.id]: null }));
+      setProofStatus((current) => ({ ...current, [checkpoint.id]: "Proof posted to the wall." }));
+    } catch (error) {
+      setProofStatus((current) => ({
+        ...current,
+        [checkpoint.id]: error instanceof Error ? error.message : "Proof upload failed.",
+      }));
+    } finally {
+      setIsUploadingProof((current) => ({ ...current, [checkpoint.id]: false }));
+    }
+  };
+
   const handleGenerateLoop = async () => {
     if (!user?.id) {
       requireLogin("Log in so we can keep the free runs fair.");
@@ -901,7 +1149,23 @@ export default function App() {
         if (waypoints.length) params.set("waypoints", waypoints.join("|"));
       }
 
-      setLastRouteUrl(`https://www.google.com/maps/dir/?${params.toString()}`);
+      const routeUrl = `https://www.google.com/maps/dir/?${params.toString()}`;
+      setLastRouteUrl(routeUrl);
+      try {
+        await postJSON("/api/loop-history", {
+          loop_point: loopPoint,
+          distance_km: distanceKm,
+          unit,
+          terrain,
+          surface,
+          vibe,
+          route_url: routeUrl,
+        });
+        const refreshed = await postJSON<AccountSummary>("/api/account/summary", {});
+        setAccountSummary(refreshed);
+      } catch {
+        // Keep loop generation resilient even if history logging fails.
+      }
       setStatusMessage("Loop built. Open it in Maps and ride your return.");
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : "Couldn’t build a loop. Try another point.");
@@ -922,6 +1186,8 @@ export default function App() {
         manifest_id: string;
         manifest: MessengerManifest;
         credits_remaining: number;
+        is_admin?: boolean;
+        unlimited_credits?: boolean;
       }>("/api/messenger/generate", {
         city: messengerCity,
         difficulty: messengerDifficulty,
@@ -937,6 +1203,8 @@ export default function App() {
               ...current,
               donation_credits: data.credits_remaining,
               credits_remaining: data.credits_remaining,
+              is_admin: data.is_admin ?? current.is_admin,
+              unlimited_credits: data.unlimited_credits ?? current.unlimited_credits,
             }
           : current
       );
@@ -961,7 +1229,7 @@ export default function App() {
         finishedAt: null,
         status: data.reused ? "active" : "active",
       });
-      setMessengerStatus(data.reused ? "Picked up your active run. Keep clearing checkpoints." : "Clock is live. Clear every checkpoint, then close the run.");
+      setMessengerStatus(data.reused ? "Picked up your active run. Resume where you left it." : "Clock is live. Clear every checkpoint, then close the run.");
     } catch (error) {
       setMessengerStatus(error instanceof Error ? error.message : "Couldn’t start the run.");
     }
@@ -972,14 +1240,18 @@ export default function App() {
     try {
       setMessengerStatus("Checking your location…");
       const position = await getCurrentPosition();
-      const data = await postJSON<{ completed_ids: string[] }>("/api/messenger/check-in", {
+      const data = await postJSON<{ completed_ids: string[]; already_checked_in?: boolean; message?: string; meters_to_move?: number; distance_meters?: number }>("/api/messenger/check-in", {
         run_id: messengerRun.runId,
         checkpoint_id: checkpointId,
         lat: position.lat,
         lng: position.lng,
       });
       setMessengerRun((current) => (current ? { ...current, completedIds: data.completed_ids } : current));
-      setMessengerStatus("Checkpoint cleared.");
+      setMessengerStatus(
+        data.already_checked_in
+          ? data.message || "Checkpoint already cleared."
+          : "Checkpoint clear. Add proof or move to the next stop."
+      );
     } catch (error) {
       setMessengerStatus(error instanceof Error ? error.message : "Check-in failed.");
     }
@@ -1037,6 +1309,12 @@ export default function App() {
           onClick={() => handleNavigate("messenger")}
         >
           Alleycat Mode
+        </button>
+        <button className={`nav-link ${pageView === "wall" ? "active" : ""}`} type="button" onClick={() => handleNavigate("wall")}>
+          Wall
+        </button>
+        <button className="nav-link" type="button" onClick={handleBoardShortcut}>
+          Board
         </button>
         <button className="nav-link" type="button" onClick={handleDonate}>
           Add credits
@@ -1182,13 +1460,18 @@ export default function App() {
           <div className="account-topbar">
             <div>
               <div className="section-title">Account</div>
-              <div className="account-kicker">Mini dashboard for credits, purchases, and rider status.</div>
+              <div className="account-kicker">{accountGreeting} Credits, history, and rider state in one place.</div>
             </div>
             <div className="account-topbar-actions">
               {user ? (
-                <button className="primary-button" type="button" onClick={handleDonate}>
-                  Add credits
-                </button>
+                <>
+                  <button className="primary-button" type="button" onClick={handleDonate}>
+                    Add credits
+                  </button>
+                  <button className="ghost-button" type="button" onClick={handleLogout}>
+                    Log out
+                  </button>
+                </>
               ) : (
                 <button className="primary-button" type="button" onClick={() => openAuth("login")}>
                   Sign in
@@ -1231,15 +1514,15 @@ export default function App() {
               </div>
               <div className="user-row">
                 <div className="user-label">Loop balance</div>
-                <div className="user-value">{totalCredits} total runs available</div>
+                <div className="user-value">{hasUnlimitedCredits ? "Unlimited for admin testing" : `${totalCredits} total runs available`}</div>
               </div>
               <div className="user-row">
                 <div className="user-label">Free left</div>
-                <div className="user-value">{usage?.free_remaining || 0} free loops left</div>
+                <div className="user-value">{hasUnlimitedCredits ? "Unlimited" : `${usage?.free_remaining || 0} free loops left`}</div>
               </div>
               <div className="user-row">
                 <div className="user-label">Paid credits</div>
-                <div className="user-value">{messengerCreditsOnly} credits live</div>
+                <div className="user-value">{hasUnlimitedCredits ? "Unlimited" : `${messengerCreditsOnly} credits live`}</div>
               </div>
               <label className="field">
                 <span>Change password</span>
@@ -1265,7 +1548,7 @@ export default function App() {
 
             <div className="glass-card form-card account-stats-card">
               <div className="form-title">V1 activity</div>
-              <div className="form-subtitle">Enough visibility to test V1 without building a control room.</div>
+              <div className="form-subtitle">Live proof, challenge, and finish numbers tied to your rider profile.</div>
               <div className="result-grid result-grid-two">
                 <div>
                   <span>Manifests</span>
@@ -1283,15 +1566,80 @@ export default function App() {
                   <span>Challenges</span>
                   <strong>{accountSummary?.alleycat.challenges || 0}</strong>
                 </div>
+                <div>
+                  <span>Proofs</span>
+                  <strong>{accountSummary?.alleycat.proofs || 0}</strong>
+                </div>
+                <div>
+                  <span>Public proofs</span>
+                  <strong>{accountSummary?.alleycat.public_proofs || 0}</strong>
+                </div>
               </div>
               <div className="account-note">
-                Alleycat Mode costs {MESSENGER_CREDIT_COST} credits per manifest. Loop still uses the normal free and paid meter.
+                {hasUnlimitedCredits
+                  ? "Admin test account bypasses normal credit limits so you can verify flows without topping up."
+                  : `Alleycat Mode costs ${MESSENGER_CREDIT_COST} credits per manifest. Loop still uses the normal free and paid meter.`}
               </div>
+            </div>
+
+            <div className="glass-card form-card account-quarter-card">
+              <div className="form-title">Quarter board</div>
+              <div className="form-subtitle">{accountSummary?.quarter.label || "Current quarter"} keeps score by public proofs first, then finished Alleycats.</div>
+              <div className="result-grid result-grid-three">
+                <div>
+                  <span>Rank</span>
+                  <strong>
+                    {accountSummary?.quarter.rank ? `#${accountSummary.quarter.rank}` : "--"}
+                  </strong>
+                </div>
+                <div>
+                  <span>Public proofs</span>
+                  <strong>{accountSummary?.quarter.public_proofs || 0}</strong>
+                </div>
+                <div>
+                  <span>Quarter finishes</span>
+                  <strong>{accountSummary?.quarter.finished_runs || 0}</strong>
+                </div>
+              </div>
+              <div className="account-note">
+                {accountSummary?.quarter.total_ranked_riders
+                  ? `${accountSummary.quarter.total_ranked_riders} riders are on the board right now.`
+                  : "No ranked riders yet this quarter."}
+              </div>
+              {accountSummary?.badges?.length ? (
+                <div className="badge-list">
+                  {accountSummary.badges.map((badge) => (
+                    <div key={badge.id} className="badge-chip">
+                      <strong>{badge.label}</strong>
+                      <span>{badge.description}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <div className="empty-state-body">Post proof and close runs to unlock badges.</div>
+                </div>
+              )}
+              {accountSummary?.quarter.leaders?.length ? (
+                <div className="leaderboard-list">
+                  {accountSummary.quarter.leaders.map((entry) => (
+                    <div key={entry.user_id} className="leaderboard-row">
+                      <div className="leaderboard-rank">#{entry.rank}</div>
+                      <div className="leaderboard-main">
+                        <strong>{entry.user_id === user?.id ? "You" : entry.rider_name}</strong>
+                        <span>
+                          {entry.public_proofs} proofs · {entry.finished_runs} finishes
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </div>
 
             <div className="glass-card form-card account-purchases-card">
               <div className="form-title">Recent purchases</div>
-              <div className="form-subtitle">A short receipt list for top-ups and quick verification.</div>
+              <div className="form-subtitle">Quick top-up receipts.</div>
               {!accountSummary?.purchases?.length && (
                 <div className="empty-state">
                   <div className="empty-state-body">No credit purchases yet.</div>
@@ -1313,6 +1661,120 @@ export default function App() {
                   ))}
                 </div>
               ) : null}
+            </div>
+
+            <div className="glass-card form-card account-history-card">
+              <div className="form-title">Loop history</div>
+              <div className="form-subtitle">Your last routes, ready to reopen.</div>
+              {!accountSummary?.loop_history?.length ? (
+                <div className="empty-state">
+                  <div className="empty-state-body">No loop history yet. Build one from the home page and it lands here.</div>
+                </div>
+              ) : (
+                <div className="history-list">
+                  {accountSummary.loop_history.map((loop) => (
+                    <div key={loop.id} className="history-row">
+                      <div>
+                        <strong>{loop.loop_point}</strong>
+                        <span>
+                          {Number(loop.distance_km).toFixed(1)} km · {loop.terrain} · {loop.surface} · {loop.vibe}
+                        </span>
+                      </div>
+                      <div className="history-actions">
+                        <span>{new Date(loop.created_at).toLocaleDateString()}</span>
+                        <a className="ghost-button small" href={loop.route_url} target="_blank" rel="noreferrer">
+                          Open
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="glass-card form-card account-history-card">
+              <div className="form-title">Alleycat runs</div>
+              <div className="form-subtitle">Manifest history with best times, status, and proof volume.</div>
+              {!accountSummary?.alleycat_history?.length ? (
+                <div className="empty-state">
+                  <div className="empty-state-body">No Alleycat history yet.</div>
+                </div>
+              ) : (
+                <div className="history-list">
+                  {accountSummary.alleycat_history.map((item) => (
+                    <div key={item.id} className="history-row">
+                      <div>
+                        <strong>{item.city_name || "City"} · {item.manifest_title}</strong>
+                        <span>
+                          {item.difficulty} · {item.style} · {item.proof_count} proofs · {item.source_challenge_id ? "Shared" : "Solo"}
+                        </span>
+                      </div>
+                      <div className="history-actions">
+                        <span>
+                          {item.best_seconds
+                            ? `${formatDuration(item.best_seconds)}${item.ghost_delta !== null ? ` · ${item.ghost_delta <= 0 ? "-" : "+"}${formatDuration(Math.abs(item.ghost_delta))}` : ""}`
+                            : item.status}
+                        </span>
+                        <span>{new Date(item.created_at).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="glass-card form-card account-history-card">
+              <div className="form-title">Challenge log</div>
+              <div className="form-subtitle">Shared manifest codes, current state, and how many rivals were in the mix.</div>
+              {!accountSummary?.challenge_history?.length ? (
+                <div className="empty-state">
+                  <div className="empty-state-body">No shared challenge history yet.</div>
+                </div>
+              ) : (
+                <div className="history-list">
+                  {accountSummary.challenge_history.map((item) => (
+                    <div key={item.challenge_id} className="history-row">
+                      <div>
+                        <strong>Code {item.code}</strong>
+                        <span>
+                          {item.city_name || "City"} · {item.manifest_title || "Manifest"} · {item.rival_count} rivals
+                        </span>
+                      </div>
+                      <div className="history-actions">
+                        <span>{item.best_seconds ? formatDuration(item.best_seconds) : item.status}</span>
+                        <span>{new Date(item.joined_at).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="glass-card form-card account-history-card">
+              <div className="form-title">Riders you raced with</div>
+              <div className="form-subtitle">Only riders linked to you through shared Alleycat challenges.</div>
+              {!accountSummary?.shared_riders?.length ? (
+                <div className="empty-state">
+                  <div className="empty-state-body">No shared rider links yet.</div>
+                </div>
+              ) : (
+                <div className="history-list">
+                  {accountSummary.shared_riders.map((rider) => (
+                    <div key={rider.user_id} className="history-row">
+                      <div>
+                        <strong>{rider.rider_name}</strong>
+                        <span>
+                          {rider.shared_challenges} shared challenges · {rider.cities.join(", ") || "No city tags yet"}
+                        </span>
+                      </div>
+                      <div className="history-actions">
+                        <span>Last seen</span>
+                        <span>{new Date(rider.last_joined_at).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1338,6 +1800,9 @@ export default function App() {
             </a>
             <button className="ghost-button" type="button" onClick={() => handleNavigate("messenger")}>
               Explore Alleycat Mode
+            </button>
+            <button className="ghost-button" type="button" onClick={() => handleNavigate("wall")}>
+              Open the Wall
             </button>
           </div>
           <div className="hero-metadata">
@@ -1397,8 +1862,8 @@ export default function App() {
               </div>
               {usage && (
                 <div className="loops-left">
-                  <span className="loops-left-line">Credits {totalCredits}</span>
-                  <span className="loops-left-line">Free {usage.free_remaining}</span>
+                  <span className="loops-left-line">{hasUnlimitedCredits ? "Credits Unlimited" : `Credits ${totalCredits}`}</span>
+                  <span className="loops-left-line">{hasUnlimitedCredits ? "Admin unlimited" : `Free ${usage.free_remaining}`}</span>
                 </div>
               )}
             </div>
@@ -1579,8 +2044,8 @@ export default function App() {
           transition={{ duration: 0.7, ease: "easeOut" }}
         >
           <div className="hero-eyebrow">Alleycat Mode</div>
-          <h1>Premium city manifests built for pressure, not clutter.</h1>
-          <p>Curated checkpoints, ghost targets, and your own line through the city.</p>
+          <h1>City pressure. Your line.</h1>
+          <p>Curated checkpoints and a ghost to beat.</p>
           <div className="hero-actions">
             <a className="primary-button" href="#messenger-builder">
               Build a manifest
@@ -1618,7 +2083,7 @@ export default function App() {
       </section>
 
       <section className="loop-progress messenger-flow">
-        <div className="section-title">How the product works</div>
+        <div className="section-title">How it works</div>
         <div className="progress-track stacked-mobile">
           {messengerFlow.map((step, index) => (
             <motion.div
@@ -1652,7 +2117,7 @@ export default function App() {
                 </div>
               </div>
               <div className="loops-left">
-                <span className="loops-left-line">Credits {messengerCreditsOnly}</span>
+                <span className="loops-left-line">{hasUnlimitedCredits ? "Credits Unlimited" : `Credits ${messengerCreditsOnly}`}</span>
                 <span className="loops-left-line">{MESSENGER_CREDIT_COST} per manifest</span>
               </div>
             </div>
@@ -1685,7 +2150,7 @@ export default function App() {
                   type="text"
                   value={messengerCity}
                   onChange={(event) => setMessengerCity(event.target.value)}
-                  placeholder="Berlin or London for now"
+                  placeholder="Berlin, London, or Tokyo"
                 />
                 <span className="field-hint">V1 ships with curated city packs. More can be added cleanly later.</span>
               </label>
@@ -1821,26 +2286,42 @@ export default function App() {
                     </div>
                   )}
                   {!messengerRun ? (
-                    <button className="primary-button" type="button" onClick={handleStartMessenger}>
-                      Start run
-                    </button>
+                    <div className="manifest-action-buttons">
+                      <button className="primary-button" type="button" onClick={handleStartMessenger}>
+                        Start run
+                      </button>
+                      <button className="ghost-button" type="button" onClick={handleStartMessenger}>
+                        Resume run
+                      </button>
+                    </div>
                   ) : (
                     <>
                       <div className="run-clock">
                         <span>Elapsed</span>
                         <strong>{formatDuration(currentElapsed)}</strong>
                       </div>
-                      <button
-                        className="ghost-button"
-                        type="button"
-                        onClick={handleFinishMessenger}
-                        disabled={
-                          messengerRun.completedIds.length !== messengerManifest.checkpoints.length ||
-                          Boolean(messengerRun.finishedAt)
-                        }
-                      >
-                        {messengerRun.finishedAt ? "Run finished" : "Finish run"}
-                      </button>
+                      <div className="manifest-action-buttons">
+                        <button
+                          className="ghost-button"
+                          type="button"
+                          onClick={handleFinishMessenger}
+                          disabled={
+                            messengerRun.completedIds.length !== messengerManifest.checkpoints.length ||
+                            Boolean(messengerRun.finishedAt) ||
+                            messengerRun.status === "abandoned"
+                          }
+                        >
+                          {messengerRun.finishedAt ? "Run finished" : "Finish run"}
+                        </button>
+                        {!messengerRun.finishedAt && messengerRun.status === "active" && (
+                          <button className="ghost-button" type="button" onClick={handleAbandonMessenger}>
+                            Abandon
+                          </button>
+                        )}
+                        <button className="ghost-button" type="button" onClick={handleRestartMessenger}>
+                          Restart
+                        </button>
+                      </div>
                     </>
                   )}
                 </div>
@@ -1848,11 +2329,12 @@ export default function App() {
                 <div className="checkpoint-list">
                   {messengerManifest.checkpoints.map((checkpoint) => {
                     const done = messengerRun?.completedIds.includes(checkpoint.id) || false;
+                    const proof = messengerRun?.proofs?.find((item) => item.checkpoint_id === checkpoint.id) || null;
                     return (
                       <div key={checkpoint.id} className={`checkpoint-card ${done ? "done" : ""}`}>
                         <div className="checkpoint-meta">
                           <span>CP {checkpoint.order}</span>
-                          {done && <span className="checkpoint-done">Checked in</span>}
+                          {done && <span className="checkpoint-done">✓ Clear</span>}
                         </div>
                         <div className="checkpoint-name">{checkpoint.name}</div>
                         <div className="checkpoint-task">{checkpoint.task}</div>
@@ -1876,6 +2358,65 @@ export default function App() {
                             </button>
                           )}
                         </div>
+                        {done && (
+                          <div className="proof-panel">
+                            {!proof && (
+                              <div className="proof-callout">
+                                <strong>Checkpoint cleared.</strong>
+                                <span>Add one photo if you want this stop on the wall.</span>
+                              </div>
+                            )}
+                            {proof ? (
+                              <div className="proof-preview">
+                                <img src={proof.public_url} alt={`${checkpoint.name} proof`} />
+                                <div className="proof-meta">
+                                  <span>Posted</span>
+                                  <strong>{proof.location_label}</strong>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                <label className="field compact-field">
+                                  <span>Add photo proof</span>
+                                  <input
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    onChange={(event) =>
+                                      setProofFiles((current) => ({
+                                        ...current,
+                                        [checkpoint.id]: event.target.files?.[0] || null,
+                                      }))
+                                    }
+                                  />
+                                </label>
+                                <label className="proof-toggle">
+                                  <input
+                                    type="checkbox"
+                                    checked={proofVisibility[checkpoint.id] !== false}
+                                    onChange={(event) =>
+                                      setProofVisibility((current) => ({
+                                        ...current,
+                                        [checkpoint.id]: event.target.checked,
+                                      }))
+                                    }
+                                  />
+                                  <span>Post to public wall</span>
+                                </label>
+                                <div className="checkpoint-actions">
+                                  <button
+                                    className="primary-button small"
+                                    type="button"
+                                    disabled={Boolean(isUploadingProof[checkpoint.id])}
+                                    onClick={() => handleProofUpload(checkpoint)}
+                                  >
+                                    {isUploadingProof[checkpoint.id] ? "Posting..." : "Upload proof"}
+                                  </button>
+                                </div>
+                                {proofStatus[checkpoint.id] && <div className="status-message compact-status">{proofStatus[checkpoint.id]}</div>}
+                              </>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -1906,13 +2447,35 @@ export default function App() {
                 )}
 
                 {(challenge || leaderboard.length > 0 || isLoadingLeaderboard) && (
-                  <div className="result-card leaderboard-card">
-                    <div className="result-title">Friend leaderboard</div>
-                    {challenge && <div className="manifest-subtitle">Code {challenge.code}</div>}
+                  <div className="result-card leaderboard-card" id="challenge-board">
+                    <div className="result-title">Friend challenge</div>
+                    {challenge && (
+                      <div className="challenge-summary-head">
+                        <div className="manifest-subtitle">Code {challenge.code}</div>
+                        <span className={`status-chip ${challengeSummary?.status || "open"}`}>{challengeStatusLabel}</span>
+                      </div>
+                    )}
+                    {challengeSummary && (
+                      <div className="challenge-summary-copy">
+                        <strong>
+                          {challengeSummary.winner_name
+                            ? `${challengeSummary.winner_name} is leading.`
+                            : "No winner yet."}
+                        </strong>
+                        <span>{challengeSummary.rivalry}</span>
+                        {challengeSummary.expires_at && challengeSummary.status === "open" && (
+                          <span>Code stays live until {new Date(challengeSummary.expires_at).toLocaleDateString()}.</span>
+                        )}
+                      </div>
+                    )}
                     {isLoadingLeaderboard && <div className="status-message compact-status">Refreshing leaderboard…</div>}
                     {!isLoadingLeaderboard && leaderboard.length === 0 && (
                       <div className="empty-state">
-                        <div className="empty-state-body">No finished runs yet. Share the code and race it out.</div>
+                        <div className="empty-state-body">
+                          {challengeSummary?.status === "expired"
+                            ? "This challenge expired before any finished times landed."
+                            : "No finished runs yet. Share the code and race it out."}
+                        </div>
                       </div>
                     )}
                     {leaderboard.length > 0 && (
@@ -1921,8 +2484,24 @@ export default function App() {
                           <div key={`${entry.user_id}-${entry.manifest_id}`} className="leaderboard-row">
                             <div className="leaderboard-rank">#{index + 1}</div>
                             <div className="leaderboard-main">
-                              <strong>{entry.is_creator ? "You / creator" : entry.user_id === user?.id ? "You" : "Rider"}</strong>
-                              <span>{entry.status === "finished" ? "Finished" : "Open run"}</span>
+                              <strong>
+                                {entry.user_id === user?.id
+                                  ? entry.is_creator
+                                    ? "You / creator"
+                                    : "You"
+                                  : entry.is_creator
+                                    ? `${entry.rider_name} / creator`
+                                    : entry.rider_name}
+                              </strong>
+                              <span>
+                                {entry.status === "finished"
+                                  ? challengeSummary?.winner_user_id === entry.user_id
+                                    ? "Fastest finished time"
+                                    : "Finished"
+                                  : challengeSummary?.status === "expired"
+                                    ? "Expired open run"
+                                    : "Open run"}
+                              </span>
                             </div>
                             <div className="leaderboard-time">
                               {entry.best_seconds !== null ? formatDuration(entry.best_seconds) : "--:--"}
@@ -1941,6 +2520,55 @@ export default function App() {
     </>
   );
 
+  const renderWall = () => (
+    <>
+      <section className="builder-section wall-section">
+        <div className="account-shell">
+          <div className="account-topbar">
+            <div>
+              <div className="section-title">Wall</div>
+              <div className="account-kicker">Public Alleycat proof feed. Rider names, city tags, and checkpoint moments only.</div>
+            </div>
+            <div className="account-topbar-actions">
+              <button className="ghost-button" type="button" onClick={() => handleNavigate("messenger")}>
+                Back to Alleycat
+              </button>
+            </div>
+          </div>
+        </div>
+        {isLoadingWall && <div className="status-message">Loading wall…</div>}
+        {!isLoadingWall && wallPosts.length === 0 && (
+          <div className="builder-grid single">
+            <div className="glass-card form-card">
+              <div className="empty-state">
+                <div className="empty-state-title">No proof posts yet</div>
+                <div className="empty-state-body">Once riders upload checkpoint proof, the wall starts filling here.</div>
+              </div>
+            </div>
+          </div>
+        )}
+        {wallPosts.length > 0 && (
+          <div className="wall-grid">
+            {wallPosts.map((post) => (
+              <div key={post.id} className="glass-card wall-card">
+                <img src={post.public_url} alt={`${post.checkpoint_name} by ${post.rider_name}`} className="wall-image" />
+                <div className="wall-meta">
+                  <div className="checkpoint-meta">
+                    <span>Alleycat</span>
+                    <span>{post.city_name}</span>
+                  </div>
+                  <div className="checkpoint-name">{post.rider_name}</div>
+                  <div className="checkpoint-task">{post.checkpoint_name}</div>
+                  <div className="checkpoint-hint">{new Date(post.created_at).toLocaleDateString()}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </>
+  );
+
   return (
     <motion.div
       className={`page ${pageView === "messenger" ? "page-messenger" : "page-home"}`}
@@ -1951,7 +2579,7 @@ export default function App() {
     >
       {renderHeader()}
       {renderModals()}
-      {pageView === "messenger" ? renderMessenger() : pageView === "account" ? renderAccount() : renderHome()}
+      {pageView === "messenger" ? renderMessenger() : pageView === "account" ? renderAccount() : pageView === "wall" ? renderWall() : renderHome()}
       <footer className="site-footer">
         <div>
           <div className="footer-title">Gimme The Loop</div>
@@ -1960,6 +2588,8 @@ export default function App() {
               ? "Alleycat Mode is the premium city challenge layer built on top of the route product."
               : pageView === "account"
                 ? "Account keeps credits, purchases, and profile controls in one clean place."
+                : pageView === "wall"
+                  ? "Wall is the public layer for Alleycat proof and city moments."
               : "Loop is the fast route product. Alleycat Mode adds the premium city challenge layer."}
           </div>
         </div>
