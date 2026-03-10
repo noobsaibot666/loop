@@ -1,530 +1,720 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" href="/favicon.png" />
-    <title>Admin · GIVE ME THE LOOP</title>
-    <style>
-      :root {
-        color-scheme: dark;
-        --bg: #0b0b0b;
-        --card: rgba(255, 255, 255, 0.06);
-        --border: rgba(255, 255, 255, 0.12);
-        --text: #f4f4f4;
-        --muted: #b7b7b7;
-        --accent: #f62b0a;
-        --accent-soft: #ff8f3d;
-      }
-      * { box-sizing: border-box; }
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="/favicon.png" />
+  <title>Admin · GIVE ME THE LOOP</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0b0b;
+      --card: rgba(255, 255, 255, 0.06);
+      --border: rgba(255, 255, 255, 0.12);
+      --text: #f4f4f4;
+      --muted: #b7b7b7;
+      --accent: #f62b0a;
+      --accent-soft: #ff8f3d;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+      background: #0f0f0f;
+      color: var(--text);
+      padding: 24px;
+    }
+
+    .shell {
+      max-width: 720px;
+      margin: 0 auto;
+      display: grid;
+      gap: 24px;
+      padding-bottom: 60px;
+    }
+
+    .card {
+      background: rgba(4, 4, 4, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 40px;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    .eyebrow {
+      color: var(--accent-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 0.72rem;
+      margin-bottom: 10px;
+    }
+
+    .hero {
+      display: grid;
+      gap: 10px;
+    }
+
+    .sub {
+      color: var(--muted);
+      line-height: 1.5;
+      max-width: 60ch;
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .section-nav {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .section-chip {
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.3);
+      color: var(--text);
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .section-chip.active {
+      background: transparent;
+      border-color: var(--accent);
+      color: var(--text);
+    }
+
+    .metric {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-top: 6px;
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .mini-note {
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.45;
+    }
+
+    .helper-steps {
+      display: grid;
+      gap: 10px;
+    }
+
+    .helper-step {
+      padding: 14px 16px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .helper-step strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.3);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 1rem;
+    }
+
+    textarea {
+      min-height: 84px;
+      resize: vertical;
+    }
+
+    button {
+      padding: 13px 20px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: var(--text);
+      color: #000;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity 0.2s ease;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    button.secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      font-weight: 500;
+    }
+
+    button.secondary:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+    }
+
+    .status {
+      color: var(--accent-soft);
+      min-height: 20px;
+    }
+
+    .sessions {
+      display: grid;
+      gap: 10px;
+    }
+
+    .session {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .session span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+
+    .proofs {
+      display: grid;
+      gap: 12px;
+    }
+
+    .proof {
+      display: grid;
+      grid-template-columns: 88px 1fr auto;
+      gap: 16px;
+      align-items: center;
+      padding: 14px 16px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .proof img {
+      width: 88px;
+      height: 88px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .proof strong,
+    .proof span {
+      display: block;
+    }
+
+    .proof span {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+
+    .proof-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .studio-grid {
+      display: grid;
+      gap: 24px;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+
+    .list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .list-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .list-item span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+
+    .preview-box {
+      padding: 14px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .template-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .template-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .template-chip {
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .template-chip:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .template-note {
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.45;
+    }
+
+    .preview-manifest-card {
+      display: grid;
+      gap: 12px;
+    }
+
+    .preview-manifest-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .preview-manifest-meta {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .preview-checkpoints {
+      display: grid;
+      gap: 10px;
+    }
+
+    .preview-checkpoint {
+      padding: 14px 16px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .preview-checkpoint strong,
+    .preview-checkpoint span {
+      display: block;
+    }
+
+    .preview-checkpoint span {
+      color: var(--muted);
+      font-size: 0.82rem;
+      margin-top: 4px;
+    }
+
+    @media (max-width: 640px) {
       body {
-        margin: 0;
-        font-family: Arial, sans-serif;
-        background:
-          radial-gradient(circle at bottom, rgba(246, 43, 10, 0.2), transparent 45%),
-          linear-gradient(180deg, #050505 0%, #0b0b0b 100%);
-        color: var(--text);
+        padding: 16px;
+      }
+
+      .card {
+        border-radius: 12px;
         padding: 24px;
       }
-      .shell { max-width: 980px; margin: 0 auto; display: grid; gap: 18px; }
-      .card {
-        background: var(--card);
-        border: 1px solid var(--border);
-        border-radius: 22px;
-        padding: 20px;
-        backdrop-filter: blur(12px);
-      }
-      h1, h2, p { margin: 0; }
-      .eyebrow { color: var(--accent-soft); text-transform: uppercase; letter-spacing: 0.18em; font-size: 0.72rem; margin-bottom: 10px; }
-      .hero { display: grid; gap: 10px; }
-      .sub { color: var(--muted); line-height: 1.5; max-width: 60ch; }
-      .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
-      .section-nav {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-      }
-      .section-chip {
-        padding: 10px 14px;
-        border-radius: 999px;
-        border: 1px solid var(--border);
-        background: rgba(255, 255, 255, 0.05);
-        color: var(--text);
-        font-weight: 700;
-      }
-      .section-chip.active {
-        background: linear-gradient(135deg, var(--accent), var(--accent-soft));
-        border-color: transparent;
-      }
-      .metric { font-size: 2rem; font-weight: 700; margin-top: 6px; }
-      .label { color: var(--muted); font-size: 0.85rem; }
-      .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
-      .stack { display: grid; gap: 12px; }
-      .mini-note {
-        color: var(--muted);
-        font-size: 0.84rem;
-        line-height: 1.45;
-      }
-      .helper-steps {
-        display: grid;
-        gap: 10px;
-      }
-      .helper-step {
-        padding: 12px 14px;
-        border-radius: 14px;
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid rgba(255,255,255,0.08);
-      }
-      .helper-step strong {
-        display: block;
-        margin-bottom: 4px;
-      }
-      input, textarea, select {
-        width: 100%;
-        padding: 12px 14px;
-        border-radius: 12px;
-        border: 1px solid var(--border);
-        background: rgba(255, 255, 255, 0.04);
-        color: var(--text);
-      }
-      textarea { min-height: 84px; resize: vertical; }
-      button {
-        padding: 11px 16px;
-        border-radius: 12px;
-        border: 1px solid transparent;
-        background: var(--accent);
-        color: white;
-        font-weight: 700;
-        cursor: pointer;
-      }
-      button.secondary {
-        background: rgba(255, 255, 255, 0.08);
-        border-color: var(--border);
-      }
-      .status { color: var(--accent-soft); min-height: 20px; }
-      .sessions { display: grid; gap: 10px; }
+
       .session {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 12px 14px;
-        border-radius: 14px;
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        flex-direction: column;
       }
-      .session span { display: block; color: var(--muted); font-size: 0.82rem; margin-top: 4px; }
-      .proofs { display: grid; gap: 12px; }
+
       .proof {
-        display: grid;
-        grid-template-columns: 88px 1fr auto;
-        gap: 14px;
-        align-items: center;
-        padding: 12px 14px;
-        border-radius: 14px;
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        grid-template-columns: 1fr;
       }
-      .proof img {
-        width: 88px;
-        height: 88px;
-        object-fit: cover;
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
+
+      .proof-actions {
+        justify-content: flex-start;
       }
-      .proof strong, .proof span { display: block; }
-      .proof span { color: var(--muted); font-size: 0.82rem; margin-top: 4px; }
-      .proof-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
-      .studio-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
-      .list { display: grid; gap: 10px; }
+
       .list-item {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 12px 14px;
-        border-radius: 14px;
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        flex-direction: column;
       }
-      .list-item span { display: block; color: var(--muted); font-size: 0.82rem; margin-top: 4px; }
-      .preview-box { padding: 14px; border-radius: 14px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255,255,255,0.08); }
-      .template-grid {
-        display: grid;
-        gap: 10px;
-      }
-      .template-row {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-      }
-      .template-chip {
-        padding: 10px 14px;
-        border-radius: 999px;
-        border: 1px solid rgba(255,255,255,0.12);
-        background: rgba(255, 255, 255, 0.05);
-        color: var(--text);
-        font-weight: 700;
-        cursor: pointer;
-      }
-      .template-note {
-        color: var(--muted);
-        font-size: 0.82rem;
-        line-height: 1.45;
-      }
-      .preview-manifest-card {
-        display: grid;
-        gap: 12px;
-      }
-      .preview-manifest-head {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        align-items: flex-start;
-      }
-      .preview-manifest-meta {
-        color: var(--muted);
-        font-size: 0.82rem;
-      }
-      .preview-checkpoints {
-        display: grid;
-        gap: 10px;
-      }
-      .preview-checkpoint {
-        padding: 12px 14px;
-        border-radius: 14px;
-        border: 1px solid rgba(255,255,255,0.08);
-        background: rgba(255,255,255,0.04);
-      }
-      .preview-checkpoint strong,
-      .preview-checkpoint span {
-        display: block;
-      }
-      .preview-checkpoint span {
-        color: var(--muted);
-        font-size: 0.82rem;
-        margin-top: 4px;
-      }
-      @media (max-width: 640px) {
-        body { padding: 14px; }
-        .card { border-radius: 18px; padding: 16px; }
-        .session { flex-direction: column; }
-        .proof { grid-template-columns: 1fr; }
-        .proof-actions { justify-content: flex-start; }
-        .list-item { flex-direction: column; }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="shell">
-      <section class="card hero">
-        <div class="eyebrow">Admin</div>
-        <h1>Ops page for health, credits, wall, and city packs.</h1>
-        <p class="sub">Small on purpose. Fast checks, quick fixes, and cleaner city tooling.</p>
-      </section>
+    }
+  </style>
+</head>
 
-      <section class="card" id="loginPanel">
-        <div class="eyebrow">Sign in</div>
+<body>
+  <div class="shell">
+    <section class="card hero">
+      <div class="eyebrow">Admin</div>
+      <h1>Keep the spot running.</h1>
+      <p class="sub">Quick checks, quick fixes, no extra noise.</p>
+    </section>
+
+    <section class="card" id="loginPanel">
+      <div class="eyebrow">Sign in</div>
+      <div class="stack">
+        <input id="email" type="email" placeholder="admin@email.com" />
+        <input id="password" type="password" placeholder="password" />
+        <div class="row">
+          <button id="login">Login</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="adminPanel" style="display:none;">
+      <div class="row" style="justify-content:space-between;">
+        <div>
+          <div class="eyebrow">Live state</div>
+          <h2 id="adminEmail">Admin</h2>
+        </div>
+        <button id="logout" class="secondary">Logout</button>
+      </div>
+
+      <div class="grid" id="overviewGrid">
+        <div>
+          <div class="label">Website health</div>
+          <div class="metric" id="healthMetric">--</div>
+        </div>
+        <div>
+          <div class="label">Riders with credits</div>
+          <div class="metric" id="ridersMetric">0</div>
+        </div>
+        <div>
+          <div class="label">Paid credits live</div>
+          <div class="metric" id="creditsMetric">0</div>
+        </div>
+        <div>
+          <div class="label">Alleycat runs</div>
+          <div class="metric" id="runsMetric">0</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="navPanel" style="display:none;">
+      <div class="section-nav">
+        <button class="section-chip active" data-section="overview">Overview</button>
+        <button class="section-chip" data-section="ops">Ops</button>
+        <button class="section-chip" data-section="wall">Wall of Fame</button>
+        <button class="section-chip" data-section="city">City studio</button>
+      </div>
+    </section>
+
+    <section class="card" id="controlsPanel" data-section="ops" style="display:none;">
+      <div class="eyebrow">Credits and resets</div>
+      <div class="stack">
+        <input id="userId" type="text" placeholder="Supabase user id" />
+        <input id="device" type="text" placeholder="loop_device_id fallback" />
+        <div class="row">
+          <button id="reset" class="secondary">Reset rider usage</button>
+          <button id="clearAll" class="secondary">Clear all guest usage</button>
+        </div>
+        <div class="row">
+          <input id="free_used" type="number" placeholder="free_used" style="max-width:140px;" />
+          <input id="credits" type="number" placeholder="credits" style="max-width:180px;" />
+          <button id="setCredits">Set credits</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="sessionsPanel" data-section="overview" style="display:none;">
+      <div class="eyebrow">Recent top-ups</div>
+      <div class="sessions" id="sessionsList"></div>
+    </section>
+
+    <section class="card" id="proofsPanel" data-section="wall" style="display:none;">
+      <div class="eyebrow">Wall of Fame</div>
+      <div class="proofs" id="proofsList"></div>
+    </section>
+
+    <section class="card" id="quarterPanel" data-section="overview" style="display:none;">
+      <div class="eyebrow">Quarter board</div>
+      <div class="sub" id="quarterLabel">Current quarter</div>
+      <div class="sessions" id="quarterLeaders"></div>
+    </section>
+
+    <section class="card" id="cityStudioPanel" data-section="city" style="display:none;">
+      <div class="eyebrow">City studio</div>
+      <div class="studio-grid">
         <div class="stack">
-          <input id="email" type="email" placeholder="admin@email.com" />
-          <input id="password" type="password" placeholder="password" />
+          <h2>Pack</h2>
+          <div class="helper-steps">
+            <div class="helper-step">
+              <strong>1. Load or start a pack</strong>
+              <span class="mini-note">Slug, city name, route note, finish line.</span>
+            </div>
+            <div class="helper-step">
+              <strong>2. Let AI rough it in</strong>
+              <span class="mini-note">Use AI for first-pass copy, then tighten it by hand.</span>
+            </div>
+            <div class="helper-step">
+              <strong>3. Add checkpoints</strong>
+              <span class="mini-note">District, vibe, and task all need to hit before preview.</span>
+            </div>
+            <div class="helper-step">
+              <strong>4. Preview the manifest</strong>
+              <span class="mini-note">Make sure it feels like an alleycat, not a tour bus.</span>
+            </div>
+          </div>
+          <div class="template-grid">
+            <div class="template-note">Wave 1 shells</div>
+            <div class="template-row">
+              <button class="template-chip" data-pack-template="berlin">Berlin shell</button>
+              <button class="template-chip" data-pack-template="london">London shell</button>
+              <button class="template-chip" data-pack-template="tokyo">Tokyo shell</button>
+            </div>
+          </div>
+          <input id="packId" type="hidden" />
+          <input id="packSlug" type="text" placeholder="slug" />
+          <input id="packName" type="text" placeholder="City name" />
+          <textarea id="packRoute" placeholder="Route note"></textarea>
+          <textarea id="packFinish" placeholder="Finish line copy"></textarea>
+          <textarea id="packSafety" placeholder="Safety note"></textarea>
+          <label class="row"><input id="packActive" type="checkbox" checked style="width:auto;" /> Active pack</label>
           <div class="row">
-            <button id="login">Login</button>
+            <button id="savePack">Save pack</button>
+            <button id="draftPack" class="secondary">AI draft</button>
+            <button id="refreshPacks" class="secondary">Reload</button>
           </div>
-        </div>
-      </section>
-
-      <section class="card" id="adminPanel" style="display:none;">
-        <div class="row" style="justify-content:space-between;">
-          <div>
-            <div class="eyebrow">Live state</div>
-            <h2 id="adminEmail">Admin</h2>
-          </div>
-          <button id="logout" class="secondary">Logout</button>
+          <div class="list" id="packsList"></div>
         </div>
 
-        <div class="grid" id="overviewGrid">
-          <div>
-            <div class="label">Website health</div>
-            <div class="metric" id="healthMetric">--</div>
-          </div>
-          <div>
-            <div class="label">Riders with credits</div>
-            <div class="metric" id="ridersMetric">0</div>
-          </div>
-          <div>
-            <div class="label">Paid credits live</div>
-            <div class="metric" id="creditsMetric">0</div>
-          </div>
-          <div>
-            <div class="label">Alleycat runs</div>
-            <div class="metric" id="runsMetric">0</div>
-          </div>
-        </div>
-      </section>
-
-      <section class="card" id="navPanel" style="display:none;">
-        <div class="section-nav">
-          <button class="section-chip active" data-section="overview">Overview</button>
-          <button class="section-chip" data-section="ops">Ops</button>
-          <button class="section-chip" data-section="wall">Wall</button>
-          <button class="section-chip" data-section="city">City studio</button>
-        </div>
-      </section>
-
-      <section class="card" id="controlsPanel" data-section="ops" style="display:none;">
-        <div class="eyebrow">Credits and resets</div>
         <div class="stack">
-          <input id="userId" type="text" placeholder="Supabase user id" />
-          <input id="device" type="text" placeholder="loop_device_id fallback" />
+          <h2>Checkpoint</h2>
+          <div class="template-grid">
+            <div class="template-note">Task starters</div>
+            <div class="template-row">
+              <button class="template-chip" data-task-template="cut-through">Cut-through</button>
+              <button class="template-chip" data-task-template="bridge">Bridge</button>
+              <button class="template-chip" data-task-template="market">Market edge</button>
+              <button class="template-chip" data-task-template="station">Station chaos</button>
+            </div>
+          </div>
+          <input id="checkpointId" type="hidden" />
+          <input id="checkpointSlug" type="text" placeholder="checkpoint slug" />
+          <input id="checkpointName" type="text" placeholder="Checkpoint name" />
           <div class="row">
-            <button id="reset" class="secondary">Reset rider usage</button>
-            <button id="clearAll" class="secondary">Clear all guest usage</button>
+            <input id="checkpointLat" type="number" step="any" placeholder="Lat" />
+            <input id="checkpointLng" type="number" step="any" placeholder="Lng" />
           </div>
           <div class="row">
-            <input id="free_used" type="number" placeholder="free_used" style="max-width:140px;" />
-            <input id="credits" type="number" placeholder="credits" style="max-width:180px;" />
-            <button id="setCredits">Set credits</button>
+            <input id="checkpointDistrict" type="text" placeholder="District" />
+            <input id="checkpointCategory" type="text" placeholder="Category" />
+            <input id="checkpointVibe" type="text" placeholder="Vibe" />
           </div>
+          <textarea id="checkpointHint" placeholder="Hint"></textarea>
+          <textarea id="checkpointLocal" placeholder="Local task"></textarea>
+          <textarea id="checkpointFast" placeholder="Fast task"></textarea>
+          <textarea id="checkpointChaotic" placeholder="Chaotic task"></textarea>
+          <div class="row">
+            <input id="checkpointWeight" type="number" placeholder="Sort weight" style="max-width:180px;" />
+            <label class="row"><input id="checkpointActive" type="checkbox" checked style="width:auto;" />
+              Active</label>
+          </div>
+          <div class="row">
+            <button id="saveCheckpoint">Save checkpoint</button>
+            <button id="draftCheckpoint" class="secondary">AI draft</button>
+            <button id="previewManifest" class="secondary">Preview</button>
+          </div>
+          <div class="preview-box" id="previewBox">Pick a pack, then check how the manifest lands.</div>
+          <div class="list" id="checkpointsList"></div>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <section class="card" id="sessionsPanel" data-section="overview" style="display:none;">
-        <div class="eyebrow">Recent top-ups</div>
-        <div class="sessions" id="sessionsList"></div>
-      </section>
+    <div class="status" id="status"></div>
+  </div>
 
-      <section class="card" id="proofsPanel" data-section="wall" style="display:none;">
-        <div class="eyebrow">Wall</div>
-        <div class="proofs" id="proofsList"></div>
-      </section>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    (() => {
+      const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+      const apiBase = isLocal ? 'http://localhost:8787' : window.location.origin;
+      const statusEl = document.getElementById('status');
+      const loginPanel = document.getElementById('loginPanel');
+      const adminPanel = document.getElementById('adminPanel');
+      const navPanel = document.getElementById('navPanel');
+      const controlsPanel = document.getElementById('controlsPanel');
+      const sessionsPanel = document.getElementById('sessionsPanel');
+      const proofsPanel = document.getElementById('proofsPanel');
+      const quarterPanel = document.getElementById('quarterPanel');
+      const cityStudioPanel = document.getElementById('cityStudioPanel');
+      const sessionsList = document.getElementById('sessionsList');
+      const proofsList = document.getElementById('proofsList');
+      const quarterLeaders = document.getElementById('quarterLeaders');
+      const packsList = document.getElementById('packsList');
+      const checkpointsList = document.getElementById('checkpointsList');
+      const previewBox = document.getElementById('previewBox');
+      const deviceEl = document.getElementById('device');
+      const userEl = document.getElementById('userId');
+      const emailEl = document.getElementById('email');
+      const passwordEl = document.getElementById('password');
+      const packIdEl = document.getElementById('packId');
+      const packSlugEl = document.getElementById('packSlug');
+      const packNameEl = document.getElementById('packName');
+      const packRouteEl = document.getElementById('packRoute');
+      const packFinishEl = document.getElementById('packFinish');
+      const packSafetyEl = document.getElementById('packSafety');
+      const packActiveEl = document.getElementById('packActive');
+      const checkpointIdEl = document.getElementById('checkpointId');
+      const checkpointSlugEl = document.getElementById('checkpointSlug');
+      const checkpointNameEl = document.getElementById('checkpointName');
+      const checkpointLatEl = document.getElementById('checkpointLat');
+      const checkpointLngEl = document.getElementById('checkpointLng');
+      const checkpointDistrictEl = document.getElementById('checkpointDistrict');
+      const checkpointCategoryEl = document.getElementById('checkpointCategory');
+      const checkpointVibeEl = document.getElementById('checkpointVibe');
+      const checkpointHintEl = document.getElementById('checkpointHint');
+      const checkpointLocalEl = document.getElementById('checkpointLocal');
+      const checkpointFastEl = document.getElementById('checkpointFast');
+      const checkpointChaoticEl = document.getElementById('checkpointChaotic');
+      const checkpointWeightEl = document.getElementById('checkpointWeight');
+      const checkpointActiveEl = document.getElementById('checkpointActive');
+      const packTemplates = {
+        berlin: {
+          slug: 'berlin',
+          name: 'Berlin',
+          route_note: 'Backstreets, bridge pressure, and awkward cuts. Keep it sharp and skip the postcard line.',
+          finish_label: 'Clear the list, close it hard, and leave with one story worth repeating.',
+          safety_note: 'Stay inside local laws, keep your head up in traffic, and treat the city like it can bite back.'
+        },
+        london: {
+          slug: 'london',
+          name: 'London',
+          route_note: 'Tight calls, station pressure, and side-street exits. Read the mess before it reads you.',
+          finish_label: 'List clear, clock dead, next pint or next rematch.',
+          safety_note: 'Ride clean, stay alert, and do not force moves through crowd-heavy streets.'
+        },
+        tokyo: {
+          slug: 'tokyo',
+          name: 'Tokyo',
+          route_note: 'Lane discipline outside, alley instincts underneath. Keep it precise and a little mean.',
+          finish_label: 'Close the run, keep the face straight, tell the story later.',
+          safety_note: 'Respect the street, stay predictable in traffic, and keep every task safe and doable.'
+        }
+      };
+      const taskTemplates = {
+        'cut-through': {
+          hint: 'Looks simple until the line gets weird.',
+          local: 'Clock the smallest detail that tells you locals really use this cut and not just maps tourists.',
+          fast: 'Hit the cut, commit to one side, and leave before the hesitation catches up.',
+          chaotic: 'Pick the slightly wrong-looking line on purpose and back your call like you meant it.'
+        },
+        bridge: {
+          hint: 'Wind, noise, and too many choices after the drop.',
+          local: 'Notice which side feels louder and remember what made it feel that way.',
+          fast: 'Touch the bridge zone, lock the fastest exit in your head, and move.',
+          chaotic: 'Give the bridge a fake victory nod like you conquered something huge, then disappear.'
+        },
+        market: {
+          hint: 'Too many eyes, too much clutter, perfect.',
+          local: 'Find one sound that should not work in this place but somehow does.',
+          fast: 'Read the edge of the chaos in one pass and keep your speed honest.',
+          chaotic: 'Do one stupidly formal bow to the market, then roll out before it gets weird.'
+        },
+        station: {
+          hint: 'Flow against flow without becoming the problem.',
+          local: 'Call out the one corner where commuters and riders clearly hate each other most.',
+          fast: 'Touch the station edge, choose your exit fast, and get gone.',
+          chaotic: 'Quietly sing two lines of a fake victory anthem to yourself before leaving the zone.'
+        }
+      };
 
-      <section class="card" id="quarterPanel" data-section="overview" style="display:none;">
-        <div class="eyebrow">Quarter board</div>
-        <div class="sub" id="quarterLabel">Current quarter</div>
-        <div class="sessions" id="quarterLeaders"></div>
-      </section>
+      let sb = window.__adminSupabase || null;
+      let accessToken = null;
+      let activeSection = 'overview';
 
-      <section class="card" id="cityStudioPanel" data-section="city" style="display:none;">
-        <div class="eyebrow">City studio</div>
-        <div class="studio-grid">
-          <div class="stack">
-            <h2>Pack</h2>
-            <div class="helper-steps">
-              <div class="helper-step">
-                <strong>1. Load or create a city pack</strong>
-                <span class="mini-note">Slug, city name, route note, and finish label first.</span>
-              </div>
-              <div class="helper-step">
-                <strong>2. Draft the tone with AI</strong>
-                <span class="mini-note">Use AI to draft sharper Alleycat copy, then edit before save.</span>
-              </div>
-              <div class="helper-step">
-                <strong>3. Add checkpoints</strong>
-                <span class="mini-note">District, category, vibe, and task copy should all be set before preview.</span>
-              </div>
-              <div class="helper-step">
-                <strong>4. Preview the manifest</strong>
-                <span class="mini-note">Check if the pack reads like an alleycat, not a city tour.</span>
-              </div>
-            </div>
-            <div class="template-grid">
-              <div class="template-note">Wave 1 starter shells</div>
-              <div class="template-row">
-                <button class="template-chip" data-pack-template="berlin">Berlin shell</button>
-                <button class="template-chip" data-pack-template="london">London shell</button>
-                <button class="template-chip" data-pack-template="tokyo">Tokyo shell</button>
-              </div>
-            </div>
-            <input id="packId" type="hidden" />
-            <input id="packSlug" type="text" placeholder="slug" />
-            <input id="packName" type="text" placeholder="City name" />
-            <textarea id="packRoute" placeholder="Route note"></textarea>
-            <textarea id="packFinish" placeholder="Finish label"></textarea>
-            <textarea id="packSafety" placeholder="Safety note"></textarea>
-            <label class="row"><input id="packActive" type="checkbox" checked style="width:auto;" /> Active pack</label>
-            <div class="row">
-              <button id="savePack">Save pack</button>
-              <button id="draftPack" class="secondary">AI pack draft</button>
-              <button id="refreshPacks" class="secondary">Reload packs</button>
-            </div>
-            <div class="list" id="packsList"></div>
-          </div>
-
-          <div class="stack">
-            <h2>Checkpoint</h2>
-            <div class="template-grid">
-              <div class="template-note">Task starters</div>
-              <div class="template-row">
-                <button class="template-chip" data-task-template="cut-through">Cut-through</button>
-                <button class="template-chip" data-task-template="bridge">Bridge</button>
-                <button class="template-chip" data-task-template="market">Market edge</button>
-                <button class="template-chip" data-task-template="station">Station chaos</button>
-              </div>
-            </div>
-            <input id="checkpointId" type="hidden" />
-            <input id="checkpointSlug" type="text" placeholder="checkpoint slug" />
-            <input id="checkpointName" type="text" placeholder="Checkpoint name" />
-            <div class="row">
-              <input id="checkpointLat" type="number" step="any" placeholder="Lat" />
-              <input id="checkpointLng" type="number" step="any" placeholder="Lng" />
-            </div>
-            <div class="row">
-              <input id="checkpointDistrict" type="text" placeholder="District" />
-              <input id="checkpointCategory" type="text" placeholder="Category" />
-              <input id="checkpointVibe" type="text" placeholder="Vibe" />
-            </div>
-            <textarea id="checkpointHint" placeholder="Hint"></textarea>
-            <textarea id="checkpointLocal" placeholder="Local task"></textarea>
-            <textarea id="checkpointFast" placeholder="Fast task"></textarea>
-            <textarea id="checkpointChaotic" placeholder="Chaotic task"></textarea>
-            <div class="row">
-              <input id="checkpointWeight" type="number" placeholder="Sort weight" style="max-width:180px;" />
-              <label class="row"><input id="checkpointActive" type="checkbox" checked style="width:auto;" /> Active</label>
-            </div>
-            <div class="row">
-              <button id="saveCheckpoint">Save checkpoint</button>
-              <button id="draftCheckpoint" class="secondary">AI checkpoint draft</button>
-              <button id="previewManifest" class="secondary">Preview manifest</button>
-            </div>
-            <div class="preview-box" id="previewBox">Pick a pack, then preview how the manifest resolves.</div>
-            <div class="list" id="checkpointsList"></div>
-          </div>
-        </div>
-      </section>
-
-      <div class="status" id="status"></div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-      (() => {
-        const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-        const apiBase = isLocal ? 'http://localhost:8787' : window.location.origin;
-        const statusEl = document.getElementById('status');
-        const loginPanel = document.getElementById('loginPanel');
-        const adminPanel = document.getElementById('adminPanel');
-        const navPanel = document.getElementById('navPanel');
-        const controlsPanel = document.getElementById('controlsPanel');
-        const sessionsPanel = document.getElementById('sessionsPanel');
-        const proofsPanel = document.getElementById('proofsPanel');
-        const quarterPanel = document.getElementById('quarterPanel');
-        const cityStudioPanel = document.getElementById('cityStudioPanel');
-        const sessionsList = document.getElementById('sessionsList');
-        const proofsList = document.getElementById('proofsList');
-        const quarterLeaders = document.getElementById('quarterLeaders');
-        const packsList = document.getElementById('packsList');
-        const checkpointsList = document.getElementById('checkpointsList');
-        const previewBox = document.getElementById('previewBox');
-        const deviceEl = document.getElementById('device');
-        const userEl = document.getElementById('userId');
-        const emailEl = document.getElementById('email');
-        const passwordEl = document.getElementById('password');
-        const packIdEl = document.getElementById('packId');
-        const packSlugEl = document.getElementById('packSlug');
-        const packNameEl = document.getElementById('packName');
-        const packRouteEl = document.getElementById('packRoute');
-        const packFinishEl = document.getElementById('packFinish');
-        const packSafetyEl = document.getElementById('packSafety');
-        const packActiveEl = document.getElementById('packActive');
-        const checkpointIdEl = document.getElementById('checkpointId');
-        const checkpointSlugEl = document.getElementById('checkpointSlug');
-        const checkpointNameEl = document.getElementById('checkpointName');
-        const checkpointLatEl = document.getElementById('checkpointLat');
-        const checkpointLngEl = document.getElementById('checkpointLng');
-        const checkpointDistrictEl = document.getElementById('checkpointDistrict');
-        const checkpointCategoryEl = document.getElementById('checkpointCategory');
-        const checkpointVibeEl = document.getElementById('checkpointVibe');
-        const checkpointHintEl = document.getElementById('checkpointHint');
-        const checkpointLocalEl = document.getElementById('checkpointLocal');
-        const checkpointFastEl = document.getElementById('checkpointFast');
-        const checkpointChaoticEl = document.getElementById('checkpointChaotic');
-        const checkpointWeightEl = document.getElementById('checkpointWeight');
-        const checkpointActiveEl = document.getElementById('checkpointActive');
-        const packTemplates = {
-          berlin: {
-            slug: 'berlin',
-            name: 'Berlin',
-            route_note: 'Backstreets, bridge pressure, and awkward cuts. Keep it sharp and skip the postcard line.',
-            finish_label: 'Clear the list, close it hard, and leave with one story worth repeating.',
-            safety_note: 'Stay inside local laws, keep your head up in traffic, and treat the city like it can bite back.'
-          },
-          london: {
-            slug: 'london',
-            name: 'London',
-            route_note: 'Tight calls, station pressure, and side-street exits. Read the mess before it reads you.',
-            finish_label: 'List clear, clock dead, next pint or next rematch.',
-            safety_note: 'Ride clean, stay alert, and do not force moves through crowd-heavy streets.'
-          },
-          tokyo: {
-            slug: 'tokyo',
-            name: 'Tokyo',
-            route_note: 'Lane discipline outside, alley instincts underneath. Keep it precise and a little mean.',
-            finish_label: 'Close the run, keep the face straight, tell the story later.',
-            safety_note: 'Respect the street, stay predictable in traffic, and keep every task safe and doable.'
-          }
-        };
-        const taskTemplates = {
-          'cut-through': {
-            hint: 'Looks simple until the line gets weird.',
-            local: 'Clock the smallest detail that tells you locals really use this cut and not just maps tourists.',
-            fast: 'Hit the cut, commit to one side, and leave before the hesitation catches up.',
-            chaotic: 'Pick the slightly wrong-looking line on purpose and back your call like you meant it.'
-          },
-          bridge: {
-            hint: 'Wind, noise, and too many choices after the drop.',
-            local: 'Notice which side feels louder and remember what made it feel that way.',
-            fast: 'Touch the bridge zone, lock the fastest exit in your head, and move.',
-            chaotic: 'Give the bridge a fake victory nod like you conquered something huge, then disappear.'
-          },
-          market: {
-            hint: 'Too many eyes, too much clutter, perfect.',
-            local: 'Find one sound that should not work in this place but somehow does.',
-            fast: 'Read the edge of the chaos in one pass and keep your speed honest.',
-            chaotic: 'Do one stupidly formal bow to the market, then roll out before it gets weird.'
-          },
-          station: {
-            hint: 'Flow against flow without becoming the problem.',
-            local: 'Call out the one corner where commuters and riders clearly hate each other most.',
-            fast: 'Touch the station edge, choose your exit fast, and get gone.',
-            chaotic: 'Quietly sing two lines of a fake victory anthem to yourself before leaving the zone.'
-          }
-        };
-
-        const sb = window.__adminSupabase || window.supabase.createClient(
-          'https://gcqphvljyctpkfkpcsbj.supabase.co',
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdjcXBodmxqeWN0cGtma3Bjc2JqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0Njc4MDUsImV4cCI6MjA4NjA0MzgwNX0.af4A7fu7pGg8jovMM5YgBDobfgJmyZRKwdwQpcsde_8'
-        );
+      const initSupabase = async () => {
+        if (sb) return sb;
+        statusEl.textContent = 'Loading admin auth...';
+        const res = await fetch(`${apiBase}/api/public-config`);
+        const data = await res.json();
+        if (!res.ok || !data?.supabaseUrl || !data?.supabaseAnonKey) {
+          throw new Error(data?.error || 'Admin auth config unavailable.');
+        }
+        sb = window.supabase.createClient(data.supabaseUrl, data.supabaseAnonKey);
         window.__adminSupabase = sb;
+        return sb;
+      };
 
-        let accessToken = null;
-        let activeSection = 'overview';
+      const applySection = (section) => {
+        activeSection = section;
+        document.querySelectorAll('[data-section]').forEach((element) => {
+          element.style.display = element.dataset.section === section ? 'block' : 'none';
+        });
+        document.querySelectorAll('.section-chip').forEach((button) => {
+          button.classList.toggle('active', button.dataset.section === section);
+        });
+      };
 
-        const applySection = (section) => {
-          activeSection = section;
-          document.querySelectorAll('[data-section]').forEach((element) => {
-            element.style.display = element.dataset.section === section ? 'block' : 'none';
-          });
-          document.querySelectorAll('.section-chip').forEach((button) => {
-            button.classList.toggle('active', button.dataset.section === section);
-          });
-        };
+      const post = async (path, body) => {
+        if (!accessToken) throw new Error('Login required');
+        const res = await fetch(`${apiBase}${path}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Request failed');
+        return data;
+      };
 
-        const post = async (path, body) => {
-          if (!accessToken) throw new Error('Login required');
-          const res = await fetch(`${apiBase}${path}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${accessToken}`
-            },
-            body: JSON.stringify(body)
-          });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error || 'Request failed');
-          return data;
-        };
-
-        const renderManifestPreview = (manifest, source) => {
-          previewBox.innerHTML = `
+      const renderManifestPreview = (manifest, source) => {
+        previewBox.innerHTML = `
             <div class="preview-manifest-card">
               <div class="preview-manifest-head">
                 <div>
@@ -546,30 +736,30 @@
               </div>
             </div>
           `;
-        };
+      };
 
-        const toggleProofVisibility = async (proofId, nextValue) => {
-          statusEl.textContent = nextValue ? 'Publishing proof...' : 'Hiding proof...';
-          try {
-            await post('/api/admin/proof-visibility', {
-              proof_id: proofId,
-              is_public: nextValue
-            });
-            statusEl.textContent = nextValue ? 'Proof published.' : 'Proof hidden.';
-            await paintOverview();
-          } catch (error) {
-            statusEl.textContent = error.message;
-          }
-        };
+      const toggleProofVisibility = async (proofId, nextValue) => {
+        statusEl.textContent = nextValue ? 'Publishing proof...' : 'Hiding proof...';
+        try {
+          await post('/api/admin/proof-visibility', {
+            proof_id: proofId,
+            is_public: nextValue
+          });
+          statusEl.textContent = nextValue ? 'Proof published.' : 'Proof hidden.';
+          await paintOverview();
+        } catch (error) {
+          statusEl.textContent = error.message;
+        }
+      };
 
-        const loadCheckpoints = async (packId) => {
-          checkpointsList.innerHTML = '';
-          if (!packId) return;
-          const data = await post('/api/admin/city-checkpoints', { pack_id: packId });
-          (data.checkpoints || []).forEach((checkpoint) => {
-            const row = document.createElement('div');
-            row.className = 'list-item';
-            row.innerHTML = `
+      const loadCheckpoints = async (packId) => {
+        checkpointsList.innerHTML = '';
+        if (!packId) return;
+        const data = await post('/api/admin/city-checkpoints', { pack_id: packId });
+        (data.checkpoints || []).forEach((checkpoint) => {
+          const row = document.createElement('div');
+          row.className = 'list-item';
+          row.innerHTML = `
               <div>
                 <strong>${checkpoint.name}</strong>
                 <span>${checkpoint.slug} · ${checkpoint.district || 'No district'} · ${checkpoint.category || 'No category'}</span>
@@ -578,33 +768,33 @@
                 <button class="secondary">Load</button>
               </div>
             `;
-            row.querySelector('button').onclick = () => {
-              checkpointIdEl.value = checkpoint.id || '';
-              checkpointSlugEl.value = checkpoint.slug || '';
-              checkpointNameEl.value = checkpoint.name || '';
-              checkpointLatEl.value = checkpoint.lat ?? '';
-              checkpointLngEl.value = checkpoint.lng ?? '';
-              checkpointDistrictEl.value = checkpoint.district || '';
-              checkpointCategoryEl.value = checkpoint.category || '';
-              checkpointVibeEl.value = checkpoint.vibe || '';
-              checkpointHintEl.value = checkpoint.hint || '';
-              checkpointLocalEl.value = checkpoint.task_local || '';
-              checkpointFastEl.value = checkpoint.task_fast || '';
-              checkpointChaoticEl.value = checkpoint.task_chaotic || '';
-              checkpointWeightEl.value = checkpoint.sort_weight ?? 100;
-              checkpointActiveEl.checked = checkpoint.is_active !== false;
-            };
-            checkpointsList.appendChild(row);
-          });
-        };
+          row.querySelector('button').onclick = () => {
+            checkpointIdEl.value = checkpoint.id || '';
+            checkpointSlugEl.value = checkpoint.slug || '';
+            checkpointNameEl.value = checkpoint.name || '';
+            checkpointLatEl.value = checkpoint.lat ?? '';
+            checkpointLngEl.value = checkpoint.lng ?? '';
+            checkpointDistrictEl.value = checkpoint.district || '';
+            checkpointCategoryEl.value = checkpoint.category || '';
+            checkpointVibeEl.value = checkpoint.vibe || '';
+            checkpointHintEl.value = checkpoint.hint || '';
+            checkpointLocalEl.value = checkpoint.task_local || '';
+            checkpointFastEl.value = checkpoint.task_fast || '';
+            checkpointChaoticEl.value = checkpoint.task_chaotic || '';
+            checkpointWeightEl.value = checkpoint.sort_weight ?? 100;
+            checkpointActiveEl.checked = checkpoint.is_active !== false;
+          };
+          checkpointsList.appendChild(row);
+        });
+      };
 
-        const loadPacks = async () => {
-          packsList.innerHTML = '';
-          const data = await post('/api/admin/city-packs', {});
-          (data.packs || []).forEach((pack) => {
-            const row = document.createElement('div');
-            row.className = 'list-item';
-            row.innerHTML = `
+      const loadPacks = async () => {
+        packsList.innerHTML = '';
+        const data = await post('/api/admin/city-packs', {});
+        (data.packs || []).forEach((pack) => {
+          const row = document.createElement('div');
+          row.className = 'list-item';
+          row.innerHTML = `
               <div>
                 <strong>${pack.name}</strong>
                 <span>${pack.slug} · ${pack.is_active ? 'Active' : 'Hidden'}</span>
@@ -613,149 +803,149 @@
                 <button class="secondary">Load</button>
               </div>
             `;
-            row.querySelector('button').onclick = async () => {
-              packIdEl.value = pack.id || '';
-              packSlugEl.value = pack.slug || '';
-              packNameEl.value = pack.name || '';
-              packRouteEl.value = pack.route_note || '';
-              packFinishEl.value = pack.finish_label || '';
-              packSafetyEl.value = pack.safety_note || '';
-              packActiveEl.checked = pack.is_active !== false;
-              checkpointIdEl.value = '';
-              await loadCheckpoints(pack.id);
-            };
-            packsList.appendChild(row);
-          });
-        };
+          row.querySelector('button').onclick = async () => {
+            packIdEl.value = pack.id || '';
+            packSlugEl.value = pack.slug || '';
+            packNameEl.value = pack.name || '';
+            packRouteEl.value = pack.route_note || '';
+            packFinishEl.value = pack.finish_label || '';
+            packSafetyEl.value = pack.safety_note || '';
+            packActiveEl.checked = pack.is_active !== false;
+            checkpointIdEl.value = '';
+            await loadCheckpoints(pack.id);
+          };
+          packsList.appendChild(row);
+        });
+      };
 
-        const savePack = async () => {
-          statusEl.textContent = 'Saving city pack...';
-          const data = await post('/api/admin/city-packs', {
-            action: 'save',
-            id: packIdEl.value || '',
-            slug: packSlugEl.value,
-            name: packNameEl.value,
-            route_note: packRouteEl.value,
-            finish_label: packFinishEl.value,
-            safety_note: packSafetyEl.value,
-            is_active: packActiveEl.checked
-          });
-          packIdEl.value = data.pack?.id || packIdEl.value;
-          statusEl.textContent = 'City pack saved.';
-          await loadPacks();
-          if (data.pack?.id) await loadCheckpoints(data.pack.id);
-        };
+      const savePack = async () => {
+        statusEl.textContent = 'Saving city pack...';
+        const data = await post('/api/admin/city-packs', {
+          action: 'save',
+          id: packIdEl.value || '',
+          slug: packSlugEl.value,
+          name: packNameEl.value,
+          route_note: packRouteEl.value,
+          finish_label: packFinishEl.value,
+          safety_note: packSafetyEl.value,
+          is_active: packActiveEl.checked
+        });
+        packIdEl.value = data.pack?.id || packIdEl.value;
+        statusEl.textContent = 'City pack saved.';
+        await loadPacks();
+        if (data.pack?.id) await loadCheckpoints(data.pack.id);
+      };
 
-        const saveCheckpoint = async () => {
-          if (!packIdEl.value) throw new Error('Load or create a city pack first.');
-          statusEl.textContent = 'Saving checkpoint...';
-          await post('/api/admin/city-checkpoints', {
-            action: 'save',
-            id: checkpointIdEl.value || '',
-            pack_id: packIdEl.value,
-            slug: checkpointSlugEl.value,
-            name: checkpointNameEl.value,
-            lat: Number(checkpointLatEl.value),
-            lng: Number(checkpointLngEl.value),
-            district: checkpointDistrictEl.value,
-            category: checkpointCategoryEl.value,
-            vibe: checkpointVibeEl.value,
-            hint: checkpointHintEl.value,
-            task_local: checkpointLocalEl.value,
-            task_fast: checkpointFastEl.value,
-            task_chaotic: checkpointChaoticEl.value,
-            sort_weight: Number(checkpointWeightEl.value || 100),
-            is_active: checkpointActiveEl.checked
-          });
-          statusEl.textContent = 'Checkpoint saved.';
-          await loadCheckpoints(packIdEl.value);
-        };
+      const saveCheckpoint = async () => {
+        if (!packIdEl.value) throw new Error('Load or create a city pack first.');
+        statusEl.textContent = 'Saving checkpoint...';
+        await post('/api/admin/city-checkpoints', {
+          action: 'save',
+          id: checkpointIdEl.value || '',
+          pack_id: packIdEl.value,
+          slug: checkpointSlugEl.value,
+          name: checkpointNameEl.value,
+          lat: Number(checkpointLatEl.value),
+          lng: Number(checkpointLngEl.value),
+          district: checkpointDistrictEl.value,
+          category: checkpointCategoryEl.value,
+          vibe: checkpointVibeEl.value,
+          hint: checkpointHintEl.value,
+          task_local: checkpointLocalEl.value,
+          task_fast: checkpointFastEl.value,
+          task_chaotic: checkpointChaoticEl.value,
+          sort_weight: Number(checkpointWeightEl.value || 100),
+          is_active: checkpointActiveEl.checked
+        });
+        statusEl.textContent = 'Checkpoint saved.';
+        await loadCheckpoints(packIdEl.value);
+      };
 
-        const previewManifest = async () => {
-          if (!packIdEl.value && !packSlugEl.value) throw new Error('Pick a city pack first.');
-          const data = await post('/api/admin/preview-manifest', {
-            pack_id: packIdEl.value || '',
-            city: packNameEl.value || packSlugEl.value,
-            difficulty: 'medium',
-            style: 'local'
-          });
-          renderManifestPreview(data.manifest, data.source || 'preview');
-        };
+      const previewManifest = async () => {
+        if (!packIdEl.value && !packSlugEl.value) throw new Error('Pick a city pack first.');
+        const data = await post('/api/admin/preview-manifest', {
+          pack_id: packIdEl.value || '',
+          city: packNameEl.value || packSlugEl.value,
+          difficulty: 'medium',
+          style: 'local'
+        });
+        renderManifestPreview(data.manifest, data.source || 'preview');
+      };
 
-        const draftCheckpoint = async () => {
-          const data = await post('/api/admin/ai-draft', {
-            kind: 'checkpoint',
-            city: packNameEl.value || packSlugEl.value,
-            district: checkpointDistrictEl.value,
-            category: checkpointCategoryEl.value,
-            vibe: checkpointVibeEl.value,
-            checkpoint_name: checkpointNameEl.value,
-            hint: checkpointHintEl.value
-          });
-          checkpointLocalEl.value = data.draft.task_local || checkpointLocalEl.value;
-          checkpointFastEl.value = data.draft.task_fast || checkpointFastEl.value;
-          checkpointChaoticEl.value = data.draft.task_chaotic || checkpointChaoticEl.value;
-          previewBox.textContent = `AI checkpoint draft ready. Notes: ${(data.draft.admin_notes || []).join(' | ')}`;
-        };
+      const draftCheckpoint = async () => {
+        const data = await post('/api/admin/ai-draft', {
+          kind: 'checkpoint',
+          city: packNameEl.value || packSlugEl.value,
+          district: checkpointDistrictEl.value,
+          category: checkpointCategoryEl.value,
+          vibe: checkpointVibeEl.value,
+          checkpoint_name: checkpointNameEl.value,
+          hint: checkpointHintEl.value
+        });
+        checkpointLocalEl.value = data.draft.task_local || checkpointLocalEl.value;
+        checkpointFastEl.value = data.draft.task_fast || checkpointFastEl.value;
+        checkpointChaoticEl.value = data.draft.task_chaotic || checkpointChaoticEl.value;
+        previewBox.textContent = `AI checkpoint draft ready. Notes: ${(data.draft.admin_notes || []).join(' | ')}`;
+      };
 
-        const draftPack = async () => {
-          const checkpoints = Array.from(checkpointsList.querySelectorAll('.list-item strong')).map((el) => ({ name: el.textContent }));
-          const data = await post('/api/admin/ai-draft', {
-            kind: 'pack',
-            city: packNameEl.value || packSlugEl.value,
-            route_note: packRouteEl.value,
-            finish_label: packFinishEl.value,
-            checkpoints
-          });
-          packRouteEl.value = data.draft.route_note || packRouteEl.value;
-          packFinishEl.value = data.draft.finish_label || packFinishEl.value;
-          previewBox.textContent = `AI pack draft ready. Route: ${data.draft.route_note || 'n/a'} | Spread: ${(data.draft.spread_suggestions || []).join(' | ')} | Avoid: ${(data.draft.tourist_overuse_warnings || []).join(' | ')}`;
-        };
+      const draftPack = async () => {
+        const checkpoints = Array.from(checkpointsList.querySelectorAll('.list-item strong')).map((el) => ({ name: el.textContent }));
+        const data = await post('/api/admin/ai-draft', {
+          kind: 'pack',
+          city: packNameEl.value || packSlugEl.value,
+          route_note: packRouteEl.value,
+          finish_label: packFinishEl.value,
+          checkpoints
+        });
+        packRouteEl.value = data.draft.route_note || packRouteEl.value;
+        packFinishEl.value = data.draft.finish_label || packFinishEl.value;
+        previewBox.textContent = `AI pack draft ready. Route: ${data.draft.route_note || 'n/a'} | Spread: ${(data.draft.spread_suggestions || []).join(' | ')} | Avoid: ${(data.draft.tourist_overuse_warnings || []).join(' | ')}`;
+      };
 
-        const applyPackTemplate = (key) => {
-          const template = packTemplates[key];
-          if (!template) return;
-          packIdEl.value = '';
-          packSlugEl.value = template.slug;
-          packNameEl.value = template.name;
-          packRouteEl.value = template.route_note;
-          packFinishEl.value = template.finish_label;
-          packSafetyEl.value = template.safety_note;
-          previewBox.textContent = `${template.name} starter shell loaded. Add checkpoints next.`;
-        };
+      const applyPackTemplate = (key) => {
+        const template = packTemplates[key];
+        if (!template) return;
+        packIdEl.value = '';
+        packSlugEl.value = template.slug;
+        packNameEl.value = template.name;
+        packRouteEl.value = template.route_note;
+        packFinishEl.value = template.finish_label;
+        packSafetyEl.value = template.safety_note;
+        previewBox.textContent = `${template.name} starter shell loaded. Add checkpoints next.`;
+      };
 
-        const applyTaskTemplate = (key) => {
-          const template = taskTemplates[key];
-          if (!template) return;
-          checkpointHintEl.value = checkpointHintEl.value || template.hint;
-          checkpointLocalEl.value = checkpointLocalEl.value || template.local;
-          checkpointFastEl.value = checkpointFastEl.value || template.fast;
-          checkpointChaoticEl.value = checkpointChaoticEl.value || template.chaotic;
-          previewBox.textContent = `Task starter loaded for ${key}. Edit it until it feels right for the spot.`;
-        };
+      const applyTaskTemplate = (key) => {
+        const template = taskTemplates[key];
+        if (!template) return;
+        checkpointHintEl.value = checkpointHintEl.value || template.hint;
+        checkpointLocalEl.value = checkpointLocalEl.value || template.local;
+        checkpointFastEl.value = checkpointFastEl.value || template.fast;
+        checkpointChaoticEl.value = checkpointChaoticEl.value || template.chaotic;
+        previewBox.textContent = `Task starter loaded for ${key}. Edit it until it feels right for the spot.`;
+      };
 
-        const paintOverview = async () => {
-          try {
-            const [healthRes, overview] = await Promise.all([
-              fetch(`${apiBase}/health`).then((res) => res.json()).catch(() => ({ ok: false })),
-              post('/api/admin/overview', {})
-            ]);
-            document.getElementById('healthMetric').textContent = healthRes.ok ? 'OK' : 'Down';
-            document.getElementById('adminEmail').textContent = overview.admin_email || 'Admin';
-            document.getElementById('ridersMetric').textContent = overview.metrics.riders_with_credits;
-            document.getElementById('creditsMetric').textContent = overview.metrics.total_paid_credits;
-            document.getElementById('runsMetric').textContent = overview.metrics.alleycat_runs;
-            sessionsList.innerHTML = '';
-            proofsList.innerHTML = '';
-            quarterLeaders.innerHTML = '';
-            document.getElementById('quarterLabel').textContent = overview.quarter?.label || 'Current quarter';
-            if (!overview.recent_sessions.length) {
-              sessionsList.innerHTML = '<div class="label">No recent Stripe sessions.</div>';
-            }
-            (overview.recent_sessions || []).forEach((session) => {
-              const row = document.createElement('div');
-              row.className = 'session';
-              row.innerHTML = `
+      const paintOverview = async () => {
+        try {
+          const [healthRes, overview] = await Promise.all([
+            fetch(`${apiBase}/health`).then((res) => res.json()).catch(() => ({ ok: false })),
+            post('/api/admin/overview', {})
+          ]);
+          document.getElementById('healthMetric').textContent = healthRes.ok ? 'OK' : 'Down';
+          document.getElementById('adminEmail').textContent = overview.admin_email || 'Admin';
+          document.getElementById('ridersMetric').textContent = overview.metrics.riders_with_credits;
+          document.getElementById('creditsMetric').textContent = overview.metrics.total_paid_credits;
+          document.getElementById('runsMetric').textContent = overview.metrics.alleycat_runs;
+          sessionsList.innerHTML = '';
+          proofsList.innerHTML = '';
+          quarterLeaders.innerHTML = '';
+          document.getElementById('quarterLabel').textContent = overview.quarter?.label || 'Current quarter';
+          if (!overview.recent_sessions.length) {
+            sessionsList.innerHTML = '<div class="label">No recent Stripe sessions.</div>';
+          }
+          (overview.recent_sessions || []).forEach((session) => {
+            const row = document.createElement('div');
+            row.className = 'session';
+            row.innerHTML = `
                 <div>
                   <strong>${(Number(session.amount_cents || 0) / 100).toFixed(2)} USD</strong>
                   <span>${session.session_id}</span>
@@ -764,15 +954,15 @@
                   <strong>${String(session.status || '').replace(/_/g, ' ')}</strong>
                 </div>
               `;
-              sessionsList.appendChild(row);
-            });
-            if (!overview.recent_proofs?.length) {
-              proofsList.innerHTML = '<div class="label">No proof posts yet.</div>';
-            }
-            overview.recent_proofs.forEach((proof) => {
-              const row = document.createElement('div');
-              row.className = 'proof';
-              row.innerHTML = `
+            sessionsList.appendChild(row);
+          });
+          if (!overview.recent_proofs?.length) {
+            proofsList.innerHTML = '<div class="label">No proof posts yet.</div>';
+          }
+          overview.recent_proofs.forEach((proof) => {
+            const row = document.createElement('div');
+            row.className = 'proof';
+            row.innerHTML = `
                 <img src="${proof.public_url}" alt="${proof.checkpoint_name}" />
                 <div>
                   <strong>${proof.rider_name}</strong>
@@ -785,65 +975,70 @@
                   </button>
                 </div>
               `;
-              const button = row.querySelector('button');
-              button.onclick = () => toggleProofVisibility(proof.id, !proof.is_public);
-              proofsList.appendChild(row);
-            });
-            if (!overview.quarter?.leaders?.length) {
-              quarterLeaders.innerHTML = '<div class="label">No ranked riders yet.</div>';
-              return;
-            }
-            overview.quarter.leaders.forEach((entry) => {
-              const row = document.createElement('div');
-              row.className = 'session';
-              row.innerHTML = `
+            const button = row.querySelector('button');
+            button.onclick = () => toggleProofVisibility(proof.id, !proof.is_public);
+            proofsList.appendChild(row);
+          });
+          if (!overview.quarter?.leaders?.length) {
+            quarterLeaders.innerHTML = '<div class="label">No ranked riders yet.</div>';
+            return;
+          }
+          overview.quarter.leaders.forEach((entry) => {
+            const row = document.createElement('div');
+            row.className = 'session';
+            row.innerHTML = `
                 <div>
                   <strong>#${entry.rank} ${entry.rider_name}</strong>
                   <span>${entry.public_proofs} proofs · ${entry.finished_runs} finishes</span>
                 </div>
               `;
-              quarterLeaders.appendChild(row);
-            });
-          } catch (error) {
-            statusEl.textContent = error.message;
-          }
-        };
+            quarterLeaders.appendChild(row);
+          });
+        } catch (error) {
+          statusEl.textContent = error.message;
+        }
+      };
 
-        const refreshSession = async () => {
-          const { data, error } = await sb.auth.getSession();
-          if (error) {
-            statusEl.textContent = error.message;
-            return;
-          }
-          accessToken = data?.session?.access_token || null;
-          if (accessToken) {
-            loginPanel.style.display = 'none';
-            adminPanel.style.display = 'block';
-            navPanel.style.display = 'block';
-            statusEl.textContent = 'Logged in.';
-            try {
-              const userId = data?.session?.user?.id;
-              if (userId && !userEl.value) userEl.value = userId;
-              const stored = localStorage.getItem('loop_device_id');
-              if (stored && !deviceEl.value) deviceEl.value = stored;
-            } catch {}
-            await paintOverview();
-            await loadPacks();
-            applySection(activeSection);
-          } else {
-            loginPanel.style.display = 'block';
-            adminPanel.style.display = 'none';
-            navPanel.style.display = 'none';
-            controlsPanel.style.display = 'none';
-            sessionsPanel.style.display = 'none';
-            proofsPanel.style.display = 'none';
-            quarterPanel.style.display = 'none';
-            cityStudioPanel.style.display = 'none';
-            statusEl.textContent = 'Logged out.';
-          }
-        };
+      const refreshSession = async () => {
+        if (!sb) {
+          await initSupabase();
+        }
+        const { data, error } = await sb.auth.getSession();
+        if (error) {
+          statusEl.textContent = error.message;
+          return;
+        }
+        accessToken = data?.session?.access_token || null;
+        if (accessToken) {
+          loginPanel.style.display = 'none';
+          adminPanel.style.display = 'block';
+          navPanel.style.display = 'block';
+          statusEl.textContent = 'Logged in.';
+          try {
+            const userId = data?.session?.user?.id;
+            if (userId && !userEl.value) userEl.value = userId;
+            const stored = localStorage.getItem('loop_device_id');
+            if (stored && !deviceEl.value) deviceEl.value = stored;
+          } catch { }
+          await paintOverview();
+          await loadPacks();
+          applySection(activeSection);
+        } else {
+          loginPanel.style.display = 'block';
+          adminPanel.style.display = 'none';
+          navPanel.style.display = 'none';
+          controlsPanel.style.display = 'none';
+          sessionsPanel.style.display = 'none';
+          proofsPanel.style.display = 'none';
+          quarterPanel.style.display = 'none';
+          cityStudioPanel.style.display = 'none';
+          statusEl.textContent = 'Logged out.';
+        }
+      };
 
-        document.getElementById('login').onclick = async () => {
+      document.getElementById('login').onclick = async () => {
+        try {
+          await initSupabase();
           statusEl.textContent = 'Logging in...';
           const { error } = await sb.auth.signInWithPassword({
             email: emailEl.value,
@@ -854,85 +1049,93 @@
             return;
           }
           await refreshSession();
-        };
+        } catch (error) {
+          statusEl.textContent = error.message;
+        }
+      };
 
-        document.getElementById('logout').onclick = async () => {
-          await sb.auth.signOut();
-          await refreshSession();
-        };
+      document.getElementById('logout').onclick = async () => {
+        await sb.auth.signOut();
+        await refreshSession();
+      };
 
-        document.getElementById('reset').onclick = async () => {
-          statusEl.textContent = 'Resetting...';
-          try {
-            const data = await post('/api/admin/reset', {
-              user_id: userEl.value,
-              device_id: userEl.value ? '' : deviceEl.value
-            });
-            statusEl.textContent = `Reset OK: ${JSON.stringify(data)}`;
-            await paintOverview();
-          } catch (e) {
-            statusEl.textContent = e.message;
-          }
-        };
+      document.getElementById('reset').onclick = async () => {
+        statusEl.textContent = 'Resetting...';
+        try {
+          const data = await post('/api/admin/reset', {
+            user_id: userEl.value,
+            device_id: userEl.value ? '' : deviceEl.value
+          });
+          statusEl.textContent = `Reset OK: ${JSON.stringify(data)}`;
+          await paintOverview();
+        } catch (e) {
+          statusEl.textContent = e.message;
+        }
+      };
 
-        document.getElementById('clearAll').onclick = async () => {
-          statusEl.textContent = 'Clearing guest usage...';
-          try {
-            const data = await post('/api/admin/reset', {});
-            statusEl.textContent = `Clear OK: ${JSON.stringify(data)}`;
-            await paintOverview();
-          } catch (e) {
-            statusEl.textContent = e.message;
-          }
-        };
+      document.getElementById('clearAll').onclick = async () => {
+        statusEl.textContent = 'Clearing guest usage...';
+        try {
+          const data = await post('/api/admin/reset', {});
+          statusEl.textContent = `Clear OK: ${JSON.stringify(data)}`;
+          await paintOverview();
+        } catch (e) {
+          statusEl.textContent = e.message;
+        }
+      };
 
-        document.getElementById('setCredits').onclick = async () => {
-          statusEl.textContent = 'Updating credits...';
-          try {
-            const data = await post('/api/admin/set-credits', {
-              user_id: userEl.value,
-              device_id: userEl.value ? '' : deviceEl.value,
-              free_used: Number(document.getElementById('free_used').value || 0),
-              donation_credits: Number(document.getElementById('credits').value || 0)
-            });
-            statusEl.textContent = `Updated: ${JSON.stringify(data)}`;
-            await paintOverview();
-          } catch (e) {
-            statusEl.textContent = e.message;
-          }
-        };
+      document.getElementById('setCredits').onclick = async () => {
+        statusEl.textContent = 'Updating credits...';
+        try {
+          const data = await post('/api/admin/set-credits', {
+            user_id: userEl.value,
+            device_id: userEl.value ? '' : deviceEl.value,
+            free_used: Number(document.getElementById('free_used').value || 0),
+            donation_credits: Number(document.getElementById('credits').value || 0)
+          });
+          statusEl.textContent = `Updated: ${JSON.stringify(data)}`;
+          await paintOverview();
+        } catch (e) {
+          statusEl.textContent = e.message;
+        }
+      };
 
-        document.getElementById('savePack').onclick = async () => {
-          try { await savePack(); } catch (e) { statusEl.textContent = e.message; }
-        };
-        document.getElementById('refreshPacks').onclick = async () => {
-          try { await loadPacks(); statusEl.textContent = 'Packs reloaded.'; } catch (e) { statusEl.textContent = e.message; }
-        };
-        document.getElementById('saveCheckpoint').onclick = async () => {
-          try { await saveCheckpoint(); } catch (e) { statusEl.textContent = e.message; }
-        };
-        document.getElementById('draftCheckpoint').onclick = async () => {
-          try { await draftCheckpoint(); statusEl.textContent = 'Checkpoint draft ready for review.'; } catch (e) { statusEl.textContent = e.message; }
-        };
-        document.getElementById('draftPack').onclick = async () => {
-          try { await draftPack(); statusEl.textContent = 'Pack draft ready for review.'; } catch (e) { statusEl.textContent = e.message; }
-        };
-        document.getElementById('previewManifest').onclick = async () => {
-          try { await previewManifest(); statusEl.textContent = 'Preview ready.'; } catch (e) { statusEl.textContent = e.message; }
-        };
+      document.getElementById('savePack').onclick = async () => {
+        try { await savePack(); } catch (e) { statusEl.textContent = e.message; }
+      };
+      document.getElementById('refreshPacks').onclick = async () => {
+        try { await loadPacks(); statusEl.textContent = 'Packs reloaded.'; } catch (e) { statusEl.textContent = e.message; }
+      };
+      document.getElementById('saveCheckpoint').onclick = async () => {
+        try { await saveCheckpoint(); } catch (e) { statusEl.textContent = e.message; }
+      };
+      document.getElementById('draftCheckpoint').onclick = async () => {
+        try { await draftCheckpoint(); statusEl.textContent = 'Checkpoint draft ready for review.'; } catch (e) { statusEl.textContent = e.message; }
+      };
+      document.getElementById('draftPack').onclick = async () => {
+        try { await draftPack(); statusEl.textContent = 'Pack draft ready for review.'; } catch (e) { statusEl.textContent = e.message; }
+      };
+      document.getElementById('previewManifest').onclick = async () => {
+        try { await previewManifest(); statusEl.textContent = 'Preview ready.'; } catch (e) { statusEl.textContent = e.message; }
+      };
 
-        document.querySelectorAll('.section-chip').forEach((button) => {
-          button.onclick = () => applySection(button.dataset.section);
+      document.querySelectorAll('.section-chip').forEach((button) => {
+        button.onclick = () => applySection(button.dataset.section);
+      });
+      document.querySelectorAll('[data-pack-template]').forEach((button) => {
+        button.onclick = () => applyPackTemplate(button.dataset.packTemplate);
+      });
+      document.querySelectorAll('[data-task-template]').forEach((button) => {
+        button.onclick = () => applyTaskTemplate(button.dataset.taskTemplate);
+      });
+
+      initSupabase()
+        .then(() => refreshSession())
+        .catch((error) => {
+          statusEl.textContent = error.message;
         });
-        document.querySelectorAll('[data-pack-template]').forEach((button) => {
-          button.onclick = () => applyPackTemplate(button.dataset.packTemplate);
-        });
-        document.querySelectorAll('[data-task-template]').forEach((button) => {
-          button.onclick = () => applyTaskTemplate(button.dataset.taskTemplate);
-        });
+    })();
+  </script>
+</body>
 
-        refreshSession();
-      })();
-    </script>
-  </body>
 </html>

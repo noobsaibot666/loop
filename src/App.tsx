@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from "react";
-import { motion, useMotionTemplate, useScroll, useSpring, useTransform } from "framer-motion";
+import { AnimatePresence, motion, useScroll, useSpring, useTransform } from "framer-motion";
 import { createClient } from "@supabase/supabase-js";
 import heroImage from "./images/hero_6.png";
+import alleycatImage from "./images/hero_4.png";
 
-import { Hero } from "./components/Hero";
+import Hero from "./components/Hero";
 import { formatDuration, getPageView } from "./utils/routeUtils";
 
 export type PageView = "home" | "loop" | "messenger" | "account" | "wall";
@@ -206,25 +207,25 @@ const loopSteps = [
   {
     number: "02",
     title: "Tune the ride",
-    body: "Set distance, terrain, and the kind of energy you want back from the route.",
+    body: "Set the distance, surface, and feel. Keep it sharp.",
   },
   {
     number: "03",
     title: "Open and go",
-    body: "We shape the loop. You throw it into Maps and keep moving.",
+    body: "We build the line. You open Maps and go.",
   },
 ];
 
 const productHighlights = [
   {
     title: "Loop",
-    body: "Fast return routes with almost no friction. Drop a point, set the ride, open Maps, move.",
+    body: "Fast routes back. Point, build, move.",
     action: "Open Loop",
     page: "loop" as PageView,
   },
   {
     title: "Alleycat Mode",
-    body: "Curated checkpoint runs with ghost pressure, proof, shared codes, and city-specific manifests.",
+    body: "Checkpoints, proof, ghost time, shared codes.",
     action: "Open Alleycat",
     page: "messenger" as PageView,
   },
@@ -234,22 +235,17 @@ const messengerFlow = [
   {
     number: "01",
     title: "Pick the city",
-    body: "Start with a supported city pack and let the app pull a fixed manifest from curated checkpoints.",
+    body: "Pick a city and pull the list.",
   },
   {
     number: "02",
-    title: "Choose the pressure",
-    body: "Difficulty and street tone shift the pacing, spread, and feel of the checkpoint list.",
+    title: "Hit the points",
+    body: "Clear the checkpoints your own way.",
   },
   {
     number: "03",
-    title: "Run your own line",
-    body: "Checkpoints can be cleared in any order. The route between them is fully yours.",
-  },
-  {
-    number: "04",
-    title: "Beat the ghost",
-    body: "Check in every stop, close the run, and compare your time against the target.",
+    title: "Proof of passage",
+    body: "Post proof and let it hit the wall.",
   },
 ];
 
@@ -271,11 +267,27 @@ export default function App() {
     stiffness: 120,
     damping: 25,
   });
-  const bgShift = useTransform(scrollYProgress, [0, 1], [420, 260]);
-  const bgScale = useTransform(scrollYProgress, [0, 1], [1, 0.82]);
-  const bgShiftPx = useMotionTemplate`${bgShift}px`;
-
   const [pageView, setPageView] = useState<PageView>(() => getPageView());
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('revealed');
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+
+    const sections = document.querySelectorAll('.sequential-layout > section');
+    sections.forEach((section) => observer.observe(section));
+
+    return () => observer.disconnect();
+  }, [pageView]);
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeStep, setActiveStep] = useState(-1);
   const [deviceId, setDeviceId] = useState("");
@@ -1073,7 +1085,7 @@ export default function App() {
           : current
       );
       setProofFiles((current) => ({ ...current, [checkpoint.id]: null }));
-      setProofStatus((current) => ({ ...current, [checkpoint.id]: "Proof posted to the wall." }));
+      setProofStatus((current) => ({ ...current, [checkpoint.id]: "Proof posted to Wall of Fame." }));
     } catch (error) {
       setProofStatus((current) => ({
         ...current,
@@ -1282,63 +1294,109 @@ export default function App() {
 
   const renderHeader = () => (
     <header className="site-header">
-      <button className="brand brand-button" type="button" onClick={() => handleNavigate("home")}>
-        <span className="brand-mark" />
-        <span>
-          <span className="brand-title">Gimme The Loop</span>
-          <span className="brand-subtitle">
-            {pageView === "home"
-              ? "Loop routes and alleycat runs for the city."
-              : pageView === "loop"
-                ? "Loop routes built for the return."
-                : pageView === "messenger"
-                  ? "Premium alleycat challenge mode."
-                  : pageView === "account"
-                    ? "Account, credits, and purchase history."
-                    : "Public proof from alleycat runs."}
-          </span>
-        </span>
-      </button>
+      <div className={`nav-container ${menuOpen ? "menu-open" : ""}`}>
+        {/* Corner Accents */}
+        <div className="nav-viewfinder">
+          <div className="corner top-left" />
+          <div className="corner top-right" />
+          <div className="corner bottom-left" />
+          <div className="corner bottom-right" />
+        </div>
 
-      <button className="menu-toggle" type="button" onClick={() => setMenuOpen((prev) => !prev)} aria-expanded={menuOpen}>
-        Menu
-      </button>
+        <div className="nav-left">
+          <div className="brand" onClick={() => handleNavigate('home')}>
+            <div className="brand-mark" />
+            <div className="brand-text">
+              <div className="brand-title">Gimme<br />the<br />Loop</div>
+            </div>
+          </div>
+          <nav className="header-nav">
+            <button className={`nav-link ${pageView === 'home' ? 'active' : ''}`} onClick={() => handleNavigate('home')}>Home</button>
+            <button className={`nav-link ${pageView === 'loop' ? 'active' : ''}`} onClick={() => handleNavigate('loop')}>Loop</button>
+            <button className={`nav-link ${pageView === 'messenger' ? 'active' : ''}`} onClick={() => handleNavigate('messenger')}>Alleycat</button>
+            <button className={`nav-link ${pageView === 'wall' ? 'active' : ''}`} onClick={() => handleNavigate('wall')}>Wall of Fame</button>
+          </nav>
+        </div>
 
-      <div className={`header-actions ${menuOpen ? "open" : ""}`}>
-        <button className={`nav-link ${pageView === "home" ? "active" : ""}`} type="button" onClick={() => handleNavigate("home")}>
-          Home
+        <div className="nav-right">
+          {user ? (
+            <>
+              <button className="nav-link" onClick={() => handleNavigate('account')}>My Account</button>
+              <button className="ghost-button small" onClick={handleDonate}>Add Credits</button>
+              <button className="primary-button small" onClick={() => handleLogout()}>Sign Out</button>
+            </>
+          ) : (
+            <>
+              <button className="nav-link" onClick={() => openAuth("login")}>Log in</button>
+              <button className="primary-button small" onClick={() => openAuth("signup")}>Get Started</button>
+            </>
+          )}
+        </div>
+
+        <button className="menu-toggle" type="button" onClick={() => setMenuOpen((prev) => !prev)} aria-expanded={menuOpen}>
+          {menuOpen ? "Close" : "Menu"}
         </button>
-        <button className={`nav-link ${pageView === "loop" ? "active" : ""}`} type="button" onClick={() => handleNavigate("loop")}>
-          Loop
-        </button>
-        <button
-          className={`nav-link premium-link ${pageView === "messenger" ? "active" : ""}`}
-          type="button"
-          onClick={() => handleNavigate("messenger")}
-        >
-          Alleycat Mode
-        </button>
-        <button className={`nav-link ${pageView === "wall" ? "active" : ""}`} type="button" onClick={() => handleNavigate("wall")}>
-          Wall
-        </button>
-        <button className="nav-link" type="button" onClick={handleDonate}>
-          Add credits
-        </button>
-        {user ? (
-          <button
-            className={`nav-link ${pageView === "account" ? "active" : ""}`}
-            type="button"
-            onClick={() => handleNavigate("account")}
-          >
-            Account
-          </button>
-        ) : (
-          <button className="nav-link" type="button" onClick={() => openAuth("login")}>
-            Sign in
-          </button>
-        )}
+
+        <div className={`mobile-nav-sheet ${menuOpen ? "open" : ""}`}>
+          <div className="mobile-nav-links">
+            <button className={`nav-link ${pageView === 'home' ? 'active' : ''}`} onClick={() => handleNavigate('home')}>Home</button>
+            <button className={`nav-link ${pageView === 'loop' ? 'active' : ''}`} onClick={() => handleNavigate('loop')}>Loop</button>
+            <button className={`nav-link ${pageView === 'messenger' ? 'active' : ''}`} onClick={() => handleNavigate('messenger')}>Alleycat</button>
+            <button className={`nav-link ${pageView === 'wall' ? 'active' : ''}`} onClick={() => handleNavigate('wall')}>Wall of Fame</button>
+            {user && <button className={`nav-link ${pageView === 'account' ? 'active' : ''}`} onClick={() => handleNavigate('account')}>Account</button>}
+          </div>
+          <div className="mobile-nav-actions">
+            {user ? (
+              <>
+                <button className="ghost-button small" onClick={handleDonate}>Credits</button>
+                <button className="primary-button small" onClick={handleLogout}>Sign out</button>
+              </>
+            ) : (
+              <>
+                <button className="ghost-button small" onClick={() => openAuth("login")}>Log in</button>
+                <button className="primary-button small" onClick={() => openAuth("signup")}>Get started</button>
+              </>
+            )}
+          </div>
+        </div>
       </div>
-    </header>
+    </header >
+  );
+
+  const renderSectionHeader = (title: string, subtitle: string) => (
+    <div className="technical-section-header">
+      <div className="section-eyebrow">// {title}</div>
+      <h2 className="section-title">{subtitle}</h2>
+    </div>
+  );
+
+  const renderHome = () => (
+    <div className="sequential-layout">
+      <Hero />
+
+      <section className="modular-grid reveals">
+        <div className="modular-cell">
+          <div className="cell-eyebrow">Pick your move</div>
+          <h3 className="cell-title">Loop</h3>
+          <p className="cell-body">Drop a point. Get a clean way back.</p>
+          <button className="ghost-button small" onClick={() => handleNavigate('loop')}>Go Loop</button>
+        </div>
+        <div className="modular-cell">
+          <div className="cell-eyebrow">Pick your move</div>
+          <h3 className="cell-title">Alleycat Mode</h3>
+          <p className="cell-body">Checkpoints, proof, and your own line through town.</p>
+          <button className="ghost-button small" onClick={() => handleNavigate('messenger')}>Go Alleycat</button>
+        </div>
+        <div className="modular-cell">
+          <div className="cell-eyebrow">Pick your move</div>
+          <h3 className="cell-title">Wall of Fame</h3>
+          <p className="cell-body">Proof hits, city tags, no soft stuff.</p>
+          <button className="ghost-button small" onClick={() => handleNavigate('wall')}>Go Wall of Fame</button>
+        </div>
+      </section>
+
+
+    </div>
   );
 
   const renderModals = () => (
@@ -1347,7 +1405,7 @@ export default function App() {
         <div className="modal-overlay" role="dialog" aria-modal="true">
           <div className="modal-card">
             <div className="modal-title">{authMode === "signup" ? "Create account" : "Sign in"}</div>
-            <div className="modal-subtitle">Email and password. Clean, normal, and test-ready.</div>
+            <div className="modal-subtitle">Quick in, quick out. Email and password.</div>
             <div className="auth-mode-switch">
               <button
                 className={`pill ${authMode === "login" ? "active" : ""}`}
@@ -1408,7 +1466,7 @@ export default function App() {
           <div className="modal-card">
             <div className="modal-title">Add credits</div>
             <div className="modal-subtitle">
-              $5 = 10 credits. Loop uses the standard meter. Alleycat Mode costs {MESSENGER_CREDIT_COST} credits per manifest.
+              Top up and keep it moving.
             </div>
             <label className="field">
               <span>Amount (USD)</span>
@@ -1459,455 +1517,363 @@ export default function App() {
   );
 
   const renderAccount = () => (
-    <>
-      <section className="builder-section account-section">
-        <div className="account-shell">
-          <div className="account-topbar">
-            <div>
-              <div className="section-title">Account</div>
-              <div className="account-kicker">{accountGreeting} Credits, history, and rider state in one place.</div>
-            </div>
-            <div className="account-topbar-actions">
-              {user ? (
-                <>
-                  <button className="primary-button" type="button" onClick={handleDonate}>
-                    Add credits
-                  </button>
-                  <button className="ghost-button" type="button" onClick={handleLogout}>
-                    Log out
-                  </button>
-                </>
-              ) : (
-                <button className="primary-button" type="button" onClick={() => openAuth("login")}>
-                  Sign in
-                </button>
-              )}
-              <button className="ghost-button" type="button" onClick={() => handleNavigate("home")}>
-                Back to Loop
+    <div className="sequential-layout sub-page">
+      <section className="sub-page-header">
+        <h1 className="sub-page-title">Account</h1>
+        <p className="sub-page-description">Your login, credits, and ride recap.</p>
+      </section>
+
+      {!user && (
+        <div className="builder-grid single">
+          <div className="glass-card form-card account-guest-card">
+            <div className="form-title">Sign in to open your dashboard</div>
+            <div className="form-subtitle">One rider, one account, all your runs.</div>
+            {authMessage && <div className="status-message compact-status">{authMessage}</div>}
+            <div className="form-actions centered-actions">
+              <button className="primary-button" type="button" onClick={() => openAuth("login")}>
+                Sign in
+              </button>
+              <button className="ghost-button" type="button" onClick={() => openAuth("signup")}>
+                Create account
               </button>
             </div>
           </div>
         </div>
-        {!user && (
-          <div className="builder-grid single">
-            <div className="glass-card form-card account-guest-card">
-              <div className="form-title">Sign in to unlock account tools</div>
-              <div className="form-subtitle">Use email and password. Credits, purchases, and Alleycat progress stay tied to one rider profile.</div>
-              {authMessage && <div className="status-message compact-status">{authMessage}</div>}
-              <div className="form-actions centered-actions">
-                <button className="primary-button" type="button" onClick={() => openAuth("login")}>
-                  Sign in
-                </button>
-                <button className="ghost-button" type="button" onClick={() => openAuth("signup")}>
-                  Create account
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+      )}
 
-        {user && (
-          <div className="builder-grid account-grid">
-            <div className="glass-card form-card account-summary-card">
-              <div className="form-title">Profile</div>
-              <div className="form-subtitle">Minimal controls for a real rider account.</div>
-              {authMessage && <div className="status-message compact-status">{authMessage}</div>}
-              {accountStatus && <div className="status-message compact-status">{accountStatus}</div>}
-              <div className="user-row">
-                <div className="user-label">Email</div>
-                <div className="user-value">{user.email || "No email"}</div>
-              </div>
-              <div className="user-row">
-                <div className="user-label">Loop balance</div>
-                <div className="user-value">{hasUnlimitedCredits ? "Unlimited for admin testing" : `${totalCredits} total runs available`}</div>
-              </div>
-              <div className="user-row">
-                <div className="user-label">Free left</div>
-                <div className="user-value">{hasUnlimitedCredits ? "Unlimited" : `${usage?.free_remaining || 0} free loops left`}</div>
-              </div>
-              <div className="user-row">
-                <div className="user-label">Paid credits</div>
-                <div className="user-value">{hasUnlimitedCredits ? "Unlimited" : `${messengerCreditsOnly} credits live`}</div>
-              </div>
-              <label className="field">
-                <span>Change password</span>
-                <input
-                  type="password"
-                  value={accountPassword}
-                  onChange={(event) => setAccountPassword(event.target.value)}
-                  placeholder="New password"
-                />
-              </label>
-              <div className="form-actions">
-                <button className="primary-button" type="button" onClick={handlePasswordUpdate} disabled={isUpdatingPassword}>
-                  {isUpdatingPassword ? "Saving..." : "Update password"}
-                </button>
-                <button className="ghost-button" type="button" onClick={handleDonate}>
-                  Add credits
-                </button>
-                <button className="ghost-button" type="button" onClick={handleLogout}>
-                  Logout
-                </button>
-              </div>
+      {user && (
+        <div className="builder-grid account-grid">
+          <div className="glass-card form-card account-summary-card">
+            <div className="form-title">Profile & Security</div>
+            <div className="form-subtitle">The basic stuff. Keep it tight.</div>
+            {authMessage && <div className="status-message compact-status">{authMessage}</div>}
+            {accountStatus && <div className="status-message compact-status">{accountStatus}</div>}
+            <div className="user-row">
+              <div className="user-label">Email</div>
+              <div className="user-value">{user.email || "No email"}</div>
             </div>
 
-            <div className="glass-card form-card account-stats-card">
-              <div className="form-title">V1 activity</div>
-              <div className="form-subtitle">Live proof, challenge, and finish numbers tied to your rider profile.</div>
-              <div className="result-grid result-grid-two">
-                <div>
-                  <span>Manifests</span>
-                  <strong>{accountSummary?.alleycat.manifests || 0}</strong>
-                </div>
-                <div>
-                  <span>Runs</span>
-                  <strong>{accountSummary?.alleycat.runs || 0}</strong>
-                </div>
-                <div>
-                  <span>Finished</span>
-                  <strong>{accountSummary?.alleycat.finished_runs || 0}</strong>
-                </div>
-                <div>
-                  <span>Challenges</span>
-                  <strong>{accountSummary?.alleycat.challenges || 0}</strong>
-                </div>
-                <div>
-                  <span>Proofs</span>
-                  <strong>{accountSummary?.alleycat.proofs || 0}</strong>
-                </div>
-                <div>
-                  <span>Public proofs</span>
-                  <strong>{accountSummary?.alleycat.public_proofs || 0}</strong>
-                </div>
-              </div>
-              <div className="account-note">
-                {hasUnlimitedCredits
-                  ? "Admin test account bypasses normal credit limits so you can verify flows without topping up."
-                  : `Alleycat Mode costs ${MESSENGER_CREDIT_COST} credits per manifest. Loop still uses the normal free and paid meter.`}
-              </div>
-            </div>
-
-            <div className="glass-card form-card account-quarter-card">
-              <div className="form-title">Quarter board</div>
-              <div className="form-subtitle">{accountSummary?.quarter.label || "Current quarter"} keeps score by public proofs first, then finished Alleycats.</div>
-              <div className="result-grid result-grid-three">
-                <div>
-                  <span>Rank</span>
-                  <strong>
-                    {accountSummary?.quarter.rank ? `#${accountSummary.quarter.rank}` : "--"}
-                  </strong>
-                </div>
-                <div>
-                  <span>Public proofs</span>
-                  <strong>{accountSummary?.quarter.public_proofs || 0}</strong>
-                </div>
-                <div>
-                  <span>Quarter finishes</span>
-                  <strong>{accountSummary?.quarter.finished_runs || 0}</strong>
-                </div>
-              </div>
-              <div className="account-note">
-                {accountSummary?.quarter.total_ranked_riders
-                  ? `${accountSummary.quarter.total_ranked_riders} riders are on the board right now.`
-                  : "No ranked riders yet this quarter."}
-              </div>
-              {accountSummary?.badges?.length ? (
-                <div className="badge-list">
-                  {accountSummary.badges.map((badge) => (
-                    <div key={badge.id} className="badge-chip">
-                      <strong>{badge.label}</strong>
-                      <span>{badge.description}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="empty-state">
-                  <div className="empty-state-body">Post proof and close runs to unlock badges.</div>
-                </div>
-              )}
-              {accountSummary?.quarter.leaders?.length ? (
-                <div className="leaderboard-list">
-                  {accountSummary.quarter.leaders.map((entry) => (
-                    <div key={entry.user_id} className="leaderboard-row">
-                      <div className="leaderboard-rank">#{entry.rank}</div>
-                      <div className="leaderboard-main">
-                        <strong>{entry.user_id === user?.id ? "You" : entry.rider_name}</strong>
-                        <span>
-                          {entry.public_proofs} proofs · {entry.finished_runs} finishes
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="glass-card form-card account-purchases-card">
-              <div className="form-title">Recent purchases</div>
-              <div className="form-subtitle">Quick top-up receipts.</div>
-              {!accountSummary?.purchases?.length && (
-                <div className="empty-state">
-                  <div className="empty-state-body">No credit purchases yet.</div>
-                </div>
-              )}
-              {accountSummary?.purchases?.length ? (
-                <div className="purchase-list">
-                  {accountSummary.purchases.map((purchase) => (
-                    <div key={purchase.session_id} className="purchase-row">
-                      <div>
-                        <strong>${(purchase.amount_cents / 100).toFixed(2)}</strong>
-                        <span>{new Date(purchase.created_at).toLocaleDateString()}</span>
-                      </div>
-                      <div>
-                        <strong>{purchase.credits_to_grant} credits</strong>
-                        <span>{purchase.status.replace(/_/g, " ")}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-
-            <div className="glass-card form-card account-history-card">
-              <div className="form-title">Loop history</div>
-              <div className="form-subtitle">Your last routes, ready to reopen.</div>
-              {!accountSummary?.loop_history?.length ? (
-                <div className="empty-state">
-                  <div className="empty-state-body">No loop history yet. Build one from the home page and it lands here.</div>
-                </div>
-              ) : (
-                <div className="history-list">
-                  {accountSummary.loop_history.map((loop) => (
-                    <div key={loop.id} className="history-row">
-                      <div>
-                        <strong>{loop.loop_point}</strong>
-                        <span>
-                          {Number(loop.distance_km).toFixed(1)} km · {loop.terrain} · {loop.surface} · {loop.vibe}
-                        </span>
-                      </div>
-                      <div className="history-actions">
-                        <span>{new Date(loop.created_at).toLocaleDateString()}</span>
-                        <a className="ghost-button small" href={loop.route_url} target="_blank" rel="noreferrer">
-                          Open
-                        </a>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="glass-card form-card account-history-card">
-              <div className="form-title">Alleycat runs</div>
-              <div className="form-subtitle">Manifest history with best times, status, and proof volume.</div>
-              {!accountSummary?.alleycat_history?.length ? (
-                <div className="empty-state">
-                  <div className="empty-state-body">No Alleycat history yet.</div>
-                </div>
-              ) : (
-                <div className="history-list">
-                  {accountSummary.alleycat_history.map((item) => (
-                    <div key={item.id} className="history-row">
-                      <div>
-                        <strong>{item.city_name || "City"} · {item.manifest_title}</strong>
-                        <span>
-                          {item.difficulty} · {item.style} · {item.proof_count} proofs · {item.source_challenge_id ? "Shared" : "Solo"}
-                        </span>
-                      </div>
-                      <div className="history-actions">
-                        <span>
-                          {item.best_seconds
-                            ? `${formatDuration(item.best_seconds)}${item.ghost_delta !== null ? ` · ${item.ghost_delta <= 0 ? "-" : "+"}${formatDuration(Math.abs(item.ghost_delta))}` : ""}`
-                            : item.status}
-                        </span>
-                        <span>{new Date(item.created_at).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="glass-card form-card account-history-card">
-              <div className="form-title">Challenge log</div>
-              <div className="form-subtitle">Shared manifest codes, current state, and how many rivals were in the mix.</div>
-              {!accountSummary?.challenge_history?.length ? (
-                <div className="empty-state">
-                  <div className="empty-state-body">No shared challenge history yet.</div>
-                </div>
-              ) : (
-                <div className="history-list">
-                  {accountSummary.challenge_history.map((item) => (
-                    <div key={item.challenge_id} className="history-row">
-                      <div>
-                        <strong>Code {item.code}</strong>
-                        <span>
-                          {item.city_name || "City"} · {item.manifest_title || "Manifest"} · {item.rival_count} rivals
-                        </span>
-                      </div>
-                      <div className="history-actions">
-                        <span>{item.best_seconds ? formatDuration(item.best_seconds) : item.status}</span>
-                        <span>{new Date(item.joined_at).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="glass-card form-card account-history-card">
-              <div className="form-title">Riders you raced with</div>
-              <div className="form-subtitle">Only riders linked to you through shared Alleycat challenges.</div>
-              {!accountSummary?.shared_riders?.length ? (
-                <div className="empty-state">
-                  <div className="empty-state-body">No shared rider links yet.</div>
-                </div>
-              ) : (
-                <div className="history-list">
-                  {accountSummary.shared_riders.map((rider) => (
-                    <div key={rider.user_id} className="history-row">
-                      <div>
-                        <strong>{rider.rider_name}</strong>
-                        <span>
-                          {rider.shared_challenges} shared challenges · {rider.cities.join(", ") || "No city tags yet"}
-                        </span>
-                      </div>
-                      <div className="history-actions">
-                        <span>Last seen</span>
-                        <span>{new Date(rider.last_joined_at).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </section>
-    </>
-  );
-
-  const renderHome = () => (
-    <>
-      <Hero
-        heroRef={heroRef}
-        parallaxY={parallaxY}
-        parallaxX={parallaxX}
-        heroImage={heroImage}
-        onNavigate={handleNavigate}
-        activeStep={activeStep}
-        setActiveStep={setActiveStep}
-      />
-
-
-      <section className="feature-link-section">
-        <div className="section-title">Pick a mode</div>
-        <div className="offer-grid product-card-grid">
-          {productHighlights.map((item) => (
-            <div key={item.title} className="glass-card offer-card product-card">
-              <div className="offer-title">{item.title}</div>
-              <div className="offer-body">{item.body}</div>
-              <button className="ghost-button" type="button" onClick={() => handleNavigate(item.page)}>
-                {item.action}
+            <label className="field" style={{ marginTop: '20px' }}>
+              <span>Change password</span>
+              <input
+                type="password"
+                value={accountPassword}
+                onChange={(event) => setAccountPassword(event.target.value)}
+                placeholder="New password"
+              />
+            </label>
+            <div className="form-actions">
+              <button className="primary-button" type="button" onClick={handlePasswordUpdate} disabled={isUpdatingPassword}>
+                {isUpdatingPassword ? "Saving..." : "Update password"}
+              </button>
+              <button className="ghost-button" type="button" onClick={handleLogout}>
+                Logout
               </button>
             </div>
-          ))}
-        </div>
-      </section>
+          </div>
 
-      <section className="loop-progress">
-        <div className="section-title">How it lands</div>
-        <div className="progress-track three-up">
-          {[
-            {
-              number: "01",
-              title: "Open the right tool",
-              body: "Use Loop when you want the ride fast. Use Alleycat when you want the city to push back.",
-            },
-            {
-              number: "02",
-              title: "Ride with less friction",
-              body: "Both flows stay direct on mobile so you can scroll, act, and get moving without reading a manual.",
-            },
-            {
-              number: "03",
-              title: "Keep the city visible",
-              body: "Proof posts, shared codes, and rider history keep the product feeling alive after the run is done.",
-            },
-          ].map((step, index) => (
-            <motion.div
-              key={step.number}
-              className={`progress-step ${activeStep === index ? "active" : ""}`}
-              onHoverStart={() => setActiveStep(index)}
-              onHoverEnd={() => setActiveStep(-1)}
-            >
-              <div className="progress-dot">
-                <span>{step.number}</span>
+          <div className="glass-card form-card account-credits-card">
+            <div className="form-title">Credits</div>
+            <div className="form-subtitle">See what is left and load more.</div>
+
+            <div className="user-row">
+              <div className="user-label">Loop balance</div>
+              <div className="user-value">{hasUnlimitedCredits ? "Unlimited for admin testing" : `${totalCredits} total runs available`}</div>
+            </div>
+            <div className="user-row">
+              <div className="user-label">Free left</div>
+              <div className="user-value">{hasUnlimitedCredits ? "Unlimited" : `${usage?.free_remaining || 0} free loops left`}</div>
+            </div>
+            <div className="user-row">
+              <div className="user-label">Paid credits</div>
+              <div className="user-value">{hasUnlimitedCredits ? "Unlimited" : `${messengerCreditsOnly} credits live`}</div>
+            </div>
+
+            <div className="form-actions" style={{ marginTop: '16px' }}>
+              <button className="primary-button" type="button" onClick={handleDonate}>
+                Add credits
+              </button>
+            </div>
+          </div>
+
+          <div className="glass-card form-card account-stats-card">
+            <div className="form-title">V1 activity</div>
+            <div className="form-subtitle">Your numbers. Clean and simple.</div>
+            <div className="result-grid result-grid-two">
+              <div>
+                <span>Manifests</span>
+                <strong>{accountSummary?.alleycat?.manifests || 0}</strong>
               </div>
-              <div className="progress-number">Step {step.number}</div>
-              <div className="progress-title">{step.title}</div>
-              <div className="progress-body">{step.body}</div>
-            </motion.div>
-          ))}
+              <div>
+                <span>Runs</span>
+                <strong>{accountSummary?.alleycat?.runs || 0}</strong>
+              </div>
+              <div>
+                <span>Finished</span>
+                <strong>{accountSummary?.alleycat?.finished_runs || 0}</strong>
+              </div>
+              <div>
+                <span>Challenges</span>
+                <strong>{accountSummary?.alleycat?.challenges || 0}</strong>
+              </div>
+              <div>
+                <span>Proofs</span>
+                <strong>{accountSummary?.alleycat?.proofs || 0}</strong>
+              </div>
+              <div>
+                <span>Public proofs</span>
+                <strong>{accountSummary?.alleycat?.public_proofs || 0}</strong>
+              </div>
+            </div>
+            <div className="account-note">
+              {hasUnlimitedCredits
+                ? "Admin account stays unlocked for testing."
+                : `Alleycat costs ${MESSENGER_CREDIT_COST} credits a run. Loop still rides the normal meter.`}
+            </div>
+          </div>
+
+          <div className="glass-card form-card account-quarter-card">
+            <div className="form-title">Quarter board</div>
+            <div className="form-subtitle">{accountSummary?.quarter?.label || "Current quarter"} scores proof first, finishes second.</div>
+            <div className="result-grid result-grid-three">
+              <div>
+                <span>Rank</span>
+                <strong>
+                  {accountSummary?.quarter?.rank ? `#${accountSummary.quarter.rank}` : "--"}
+                </strong>
+              </div>
+              <div>
+                <span>Public proofs</span>
+                <strong>{accountSummary?.quarter?.public_proofs || 0}</strong>
+              </div>
+              <div>
+                <span>Quarter finishes</span>
+                <strong>{accountSummary?.quarter?.finished_runs || 0}</strong>
+              </div>
+            </div>
+            <div className="account-note">
+              {accountSummary?.quarter?.total_ranked_riders
+                ? `${accountSummary.quarter.total_ranked_riders} riders are on the board right now.`
+                : "No ranked riders yet this quarter."}
+            </div>
+            {accountSummary?.badges?.length ? (
+              <div className="badge-list">
+                {accountSummary.badges.map((badge) => (
+                  <div key={badge.id} className="badge-chip">
+                    <strong>{badge.label}</strong>
+                    <span>{badge.description}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state">
+                <div className="empty-state-body">Post proof and close runs to unlock badges.</div>
+              </div>
+            )}
+            {accountSummary?.quarter?.leaders?.length ? (
+              <div className="leaderboard-list">
+                {accountSummary.quarter.leaders.map((entry) => (
+                  <div key={entry.user_id} className="leaderboard-row">
+                    <div className="leaderboard-rank">#{entry.rank}</div>
+                    <div className="leaderboard-main">
+                      <strong>{entry.user_id === user?.id ? "You" : entry.rider_name}</strong>
+                      <span>
+                        {entry.public_proofs} proofs · {entry.finished_runs} finishes
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="glass-card form-card account-purchases-card">
+            <div className="form-title">Recent purchases</div>
+            <div className="form-subtitle">Money in, credits up.</div>
+            {!accountSummary?.purchases?.length && (
+              <div className="empty-state">
+                <div className="empty-state-body">No credit purchases yet.</div>
+              </div>
+            )}
+            {accountSummary?.purchases?.length ? (
+              <div className="purchase-list">
+                {accountSummary.purchases.map((purchase) => (
+                  <div key={purchase.session_id} className="purchase-row">
+                    <div>
+                      <strong>${(purchase.amount_cents / 100).toFixed(2)}</strong>
+                      <span>{new Date(purchase.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <div>
+                      <strong>{purchase.credits_to_grant} credits</strong>
+                      <span>{purchase.status.replace(/_/g, " ")}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="glass-card form-card account-history-card">
+            <div className="form-title">Loop history</div>
+            <div className="form-subtitle">Your last routes, one tap away.</div>
+            {!accountSummary?.loop_history?.length ? (
+              <div className="empty-state">
+                <div className="empty-state-body">No loop history yet. Build one from the home page and it lands here.</div>
+              </div>
+            ) : (
+              <div className="history-list">
+                {accountSummary.loop_history.map((loop) => (
+                  <div key={loop.id} className="history-row">
+                    <div>
+                      <strong>{loop.loop_point}</strong>
+                      <span>
+                        {Number(loop.distance_km).toFixed(1)} km · {loop.terrain} · {loop.surface} · {loop.vibe}
+                      </span>
+                    </div>
+                    <div className="history-actions">
+                      <span>{new Date(loop.created_at).toLocaleDateString()}</span>
+                      <a className="ghost-button small" href={loop.route_url} target="_blank" rel="noreferrer">
+                        Open
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="glass-card form-card account-history-card">
+            <div className="form-title">Alleycat runs</div>
+            <div className="form-subtitle">Your Alleycat runs, times, and proof count.</div>
+            {!accountSummary?.alleycat_history?.length ? (
+              <div className="empty-state">
+                <div className="empty-state-body">No Alleycat history yet.</div>
+              </div>
+            ) : (
+              <div className="history-list">
+                {accountSummary.alleycat_history.map((item) => (
+                  <div key={item.id} className="history-row">
+                    <div>
+                      <strong>{item.city_name || "City"} · {item.manifest_title}</strong>
+                      <span>
+                        {item.difficulty} · {item.style} · {item.proof_count} proofs · {item.source_challenge_id ? "Shared" : "Solo"}
+                      </span>
+                    </div>
+                    <div className="history-actions">
+                      <span>
+                        {item.best_seconds
+                          ? `${formatDuration(item.best_seconds)}${item.ghost_delta !== null ? ` · ${item.ghost_delta <= 0 ? "-" : "+"}${formatDuration(Math.abs(item.ghost_delta))}` : ""}`
+                          : item.status}
+                      </span>
+                      <span>{new Date(item.created_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="glass-card form-card account-history-card">
+            <div className="form-title">Challenge log</div>
+            <div className="form-subtitle">Shared codes, race state, and who pulled up.</div>
+            {!accountSummary?.challenge_history?.length ? (
+              <div className="empty-state">
+                <div className="empty-state-body">No shared challenge history yet.</div>
+              </div>
+            ) : (
+              <div className="history-list">
+                {accountSummary.challenge_history.map((item) => (
+                  <div key={item.challenge_id} className="history-row">
+                    <div>
+                      <strong>Code {item.code}</strong>
+                      <span>
+                        {item.city_name || "City"} · {item.manifest_title || "Manifest"} · {item.rival_count} rivals
+                      </span>
+                    </div>
+                    <div className="history-actions">
+                      <span>{item.best_seconds ? formatDuration(item.best_seconds) : item.status}</span>
+                      <span>{new Date(item.joined_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="glass-card form-card account-history-card">
+            <div className="form-title">Riders you raced with</div>
+            <div className="form-subtitle">Only riders you have actually raced with.</div>
+            {!accountSummary?.shared_riders?.length ? (
+              <div className="empty-state">
+                <div className="empty-state-body">No shared rider links yet.</div>
+              </div>
+            ) : (
+              <div className="history-list">
+                {accountSummary.shared_riders.map((rider) => (
+                  <div key={rider.user_id} className="history-row">
+                    <div>
+                      <strong>{rider.rider_name}</strong>
+                      <span>
+                        {rider.shared_challenges} shared challenges · {rider.cities.join(", ") || "No city tags yet"}
+                      </span>
+                    </div>
+                    <div className="history-actions">
+                      <span>Last seen</span>
+                      <span>{new Date(rider.last_joined_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </section>
-    </>
+      )}
+    </div>
   );
 
   const renderLoop = () => (
-    <>
-      <section className="builder-section product-page-section">
-        <div className="product-page-intro">
-          <div>
-            <div className="section-title">Loop</div>
-            <div className="product-page-title">Fast route builder</div>
-            <div className="product-page-copy">Build a clean return route and get out of the browser fast.</div>
-          </div>
-          <div className="product-page-actions">
-            <button className="ghost-button" type="button" onClick={() => handleNavigate("home")}>
-              Back to Home
-            </button>
-            <button className="ghost-button" type="button" onClick={() => handleNavigate("messenger")}>
-              Open Alleycat
-            </button>
-          </div>
-        </div>
-        <div className="progress-track three-up compact-progress">
-          {loopSteps.map((step, index) => (
-            <motion.div
-              key={step.number}
-              className={`progress-step ${activeStep === index ? "active" : ""}`}
-              onHoverStart={() => setActiveStep(index)}
-              onHoverEnd={() => setActiveStep(-1)}
-            >
-              <div className="progress-dot">
-                <span>{step.number}</span>
-              </div>
-              <div className="progress-number">Step {step.number}</div>
-              <div className="progress-title">{step.title}</div>
-              <div className="progress-body">{step.body}</div>
-            </motion.div>
-          ))}
+    <div className="sequential-layout sub-page">
+      <section className="sub-page-header loop-page-header">
+        <h1 className="sub-page-title">Loop Builder</h1>
+        <p className="sub-page-description">Set the point, shape the ride, dip out fast.</p>
+        <div className="sub-page-image-shell loop-image-shell">
+          <img src={heroImage} alt="Cyclist moving through a city loop" />
         </div>
       </section>
 
-      <section className="builder-section" id="loop-builder">
-        <div className="builder-grid single">
+      <section className="modular-grid reveals">
+        {loopSteps.map((step, index) => (
+          <div key={step.number} className="module-card">
+            <div className="module-header">
+              <span className="module-index">0{step.number}</span>
+              <h3 className="module-title">{step.title}</h3>
+            </div>
+            <p className="module-body">{step.body}</p>
+          </div>
+        ))}
+      </section>
+
+      <section className="split-module reveals" id="loop-builder">
+        <div className="module-content">
           <div className="glass-card form-card">
             <div className="form-header">
               <div>
-                <div className="form-title">Loop builder</div>
-                <div className="form-subtitle">Fast route generation with the current product flow intact.</div>
+                <h2 className="form-title">Route Settings</h2>
+                <p className="form-subtitle">Point, distance, feel. Keep it simple.</p>
               </div>
               {usage && (
                 <div className="loops-left">
-                  <span className="loops-left-line">{hasUnlimitedCredits ? "Credits Unlimited" : `Credits ${totalCredits}`}</span>
-                  <span className="loops-left-line">{hasUnlimitedCredits ? "Admin unlimited" : `Free ${usage.free_remaining}`}</span>
+                  <span className="loops-left-line">{hasUnlimitedCredits ? "Unlimited" : `${totalCredits} credits`}</span>
+                  <span className="loops-left-line">{hasUnlimitedCredits ? "Admin" : `${usage.free_remaining} free left`}</span>
                 </div>
               )}
             </div>
 
-            <div className="form-section">
+            <div className="form-section section-block">
+              <div className="section-block-head">
+                <div className="section-block-title">Start point</div>
+                <div className="section-block-copy">Where the loop starts and lands back.</div>
+              </div>
               <label className="field">
                 <span>Loop point</span>
                 <input
@@ -1944,7 +1910,11 @@ export default function App() {
               </label>
             </div>
 
-            <div className="form-section">
+            <div className="form-section section-block">
+              <div className="section-block-head">
+                <div className="section-block-title">Route settings</div>
+                <div className="section-block-copy">Tune distance, terrain, surface, and ride feel.</div>
+              </div>
               <label className="field">
                 <span>Distance</span>
                 <div className="unit-toggle">
@@ -2042,14 +2012,18 @@ export default function App() {
               </label>
             </div>
 
-            <div className="form-section">
+            <div className="form-section section-block">
+              <div className="section-block-head">
+                <div className="section-block-title">Launch</div>
+                <div className="section-block-copy">Generate the route and send it to Maps.</div>
+              </div>
               <div className="form-actions">
                 <button
                   className={`primary-button ${allLoopDone ? "ready" : ""}`}
                   onClick={handleGenerateLoop}
                   disabled={isGeneratingLoop || !allLoopDone}
                 >
-                  {isGeneratingLoop ? "Building..." : "Generate loop"}
+                  {isGeneratingLoop ? "Building..." : "Build loop"}
                 </button>
               </div>
               {statusMessage && <div className="status-message">{statusMessage}</div>}
@@ -2069,526 +2043,518 @@ export default function App() {
           </div>
         </div>
       </section>
-    </>
+    </div>
   );
 
   const renderMessenger = () => (
-    <>
-      <section className="builder-section product-page-section">
-        <div className="product-page-intro">
-          <div>
-            <div className="section-title">Alleycat Mode</div>
-            <div className="product-page-title">Checkpoint city pressure</div>
-            <div className="product-page-copy">Curated manifests, proof, ghost time, shared codes, and your own line through the city.</div>
-          </div>
-          <div className="product-page-actions">
-            <button className="ghost-button" type="button" onClick={() => handleNavigate("home")}>
-              Back to Home
-            </button>
-            <button className="ghost-button" type="button" onClick={() => handleNavigate("loop")}>
-              Open Loop
-            </button>
-          </div>
+    <div className="sequential-layout sub-page">
+      <section className="sub-page-header alleycat-page-header">
+        <h1 className="sub-page-title">Alleycat</h1>
+        <p className="sub-page-description">Pick the city. Read the list. Run your own line.</p>
+        <div className="sub-page-image-shell alleycat-image-shell">
+          <img src={alleycatImage} alt="Rider moving through an alleycat checkpoint run" />
         </div>
       </section>
 
-      <section className="loop-progress messenger-flow">
-        <div className="section-title">How it works</div>
-        <div className="progress-track stacked-mobile">
-          {messengerFlow.map((step, index) => (
-            <motion.div
-              key={step.number}
-              className={`progress-step ${activeStep === index ? "active" : ""}`}
-              onHoverStart={() => setActiveStep(index)}
-              onHoverEnd={() => setActiveStep(-1)}
-            >
-              <div className="progress-dot">
-                <span>{step.number}</span>
-              </div>
-              <div className="progress-number">Step {step.number}</div>
-              <div className="progress-title">{step.title}</div>
-              <div className="progress-body">{step.body}</div>
-            </motion.div>
-          ))}
-        </div>
+      <section className="modular-grid reveals">
+        {messengerFlow.map((step, index) => (
+          <div key={step.number} className="module-card">
+            <div className="module-header">
+              <span className="module-index">0{step.number}</span>
+              <h3 className="module-title">{step.title}</h3>
+            </div>
+            <p className="module-body">{step.body}</p>
+          </div>
+        ))}
       </section>
 
-      <section className="builder-section" id="messenger-builder">
-        <div className={`builder-grid messenger-page-grid ${!messengerManifest ? "single-card-layout" : ""}`}>
-          <div className="glass-card form-card premium-card active-premium">
-            <div className="form-header">
-              <div>
-                <div className="form-title premium-title">
-                  Alleycat builder
-                  <span className="inline-badge">Premium</span>
+      <section className="split-module reveals" id="messenger-builder">
+        <div className="module-content">
+          <div className={`builder-grid messenger-page-grid ${!messengerManifest ? "single-card-layout" : ""}`}>
+            <div className="glass-card form-card premium-card active-premium">
+              <div className="form-header">
+                <div>
+                  <div className="form-title premium-title">
+                    Alleycat builder
+                    <span className="inline-badge">Premium</span>
+                  </div>
+                  <div className="form-subtitle">
+                    Pull a city pack, start the clock, clear the whole list.
+                  </div>
                 </div>
-                <div className="form-subtitle">
-                  Pull a city-specific checkpoint set, start the timer, then clear every stop in your own order.
+                <div className="loops-left">
+                  <span className="loops-left-line">{hasUnlimitedCredits ? "Credits Unlimited" : `Credits ${messengerCreditsOnly}`}</span>
+                  <span className="loops-left-line">{MESSENGER_CREDIT_COST} per manifest</span>
                 </div>
               </div>
-              <div className="loops-left">
-                <span className="loops-left-line">{hasUnlimitedCredits ? "Credits Unlimited" : `Credits ${messengerCreditsOnly}`}</span>
-                <span className="loops-left-line">{MESSENGER_CREDIT_COST} per manifest</span>
-              </div>
-            </div>
 
-            <div className="share-strip">
-              <label className="field share-field">
-                <span>Have a share code?</span>
-                <input
-                  type="text"
-                  value={shareInput}
-                  onChange={(event) => setShareInput(event.target.value.toUpperCase())}
-                  placeholder="Enter code"
-                />
-              </label>
-              <button
-                className="ghost-button"
-                type="button"
-                onClick={handleLoadShareCode}
-                disabled={isLoadingSharedManifest || !shareInput.trim()}
-              >
-                {isLoadingSharedManifest ? "Loading..." : "Load shared manifest"}
-              </button>
-            </div>
-            {shareStatus && <div className="status-message">{shareStatus}</div>}
-
-            <div className="form-section">
-              <label className="field">
-                <span>City or start area</span>
-                <input
-                  type="text"
-                  value={messengerCity}
-                  onChange={(event) => setMessengerCity(event.target.value)}
-                  placeholder="Berlin, London, or Tokyo"
-                />
-                <span className="field-hint">V1 ships with curated city packs. More can be added cleanly later.</span>
-              </label>
-              <div className="pill-group city-preset-group">
-                {ALLEYCAT_CITY_PRESETS.map((city) => (
-                  <button
-                    key={city}
-                    type="button"
-                    className={`pill ${messengerCity.trim().toLowerCase() === city.toLowerCase() ? "active" : ""}`}
-                    onClick={() => setMessengerCity(city)}
-                  >
-                    {city}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="form-section">
-              <label className="field">
-                <span>Difficulty</span>
-                <div className="pill-group">
-                  {[
-                    ["easy", "Easy"],
-                    ["medium", "Medium"],
-                    ["hard", "Hard"],
-                  ].map(([value, label]) => (
-                    <button
-                      key={value}
-                      type="button"
-                      className={`pill ${messengerDifficulty === value ? "active" : ""}`}
-                      onClick={() => setMessengerDifficulty(value)}
-                    >
-                      {label}
-                    </button>
-                  ))}
+              <div className="form-section section-block compact-block">
+                <div className="section-block-head">
+                  <div className="section-block-title">Shared code</div>
+                  <div className="section-block-copy">Load the same manifest a friend is riding.</div>
                 </div>
-              </label>
-
-              <label className="field">
-                <span>Street tone</span>
-                <div className="pill-group">
-                  {[
-                    ["local", "Local"],
-                    ["fast", "Fast"],
-                    ["chaotic", "Chaotic"],
-                  ].map(([value, label]) => (
-                    <button
-                      key={value}
-                      type="button"
-                      className={`pill ${messengerStyle === value ? "active" : ""}`}
-                      onClick={() => setMessengerStyle(value)}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </label>
-            </div>
-
-            <div className="form-section">
-              <div className="form-actions">
+              <div className="share-strip">
+                <label className="field share-field">
+                  <span>Have a share code?</span>
+                  <input
+                    type="text"
+                    value={shareInput}
+                    onChange={(event) => setShareInput(event.target.value.toUpperCase())}
+                    placeholder="Enter code"
+                  />
+                </label>
                 <button
-                  className="primary-button premium-button"
+                  className="ghost-button"
                   type="button"
-                  onClick={handleGenerateMessenger}
-                  disabled={isGeneratingMessenger || !messengerCity.trim()}
+                  onClick={handleLoadShareCode}
+                  disabled={isLoadingSharedManifest || !shareInput.trim()}
                 >
-                  {isGeneratingMessenger ? "Building manifest..." : "Generate manifest"}
+                  {isLoadingSharedManifest ? "Loading..." : "Load shared manifest"}
                 </button>
-                {(messengerManifest || messengerRun) && (
-                  <button className="ghost-button" type="button" onClick={handleResetAlleycat}>
-                    Reset alleycat
-                  </button>
-                )}
-                {messengerManifestId && (
-                  <button
-                    className="ghost-button"
-                    type="button"
-                    onClick={handleCreateShareCode}
-                    disabled={isSharingManifest}
-                  >
-                    {isSharingManifest ? "Creating code..." : "Create share code"}
-                  </button>
-                )}
               </div>
-              {messengerStatus && <div className="status-message">{messengerStatus}</div>}
+              {shareStatus && <div className="status-message">{shareStatus}</div>}
+              </div>
+
+              <div className="form-section section-block">
+                <div className="section-block-head">
+                  <div className="section-block-title">City pack</div>
+                  <div className="section-block-copy">Pick the city and pull the pack.</div>
+                </div>
+                <label className="field">
+                  <span>City or start area</span>
+                  <input
+                    type="text"
+                    value={messengerCity}
+                    onChange={(event) => setMessengerCity(event.target.value)}
+                    placeholder="Berlin, London, or Tokyo"
+                  />
+                  <span className="field-hint">V1 ships with curated city packs. More can be added cleanly later.</span>
+                </label>
+                <div className="pill-group city-preset-group">
+                  {ALLEYCAT_CITY_PRESETS.map((city) => (
+                    <button
+                      key={city}
+                      type="button"
+                      className={`pill ${messengerCity.trim().toLowerCase() === city.toLowerCase() ? "active" : ""}`}
+                      onClick={() => setMessengerCity(city)}
+                    >
+                      {city}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-section section-block">
+                <div className="section-block-head">
+                  <div className="section-block-title">Route settings</div>
+                  <div className="section-block-copy">Set the pressure before you pull the list.</div>
+                </div>
+                <label className="field">
+                  <span>Difficulty</span>
+                  <div className="pill-group">
+                    {[
+                      ["easy", "Easy"],
+                      ["medium", "Medium"],
+                      ["hard", "Hard"],
+                    ].map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        className={`pill ${messengerDifficulty === value ? "active" : ""}`}
+                        onClick={() => setMessengerDifficulty(value)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </label>
+
+                <label className="field">
+                  <span>Street tone</span>
+                  <div className="pill-group">
+                    {[
+                      ["local", "Local"],
+                      ["fast", "Fast"],
+                      ["chaotic", "Chaotic"],
+                    ].map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        className={`pill ${messengerStyle === value ? "active" : ""}`}
+                        onClick={() => setMessengerStyle(value)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </label>
+              </div>
+
+              <div className="form-section section-block">
+                <div className="section-block-head">
+                  <div className="section-block-title">Run controls</div>
+                  <div className="section-block-copy">Build it, reset it, or pass the code.</div>
+                </div>
+                <div className="form-actions">
+                  <button
+                    className="primary-button premium-button"
+                    type="button"
+                    onClick={handleGenerateMessenger}
+                    disabled={isGeneratingMessenger || !messengerCity.trim()}
+                  >
+                    {isGeneratingMessenger ? "Building..." : "Build manifest"}
+                  </button>
+                  {(messengerManifest || messengerRun) && (
+                    <button className="ghost-button" type="button" onClick={handleResetAlleycat}>
+                      Reset alleycat
+                    </button>
+                  )}
+                  {messengerManifestId && (
+                    <button
+                      className="ghost-button"
+                      type="button"
+                      onClick={handleCreateShareCode}
+                      disabled={isSharingManifest}
+                    >
+                      {isSharingManifest ? "Making code..." : "Make share code"}
+                    </button>
+                  )}
+                </div>
+                {messengerStatus && <div className="status-message">{messengerStatus}</div>}
+              </div>
             </div>
-          </div>
 
-          {messengerManifest && (
-            <div className="glass-card form-card sequential-card">
-              <div className="form-title">Run panel</div>
-              {isHydratingRun && <div className="status-message">Reloading your current alleycat run…</div>}
-              <div className="messenger-output">
-                <div className="manifest-brief">
-                  <div>
-                    <div className="manifest-title">{messengerManifest.manifest_title}</div>
-                    <div className="manifest-subtitle">
-                      {messengerManifest.city} · {messengerManifest.checkpoint_count} checkpoints ·{" "}
-                      {messengerManifest.estimated_minutes} min est.
-                    </div>
-                  </div>
-                  <div className="manifest-metrics">
+            {messengerManifest && (
+              <div className="glass-card form-card sequential-card">
+                <div className="form-title">Run panel</div>
+                {isHydratingRun && <div className="status-message">Reloading your live run…</div>}
+                <div className="messenger-output">
+                  <div className="manifest-brief">
                     <div>
-                      <span>Ghost</span>
-                      <strong>{formatDuration(messengerManifest.ghost_seconds)}</strong>
-                    </div>
-                    <div>
-                      <span>Format</span>
-                      <strong>Any order</strong>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="manifest-notes">
-                  <div>{messengerManifest.route_note}</div>
-                  <div>{messengerManifest.finish_label}</div>
-                </div>
-
-                <div className="manifest-actions">
-                  <div className="run-progress">
-                    <span>Progress</span>
-                    <strong>
-                      {completedCount}/{totalCheckpoints} cleared
-                    </strong>
-                    <em>{remainingCount} left</em>
-                  </div>
-                  {shareCode && (
-                    <div className="run-progress share-code-box">
-                      <span>Share code</span>
-                      <strong>{shareCode}</strong>
-                      <em>Same manifest, friend vs friend.</em>
-                    </div>
-                  )}
-                  {!messengerRun ? (
-                    <div className="manifest-action-buttons">
-                      <button className="primary-button" type="button" onClick={handleStartMessenger}>
-                        Start run
-                      </button>
-                      <button className="ghost-button" type="button" onClick={handleStartMessenger}>
-                        Resume run
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="run-clock">
-                        <span>Elapsed</span>
-                        <strong>{formatDuration(currentElapsed)}</strong>
+                      <div className="manifest-title">{messengerManifest.manifest_title}</div>
+                      <div className="manifest-subtitle">
+                        {messengerManifest.city} · {messengerManifest.checkpoint_count} stops ·{" "}
+                        {messengerManifest.estimated_minutes} min est.
                       </div>
-                      <div className="manifest-action-buttons">
-                        <button
-                          className="ghost-button"
-                          type="button"
-                          onClick={handleFinishMessenger}
-                          disabled={
-                            messengerRun.completedIds.length !== messengerManifest.checkpoints.length ||
-                            Boolean(messengerRun.finishedAt) ||
-                            messengerRun.status === "abandoned"
-                          }
-                        >
-                          {messengerRun.finishedAt ? "Run finished" : "Finish run"}
-                        </button>
-                        {!messengerRun.finishedAt && messengerRun.status === "active" && (
-                          <button className="ghost-button" type="button" onClick={handleAbandonMessenger}>
-                            Abandon
-                          </button>
-                        )}
-                        <button className="ghost-button" type="button" onClick={handleRestartMessenger}>
-                          Restart
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                <div className="checkpoint-list">
-                  {messengerManifest.checkpoints.map((checkpoint) => {
-                    const done = messengerRun?.completedIds.includes(checkpoint.id) || false;
-                    const proof = messengerRun?.proofs?.find((item) => item.checkpoint_id === checkpoint.id) || null;
-                    return (
-                      <div key={checkpoint.id} className={`checkpoint-card ${done ? "done" : ""}`}>
-                        <div className="checkpoint-meta">
-                          <span>CP {checkpoint.order}</span>
-                          {done && <span className="checkpoint-done">✓ Clear</span>}
-                        </div>
-                        <div className="checkpoint-name">{checkpoint.name}</div>
-                        <div className="checkpoint-task">{checkpoint.task}</div>
-                        <div className="checkpoint-hint">{checkpoint.hint}</div>
-                        <div className="checkpoint-actions">
-                          <a
-                            className="ghost-button small"
-                            href={buildCheckpointMapsUrl(checkpoint)}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Open in Maps
-                          </a>
-                          {messengerRun && !messengerRun.finishedAt && (
-                            <button
-                              className={`ghost-button small ${done ? "is-complete" : ""}`}
-                              type="button"
-                              onClick={() => handleCheckInMessenger(checkpoint.id)}
-                            >
-                              {done ? "Checked in" : "Check in"}
-                            </button>
-                          )}
-                        </div>
-                        {done && (
-                          <div className="proof-panel">
-                            {!proof && (
-                              <div className="proof-callout">
-                                <strong>Checkpoint cleared.</strong>
-                                <span>Add one photo if you want this stop on the wall.</span>
-                              </div>
-                            )}
-                            {proof ? (
-                              <div className="proof-preview">
-                                <img src={proof.public_url} alt={`${checkpoint.name} proof`} />
-                                <div className="proof-meta">
-                                  <span>Posted</span>
-                                  <strong>{proof.location_label}</strong>
-                                </div>
-                              </div>
-                            ) : (
-                              <>
-                                <label className="field compact-field">
-                                  <span>Add photo proof</span>
-                                  <input
-                                    type="file"
-                                    accept="image/jpeg,image/png,image/webp"
-                                    onChange={(event) =>
-                                      setProofFiles((current) => ({
-                                        ...current,
-                                        [checkpoint.id]: event.target.files?.[0] || null,
-                                      }))
-                                    }
-                                  />
-                                </label>
-                                <label className="proof-toggle">
-                                  <input
-                                    type="checkbox"
-                                    checked={proofVisibility[checkpoint.id] !== false}
-                                    onChange={(event) =>
-                                      setProofVisibility((current) => ({
-                                        ...current,
-                                        [checkpoint.id]: event.target.checked,
-                                      }))
-                                    }
-                                  />
-                                  <span>Post to public wall</span>
-                                </label>
-                                <div className="checkpoint-actions">
-                                  <button
-                                    className="primary-button small"
-                                    type="button"
-                                    disabled={Boolean(isUploadingProof[checkpoint.id])}
-                                    onClick={() => handleProofUpload(checkpoint)}
-                                  >
-                                    {isUploadingProof[checkpoint.id] ? "Posting..." : "Upload proof"}
-                                  </button>
-                                </div>
-                                {proofStatus[checkpoint.id] && <div className="status-message compact-status">{proofStatus[checkpoint.id]}</div>}
-                              </>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {messengerRun?.finishedAt && (
-                  <div className="result-card">
-                    <div className="result-title">Run closed</div>
-                    <div className="result-grid result-grid-three">
-                      <div>
-                        <span>Your time</span>
-                        <strong>{formatDuration(messengerRun.finishSeconds || 0)}</strong>
-                      </div>
+                    </div>
+                    <div className="manifest-metrics">
                       <div>
                         <span>Ghost</span>
                         <strong>{formatDuration(messengerManifest.ghost_seconds)}</strong>
                       </div>
                       <div>
-                        <span>Difference</span>
-                        <strong className={ghostDelta !== null && ghostDelta <= 0 ? "good-time" : "slow-time"}>
-                          {ghostDelta !== null
-                            ? `${ghostDelta <= 0 ? "-" : "+"}${formatDuration(Math.abs(ghostDelta))}`
-                            : "--:--"}
-                        </strong>
+                        <span>Format</span>
+                        <strong>Any order</strong>
                       </div>
                     </div>
                   </div>
-                )}
 
-                {(challenge || leaderboard.length > 0 || isLoadingLeaderboard) && (
-                  <section className="challenge-board-shell" id="challenge-board">
-                    <div className="challenge-board-header">
-                      <div>
-                        <div className="section-label">Challenge board</div>
-                        <div className="result-title">Shared run standings</div>
-                      </div>
-                      {challenge && (
-                        <div className="challenge-board-code">
-                          <span>Code {challenge.code}</span>
-                          <span className={`status-chip ${challengeSummary?.status || "open"}`}>{challengeStatusLabel}</span>
-                        </div>
-                      )}
+                  <div className="manifest-notes">
+                    <div>{messengerManifest.route_note}</div>
+                    <div>{messengerManifest.finish_label}</div>
+                  </div>
+
+                  <div className="manifest-actions">
+                    <div className="run-progress">
+                      <span>Progress</span>
+                      <strong>
+                        {completedCount}/{totalCheckpoints} cleared
+                      </strong>
+                      <em>{remainingCount} left</em>
                     </div>
+                    {shareCode && (
+                      <div className="run-progress share-code-box">
+                        <span>Share code</span>
+                        <strong>{shareCode}</strong>
+                        <em>Same list. Head to head.</em>
+                      </div>
+                    )}
+                    {!messengerRun ? (
+                      <div className="manifest-action-buttons">
+                        <button className="primary-button" type="button" onClick={handleStartMessenger}>
+                          Start run
+                        </button>
+                        <button className="ghost-button" type="button" onClick={handleStartMessenger}>
+                          Resume run
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="run-clock">
+                          <span>Elapsed</span>
+                          <strong>{formatDuration(currentElapsed)}</strong>
+                        </div>
+                        <div className="manifest-action-buttons">
+                          <button
+                            className="ghost-button"
+                            type="button"
+                            onClick={handleFinishMessenger}
+                            disabled={
+                              messengerRun.completedIds.length !== messengerManifest.checkpoints.length ||
+                              Boolean(messengerRun.finishedAt) ||
+                              messengerRun.status === "abandoned"
+                            }
+                          >
+                            {messengerRun.finishedAt ? "Run finished" : "Finish run"}
+                          </button>
+                          {!messengerRun.finishedAt && messengerRun.status === "active" && (
+                            <button className="ghost-button" type="button" onClick={handleAbandonMessenger}>
+                              Bail run
+                            </button>
+                          )}
+                          <button className="ghost-button" type="button" onClick={handleRestartMessenger}>
+                            Restart
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
 
-                    <div className="challenge-board-grid">
-                      <div className="challenge-overview-card">
-                        <div className="challenge-summary-copy">
-                          <strong>
-                            {challengeSummary?.winner_name
-                              ? `${challengeSummary.winner_name} is leading.`
-                              : "No winner yet."}
-                          </strong>
-                          <span>{challengeSummary?.rivalry || "Share the code and let a few riders land times."}</span>
-                          {challengeSummary?.expires_at && challengeSummary.status === "open" && (
-                            <span>Code stays live until {new Date(challengeSummary.expires_at).toLocaleDateString()}.</span>
+                  <div className="checkpoint-list">
+                    {messengerManifest.checkpoints.map((checkpoint) => {
+                      const done = messengerRun?.completedIds.includes(checkpoint.id) || false;
+                      const proof = messengerRun?.proofs?.find((item) => item.checkpoint_id === checkpoint.id) || null;
+                      return (
+                        <div key={checkpoint.id} className={`checkpoint-card ${done ? "done" : ""}`}>
+                          <div className="checkpoint-meta">
+                            <span>CP {checkpoint.order}</span>
+                            {done && <span className="checkpoint-done">✓ Clear</span>}
+                          </div>
+                          <div className="checkpoint-name">{checkpoint.name}</div>
+                          <div className="checkpoint-task">{checkpoint.task}</div>
+                          <div className="checkpoint-hint">{checkpoint.hint}</div>
+                          <div className="checkpoint-actions">
+                            <a
+                              className="ghost-button small"
+                              href={buildCheckpointMapsUrl(checkpoint)}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Open in Maps
+                            </a>
+                            {messengerRun && !messengerRun.finishedAt && (
+                              <button
+                                className={`ghost-button small ${done ? "is-complete" : ""}`}
+                                type="button"
+                                onClick={() => handleCheckInMessenger(checkpoint.id)}
+                              >
+                                {done ? "Checked in" : "Check in"}
+                              </button>
+                            )}
+                          </div>
+                          {done && (
+                            <div className="proof-panel">
+                              {!proof && (
+                                <div className="proof-callout">
+                                  <strong>Checkpoint cleared.</strong>
+                                  <span>Add one photo if you want this stop on Wall of Fame.</span>
+                                </div>
+                              )}
+                              {proof ? (
+                                <div className="proof-preview">
+                                  <img src={proof.public_url} alt={`${checkpoint.name} proof`} />
+                                  <div className="proof-meta">
+                                    <span>Posted</span>
+                                    <strong>{proof.location_label}</strong>
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  <label className="field compact-field">
+                                    <span>Add photo proof</span>
+                                    <input
+                                      type="file"
+                                      accept="image/jpeg,image/png,image/webp"
+                                      onChange={(event) =>
+                                        setProofFiles((current) => ({
+                                          ...current,
+                                          [checkpoint.id]: event.target.files?.[0] || null,
+                                        }))
+                                      }
+                                    />
+                                  </label>
+                                  <label className="proof-toggle">
+                                    <input
+                                      type="checkbox"
+                                      checked={proofVisibility[checkpoint.id] !== false}
+                                      onChange={(event) =>
+                                        setProofVisibility((current) => ({
+                                          ...current,
+                                          [checkpoint.id]: event.target.checked,
+                                        }))
+                                      }
+                                    />
+                                    <span>Post to Wall of Fame</span>
+                                  </label>
+                                  <div className="checkpoint-actions">
+                                    <button
+                                      className="primary-button small"
+                                      type="button"
+                                      disabled={Boolean(isUploadingProof[checkpoint.id])}
+                                      onClick={() => handleProofUpload(checkpoint)}
+                                    >
+                                      {isUploadingProof[checkpoint.id] ? "Posting..." : "Post proof"}
+                                    </button>
+                                  </div>
+                                  {proofStatus[checkpoint.id] && <div className="status-message compact-status">{proofStatus[checkpoint.id]}</div>}
+                                </>
+                              )}
+                            </div>
                           )}
                         </div>
+                      );
+                    })}
+                  </div>
 
-                        <div className="challenge-stats-grid">
-                          <div className="challenge-stat">
-                            <span>Status</span>
-                            <strong>{challengeStatusLabel}</strong>
-                          </div>
-                          <div className="challenge-stat">
-                            <span>Riders</span>
-                            <strong>{leaderboard.length || 0}</strong>
-                          </div>
-                          <div className="challenge-stat">
-                            <span>Finished</span>
-                            <strong>{finishedRiders}</strong>
-                          </div>
-                          <div className="challenge-stat">
-                            <span>Best time</span>
-                            <strong>{boardLeader?.best_seconds !== null && boardLeader?.best_seconds !== undefined ? formatDuration(boardLeader.best_seconds) : "--:--"}</strong>
-                          </div>
+                  {messengerRun?.finishedAt && (
+                    <div className="result-card">
+                      <div className="result-title">Run closed</div>
+                      <div className="result-grid result-grid-three">
+                        <div>
+                          <span>Your time</span>
+                          <strong>{formatDuration(messengerRun.finishSeconds || 0)}</strong>
                         </div>
-                      </div>
-
-                      <div className="challenge-leaderboard-card">
-                        <div className="challenge-card-head">
-                          <div>
-                            <div className="manifest-subtitle">Leaderboard</div>
-                            <div className="challenge-card-copy">Fastest finished run sits on top. Open riders stay visible until they land a time.</div>
-                          </div>
+                        <div>
+                          <span>Ghost</span>
+                          <strong>{formatDuration(messengerManifest.ghost_seconds)}</strong>
                         </div>
-                        {isLoadingLeaderboard && <div className="status-message compact-status">Refreshing leaderboard…</div>}
-                        {!isLoadingLeaderboard && leaderboard.length === 0 && (
-                          <div className="empty-state">
-                            <div className="empty-state-body">
-                              {challengeSummary?.status === "expired"
-                                ? "This challenge expired before any finished times landed."
-                                : "No finished runs yet. Share the code and race it out."}
-                            </div>
-                          </div>
-                        )}
-                        {leaderboard.length > 0 && (
-                          <div className="leaderboard-list">
-                            {leaderboard.map((entry, index) => (
-                              <div key={`${entry.user_id}-${entry.manifest_id}`} className="leaderboard-row">
-                                <div className="leaderboard-rank">#{index + 1}</div>
-                                <div className="leaderboard-main">
-                                  <strong>
-                                    {entry.user_id === user?.id
-                                      ? entry.is_creator
-                                        ? "You / creator"
-                                        : "You"
-                                      : entry.is_creator
-                                        ? `${entry.rider_name} / creator`
-                                        : entry.rider_name}
-                                  </strong>
-                                  <span>
-                                    {entry.status === "finished"
-                                      ? challengeSummary?.winner_user_id === entry.user_id
-                                        ? "Fastest finished time"
-                                        : "Finished"
-                                      : challengeSummary?.status === "expired"
-                                        ? "Expired open run"
-                                        : "Open run"}
-                                  </span>
-                                </div>
-                                <div className="leaderboard-time">
-                                  {entry.best_seconds !== null ? formatDuration(entry.best_seconds) : "--:--"}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        <div>
+                          <span>Difference</span>
+                          <strong className={ghostDelta !== null && ghostDelta <= 0 ? "good-time" : "slow-time"}>
+                            {ghostDelta !== null
+                              ? `${ghostDelta <= 0 ? "-" : "+"}${formatDuration(Math.abs(ghostDelta))}`
+                              : "--:--"}
+                          </strong>
+                        </div>
                       </div>
                     </div>
-                  </section>
-                )}
+                  )}
+
+                  {(challenge || leaderboard.length > 0 || isLoadingLeaderboard) && (
+                    <section className="challenge-board-shell" id="challenge-board">
+                      <div className="challenge-board-header">
+                        <div>
+                          <div className="section-label">Challenge board</div>
+                          <div className="result-title">Shared standings</div>
+                        </div>
+                        {challenge && (
+                          <div className="challenge-board-code">
+                            <span>Code {challenge.code}</span>
+                            <span className={`status-chip ${challengeSummary?.status || "open"}`}>{challengeStatusLabel}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="challenge-board-grid">
+                        <div className="challenge-overview-card">
+                          <div className="challenge-summary-copy">
+                            <strong>
+                              {challengeSummary?.winner_name
+                                ? `${challengeSummary.winner_name} is up right now.`
+                                : "No winner yet."}
+                            </strong>
+                            <span>{challengeSummary?.rivalry || "Share the code and let a few riders throw down."}</span>
+                            {challengeSummary?.expires_at && challengeSummary.status === "open" && (
+                              <span>Code stays live until {new Date(challengeSummary.expires_at).toLocaleDateString()}.</span>
+                            )}
+                          </div>
+
+                          <div className="challenge-stats-grid">
+                            <div className="challenge-stat">
+                              <span>Status</span>
+                              <strong>{challengeStatusLabel}</strong>
+                            </div>
+                            <div className="challenge-stat">
+                              <span>Riders</span>
+                              <strong>{leaderboard.length || 0}</strong>
+                            </div>
+                            <div className="challenge-stat">
+                              <span>Finished</span>
+                              <strong>{finishedRiders}</strong>
+                            </div>
+                            <div className="challenge-stat">
+                              <span>Best time</span>
+                              <strong>{boardLeader?.best_seconds !== null && boardLeader?.best_seconds !== undefined ? formatDuration(boardLeader.best_seconds) : "--:--"}</strong>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="challenge-leaderboard-card">
+                          <div className="challenge-card-head">
+                            <div>
+                              <div className="manifest-subtitle">Leaderboard</div>
+                              <div className="challenge-card-copy">Fastest clean finish sits on top.</div>
+                            </div>
+                          </div>
+                          {isLoadingLeaderboard && <div className="status-message compact-status">Refreshing leaderboard…</div>}
+                          {!isLoadingLeaderboard && leaderboard.length === 0 && (
+                            <div className="empty-state">
+                              <div className="empty-state-body">
+                                {challengeSummary?.status === "expired"
+                                  ? "Code expired before anyone closed it."
+                                  : "No times yet. Share the code and get it moving."}
+                              </div>
+                            </div>
+                          )}
+                          {leaderboard.length > 0 && (
+                            <div className="leaderboard-list">
+                              {leaderboard.map((entry, index) => (
+                                <div key={`${entry.user_id}-${entry.manifest_id}`} className="leaderboard-row">
+                                  <div className="leaderboard-rank">#{index + 1}</div>
+                                  <div className="leaderboard-main">
+                                    <strong>
+                                      {entry.user_id === user?.id
+                                        ? entry.is_creator
+                                          ? "You / creator"
+                                          : "You"
+                                        : entry.is_creator
+                                          ? `${entry.rider_name} / creator`
+                                          : entry.rider_name}
+                                    </strong>
+                                    <span>
+                                      {entry.status === "finished"
+                                        ? challengeSummary?.winner_user_id === entry.user_id
+                                          ? "Fastest finished time"
+                                          : "Finished"
+                                        : challengeSummary?.status === "expired"
+                                          ? "Expired open run"
+                                          : "Open run"}
+                                    </span>
+                                  </div>
+                                  <div className="leaderboard-time">
+                                    {entry.best_seconds !== null ? formatDuration(entry.best_seconds) : "--:--"}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </section>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </section>
-    </>
+    </div>
   );
 
   const renderWall = () => (
-    <>
-      <section className="builder-section wall-section">
-        <div className="account-shell">
-          <div className="account-topbar">
-            <div>
-              <div className="section-title">Wall</div>
-              <div className="account-kicker">Public Alleycat proof feed. Rider names, city tags, and checkpoint moments only.</div>
-            </div>
-            <div className="account-topbar-actions">
-              <button className="ghost-button" type="button" onClick={() => handleNavigate("messenger")}>
-                Back to Alleycat
-              </button>
-            </div>
-          </div>
-        </div>
-        {isLoadingWall && <div className="status-message">Loading wall…</div>}
+    <div className="sequential-layout sub-page">
+      <section className="sub-page-header">
+        <h1 className="sub-page-title">Wall of Fame</h1>
+        <p className="sub-page-description">Proof hits from real runs. Names, cities, no fluff.</p>
+      </section>
+
+      <section className="wall-section reveals" id="wall-feed">{isLoadingWall && <div className="status-message">Loading Wall of Fame…</div>}
         {!isLoadingWall && wallPosts.length === 0 && (
           <div className="builder-grid single">
             <div className="glass-card form-card">
               <div className="empty-state">
-                <div className="empty-state-title">No proof posts yet</div>
-                <div className="empty-state-body">Once riders upload checkpoint proof, the wall starts filling here.</div>
+                <div className="empty-state-title">Wall of Fame is quiet right now</div>
+                <div className="empty-state-body">Once riders post proof, it lands here.</div>
               </div>
             </div>
           </div>
@@ -2612,63 +2578,60 @@ export default function App() {
           </div>
         )}
       </section>
-    </>
+    </div>
   );
 
+  const renderCurrentPage = () =>
+    pageView === "messenger"
+      ? renderMessenger()
+      : pageView === "loop"
+        ? renderLoop()
+        : pageView === "account"
+          ? renderAccount()
+          : pageView === "wall"
+            ? renderWall()
+            : renderHome();
+
   return (
-    <motion.div
+    <div
       className={`page ${pageView === "messenger" ? "page-messenger" : "page-home"}`}
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.8, ease: "easeOut" }}
-      style={{ "--bg-shift": bgShiftPx, "--bg-scale": bgScale } as CSSProperties}
     >
       {renderHeader()}
       {renderModals()}
-      {pageView === "messenger"
-        ? renderMessenger()
-        : pageView === "loop"
-          ? renderLoop()
-          : pageView === "account"
-            ? renderAccount()
-            : pageView === "wall"
-              ? renderWall()
-              : renderHome()}
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.main
+          key={pageView}
+          className="page-stage"
+          initial={{ opacity: 0, y: 18, filter: "blur(10px)" }}
+          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+          exit={{ opacity: 0, y: -12, filter: "blur(8px)" }}
+          transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+        >
+          {renderCurrentPage()}
+        </motion.main>
+      </AnimatePresence>
       <footer className="site-footer">
-        <div>
-          <div className="footer-title">Gimme The Loop</div>
-          <div className="footer-subtitle">
-            {pageView === "home"
-              ? "Home is the product page. Loop and Alleycat stay as the focused ride tools."
-              : pageView === "messenger"
-                ? "Alleycat Mode is the premium city challenge layer built on top of the route product."
-                : pageView === "loop"
-                  ? "Loop is the fast route product for clean return rides."
-                  : pageView === "account"
-                    ? "Account keeps credits, purchases, and profile controls in one clean place."
-                    : pageView === "wall"
-                      ? "Wall is the public layer for Alleycat proof and city moments."
-                      : "Loop is the fast route product. Alleycat Mode adds the premium city challenge layer."}
+        <div className="nav-container">
+          <div className="nav-viewfinder">
+            <div className="corner top-left"></div>
+            <div className="corner top-right"></div>
+            <div className="corner bottom-left"></div>
+            <div className="corner bottom-right"></div>
+          </div>
+
+          <div className="nav-left">
+            <div className="footer-title">LOOP_V1.0.4</div>
+          </div>
+
+          <div className="footer-links">
+            <a className="ghost-link" href="/privacy.html">Privacy</a>
+            <a className="ghost-link" href="/terms.html">Terms</a>
+            <a className="ghost-link" href="/how.html">How</a>
+            <a className="ghost-link" href="https://buymeacoffee.com/js4mhwqrdjd">Coffee</a>
+            <a className="ghost-link admin-link" href="/admin.html">Admin</a>
           </div>
         </div>
-        <div className="footer-links">
-          <a className="ghost-link" href="/privacy.html">
-            Privacy
-          </a>
-          <a className="ghost-link" href="/terms.html">
-            Terms
-          </a>
-          <a className="ghost-link" href="/how.html">
-            How it works
-          </a>
-          <a className="ghost-link" href="/admin.html">
-            Admin
-          </a>
-          <a className="ghost-link" href="https://buymeacoffee.com/js4mhwqrdjd">
-            Buy me a coffee
-          </a>
-        </div>
       </footer>
-    </motion.div>
+    </div>
   );
 }

@@ -224,6 +224,13 @@ app.get("/health", (_req, res) => {
   res.json({ ok: true });
 });
 
+app.get("/api/public-config", (_req, res) => {
+  res.json({
+    supabaseUrl,
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || "",
+  });
+});
+
 app.post("/api/usage/check", async (req, res) => {
   const { device_id } = req.body || {};
   const authUser = await getAuthUser(req);
