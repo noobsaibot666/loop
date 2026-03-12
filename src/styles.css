@@ -2371,6 +2371,64 @@ input[type="range"]::-webkit-slider-thumb {
   margin-bottom: 18px;
 }
 
+.city-lane-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.city-lane-grid.compact-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.city-lane-card {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+}
+
+.city-lane-card.pending {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.city-lane-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.city-lane-head strong {
+  display: block;
+  font-family: var(--font-header);
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.city-lane-copy {
+  color: var(--text-muted);
+  line-height: 1.55;
+  min-height: 72px;
+}
+
+.city-lane-stats span {
+  display: block;
+  color: var(--text-soft);
+  font-size: 0.8rem;
+}
+
+.city-lane-stats strong {
+  display: block;
+  margin-top: 6px;
+}
+
+.city-lane-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .wall-editorial-card {
   display: grid;
   gap: 10px;
@@ -3318,7 +3376,9 @@ input[type="range"]::-webkit-slider-thumb {
   .rider-city-grid,
   .rider-city-leaders,
   .rider-cluster-grid,
-  .rider-rival-grid {
+  .rider-rival-grid,
+  .city-lane-grid,
+  .city-lane-grid.compact-grid {
     grid-template-columns: 1fr;
   }
 

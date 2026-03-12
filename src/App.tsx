@@ -9,8 +9,9 @@ import { formatDuration, getPageView, getRiderIdFromPath } from "./utils/routeUt
 const WallPage = lazy(() => import("./components/pages/WallPage"));
 const LeaderboardPage = lazy(() => import("./components/pages/LeaderboardPage"));
 const RiderProfilePage = lazy(() => import("./components/pages/RiderProfilePage"));
+const CitiesPage = lazy(() => import("./components/pages/CitiesPage"));
 
-export type PageView = "home" | "loop" | "messenger" | "account" | "wall" | "leaderboard" | "rider";
+export type PageView = "home" | "loop" | "messenger" | "cities" | "account" | "wall" | "leaderboard" | "rider";
 
 type Usage = {
   free_used: number;
@@ -281,6 +282,19 @@ type CityDemand = {
     count: number;
   }[];
 };
+type CityLane = {
+  city_slug: string;
+  city_name: string;
+  status: "live" | "ready" | "review" | "draft" | "requested";
+  checkpoint_count: number;
+  active_checkpoint_count: number;
+  district_count: number;
+  demand_count: number;
+  open_request_count: number;
+  route_note: string;
+  finish_label: string;
+  last_requested_at: string | null;
+};
 
 const API_BASE = (() => {
   const configured = import.meta.env.VITE_API_BASE || "";
@@ -420,6 +434,8 @@ export default function App() {
   const [showCityRequest, setShowCityRequest] = useState(false);
   const [cityDemand, setCityDemand] = useState<CityDemand | null>(null);
   const [isLoadingCityDemand, setIsLoadingCityDemand] = useState(false);
+  const [cityLanes, setCityLanes] = useState<CityLane[]>([]);
+  const [isLoadingCityLanes, setIsLoadingCityLanes] = useState(false);
   const [showShareJoinModal, setShowShareJoinModal] = useState(false);
   const [cityRequestName, setCityRequestName] = useState("");
   const [cityRequestLocation, setCityRequestLocation] = useState("");
@@ -917,6 +933,26 @@ export default function App() {
   }, [pageView]);
 
   useEffect(() => {
+    if (pageView !== "cities") return;
+    let cancelled = false;
+    setIsLoadingCityLanes(true);
+    (async () => {
+      try {
+        const response = await fetch(`${API_BASE}/api/city-lanes`, { cache: "no-store" });
+        const data = (await response.json()) as { lanes?: CityLane[] };
+        if (!cancelled) setCityLanes(data.lanes || []);
+      } catch {
+        if (!cancelled) setCityLanes([]);
+      } finally {
+        if (!cancelled) setIsLoadingCityLanes(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pageView]);
+
+  useEffect(() => {
     if (!loopPoint || loopPoint.length < 3) {
       setSuggestions([]);
       return;
@@ -1030,6 +1066,8 @@ export default function App() {
         ? "/loop"
         : target === "messenger"
           ? "/messenger"
+          : target === "cities"
+            ? "/cities"
           : target === "account"
             ? "/account"
             : target === "wall"
@@ -1071,6 +1109,11 @@ export default function App() {
     setPageView("leaderboard");
     setMenuOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleOpenMessengerCity = (cityName?: string) => {
+    if (cityName) setMessengerCity(getCityLabel(cityName));
+    handleNavigate("messenger");
   };
 
   const openAuth = (mode: "login" | "signup" = "login", message = "") => {
@@ -1729,6 +1772,7 @@ export default function App() {
             <button className={`nav-link ${pageView === 'home' ? 'active' : ''}`} onClick={() => handleNavigate('home')}>Home</button>
             <button className={`nav-link ${pageView === 'loop' ? 'active' : ''}`} onClick={() => handleNavigate('loop')}>Loop</button>
             <button className={`nav-link ${pageView === 'messenger' ? 'active' : ''}`} onClick={() => handleNavigate('messenger')}>Alleycat</button>
+            <button className={`nav-link ${pageView === 'cities' ? 'active' : ''}`} onClick={() => handleNavigate('cities')}>Cities</button>
             <button className={`nav-link ${pageView === 'wall' ? 'active' : ''}`} onClick={() => handleNavigate('wall')}>Wall of Fame</button>
             <button className={`nav-link ${pageView === 'leaderboard' ? 'active' : ''}`} onClick={() => handleNavigate('leaderboard')}>Leaderboard</button>
           </nav>
@@ -1758,6 +1802,7 @@ export default function App() {
             <button className={`nav-link ${pageView === 'home' ? 'active' : ''}`} onClick={() => handleNavigate('home')}>Home</button>
             <button className={`nav-link ${pageView === 'loop' ? 'active' : ''}`} onClick={() => handleNavigate('loop')}>Loop</button>
             <button className={`nav-link ${pageView === 'messenger' ? 'active' : ''}`} onClick={() => handleNavigate('messenger')}>Alleycat</button>
+            <button className={`nav-link ${pageView === 'cities' ? 'active' : ''}`} onClick={() => handleNavigate('cities')}>Cities</button>
             <button className={`nav-link ${pageView === 'wall' ? 'active' : ''}`} onClick={() => handleNavigate('wall')}>Wall of Fame</button>
             <button className={`nav-link ${pageView === 'leaderboard' ? 'active' : ''}`} onClick={() => handleNavigate('leaderboard')}>Leaderboard</button>
             {user && <button className={`nav-link ${pageView === 'account' ? 'active' : ''}`} onClick={() => handleNavigate('account')}>Account</button>}
@@ -1811,16 +1856,16 @@ export default function App() {
           <button className="ghost-button small" onClick={() => handleNavigate('wall')}>Go Wall of Fame</button>
         </div>
         <div className="modular-cell">
-          <div className="cell-eyebrow">Missing your city?</div>
-          <h3 className="cell-title">Request a city</h3>
-          <p className="cell-body">Tell us where you ride and we’ll put it in the queue.</p>
+          <div className="cell-eyebrow">See the spread</div>
+          <h3 className="cell-title">City Lanes</h3>
+          <p className="cell-body">Live cities, next-up asks, and the lanes building next.</p>
           {cityDemand && (
             <div className="mini-chip-row compact">
               <span className="mini-chip active">{cityDemand.open_requests} open</span>
-              <span className="mini-chip">{cityDemand.top_cities[0]?.city || "Queue live"}</span>
+              <span className="mini-chip">{cityDemand.top_cities[0]?.city || "Demand live"}</span>
             </div>
           )}
-          <button className="ghost-button small" onClick={() => setShowCityRequest(true)}>Send request</button>
+          <button className="ghost-button small" onClick={() => handleNavigate('cities')}>Open Cities</button>
         </div>
       </section>
 
@@ -3214,7 +3259,7 @@ export default function App() {
         ? renderLoop()
         : pageView === "account"
           ? renderAccount()
-          : pageView === "wall"
+            : pageView === "wall"
             ? (
               <Suspense fallback={<div className="status-message page-loader">Loading Wall of Fame…</div>}>
                 <WallPage
@@ -3234,6 +3279,22 @@ export default function App() {
                 />
               </Suspense>
             )
+            : pageView === "cities"
+              ? (
+                <Suspense fallback={<div className="status-message page-loader">Loading city lanes…</div>}>
+                  <CitiesPage
+                    cityLanes={cityLanes}
+                    isLoadingCityLanes={isLoadingCityLanes}
+                    onOpenMessengerCity={handleOpenMessengerCity}
+                    onOpenWallCity={handleOpenWallCity}
+                    onOpenLeaderboardCity={handleOpenLeaderboardCity}
+                    onOpenCityRequest={(cityName) => {
+                      if (cityName) setCityRequestName(cityName);
+                      setShowCityRequest(true);
+                    }}
+                  />
+                </Suspense>
+              )
             : pageView === "leaderboard"
               ? (
                 <Suspense fallback={<div className="status-message page-loader">Loading leaderboard…</div>}>
@@ -3288,6 +3349,7 @@ export default function App() {
 
           <div className="footer-links">
             <a className="ghost-link" href="/leaderboard">Leaderboard</a>
+            <a className="ghost-link" href="/cities">Cities</a>
             <a className="ghost-link" href="/privacy.html">Privacy</a>
             <a className="ghost-link" href="/terms.html">Terms</a>
             <a className="ghost-link" href="/how.html">How</a>

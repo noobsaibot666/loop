@@ -2,6 +2,8 @@
 /loop/* / 200
 /messenger / 200
 /messenger/* / 200
+/cities / 200
+/cities/* / 200
 /account / 200
 /account/* / 200
 /wall / 200
