@@ -218,6 +218,7 @@ type PublicRiderProfile = {
     shared_challenges: number;
     rivals: number;
     last_active_at: string | null;
+    proof_streak_days: number;
   };
   badges: {
     id: string;
@@ -244,6 +245,11 @@ type PublicRiderProfile = {
   city_breakdown: {
     city_name: string;
     proof_count: number;
+  }[];
+  city_clusters: {
+    city_name: string;
+    proof_count: number;
+    posts: WallPost[];
   }[];
 };
 
@@ -926,6 +932,15 @@ export default function App() {
   const boardLeader = leaderboard.find((entry) => entry.best_seconds !== null) || null;
   const ownBoardEntry = leaderboard.find((entry) => entry.user_id === user?.id) || null;
   const fastestRival = leaderboard.find((entry) => entry.user_id !== user?.id && entry.best_seconds !== null) || null;
+  const wallLeadCity = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const post of wallPosts) {
+      if (!post.city_name) continue;
+      counts.set(post.city_name, (counts.get(post.city_name) || 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1])[0] || null;
+  }, [wallPosts]);
+  const wallFeaturedPost = wallPosts[0] || null;
   const rivalrySummary = useMemo(() => {
     if (!ownBoardEntry?.best_seconds) {
       if (challengeSummary?.winner_name) return `${challengeSummary.winner_name} is setting the pace. Jump in and make them sweat.`;
@@ -3137,20 +3152,54 @@ export default function App() {
           </div>
         </div>
         {!isLoadingWall && wallPosts.length > 0 && (
-          <div className="result-grid result-grid-three wall-story-grid">
-            <div>
-              <span>Posts up</span>
-              <strong>{wallPosts.length}</strong>
+          <>
+            <div className="result-grid result-grid-three wall-story-grid">
+              <div>
+                <span>Posts up</span>
+                <strong>{wallPosts.length}</strong>
+              </div>
+              <div>
+                <span>Riders up</span>
+                <strong>{new Set(wallPosts.map((post) => post.user_id || post.rider_name)).size}</strong>
+              </div>
+              <div>
+                <span>City lane</span>
+                <strong>{selectedWallCity ? ALLEYCAT_CITY_PRESETS.find((city) => city.toLowerCase() === selectedWallCity) || selectedWallCity : "All cities"}</strong>
+              </div>
             </div>
-            <div>
-              <span>Riders up</span>
-              <strong>{new Set(wallPosts.map((post) => post.user_id || post.rider_name)).size}</strong>
+            <div className="wall-editorial-grid">
+              {wallFeaturedPost && (
+                <div className="wall-editorial-card wall-editorial-feature">
+                  <span className="winner-label">Latest drop</span>
+                  <strong>{wallFeaturedPost.rider_name} · {wallFeaturedPost.checkpoint_name}</strong>
+                  <span>{wallFeaturedPost.city_name} · {new Date(wallFeaturedPost.created_at).toLocaleDateString()}</span>
+                  <div className="wall-city-actions">
+                    <button className="ghost-button small" type="button" onClick={() => handleOpenRiderProfile(wallFeaturedPost.user_id)}>
+                      Open rider
+                    </button>
+                    <button className="ghost-button small" type="button" onClick={() => handleOpenWallCity(wallFeaturedPost.city_name)}>
+                      City lane
+                    </button>
+                  </div>
+                </div>
+              )}
+              {wallLeadCity && (
+                <div className="wall-editorial-card">
+                  <span className="winner-label">City spotlight</span>
+                  <strong>{wallLeadCity[0]}</strong>
+                  <span>{wallLeadCity[1]} wall hits in this lane right now.</span>
+                  <div className="wall-city-actions">
+                    <button className="ghost-button small" type="button" onClick={() => handleOpenWallCity(wallLeadCity[0])}>
+                      Open wall
+                    </button>
+                    <button className="ghost-button small" type="button" onClick={() => handleOpenLeaderboardCity(wallLeadCity[0])}>
+                      City board
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-            <div>
-              <span>City lane</span>
-              <strong>{selectedWallCity ? ALLEYCAT_CITY_PRESETS.find((city) => city.toLowerCase() === selectedWallCity) || selectedWallCity : "All cities"}</strong>
-            </div>
-          </div>
+          </>
         )}
         {isLoadingWall && <div className="status-message">Loading Wall of Fame…</div>}
         {!isLoadingWall && wallPosts.length === 0 && (
@@ -3456,6 +3505,13 @@ export default function App() {
                     ? `${publicRiderProfile.stats.top_city} is the main lane`
                     : "City story still loading"}
                 </div>
+                <div className="mini-chip">
+                  {publicRiderProfile.stats.proof_streak_days > 1
+                    ? `${publicRiderProfile.stats.proof_streak_days}-day proof streak`
+                    : publicRiderProfile.stats.public_proofs > 0
+                      ? "Fresh proof line live"
+                      : "No streak yet"}
+                </div>
               </div>
 
               {!!publicRiderProfile.city_breakdown?.length && (
@@ -3476,6 +3532,35 @@ export default function App() {
                           <button className="ghost-button small" type="button" onClick={() => handleOpenLeaderboardCity(city.city_name)}>
                             City board
                           </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {!!publicRiderProfile.city_clusters?.length && (
+                <>
+                  <div className="rider-profile-proof-head">
+                    <div className="form-title">Proof clusters</div>
+                    <div className="form-subtitle">City pockets where this rider keeps showing up.</div>
+                  </div>
+                  <div className="rider-cluster-grid">
+                    {publicRiderProfile.city_clusters.map((cluster) => (
+                      <div key={cluster.city_name} className="rider-cluster-card">
+                        <div className="rider-cluster-head">
+                          <div>
+                            <span className="winner-label">{cluster.proof_count} proof{cluster.proof_count === 1 ? "" : "s"}</span>
+                            <strong>{cluster.city_name}</strong>
+                          </div>
+                          <button className="ghost-button small" type="button" onClick={() => handleOpenWallCity(cluster.city_name)}>
+                            Open wall
+                          </button>
+                        </div>
+                        <div className="rider-cluster-images">
+                          {cluster.posts.map((post) => (
+                            <img key={post.id} src={post.public_url} alt={`${post.checkpoint_name} in ${cluster.city_name}`} />
+                          ))}
                         </div>
                       </div>
                     ))}

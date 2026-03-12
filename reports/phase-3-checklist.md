@@ -24,6 +24,7 @@ Related docs:
   - real rivalry context with shared-code rider circle
   - run ledger with finished-manifest ghost deltas
   - city-lane discovery cards that open filtered wall and leaderboard views
+  - proof clusters and streak storytelling tied to live city activity
 
 ## Social surface polish
 - [x] Add city filtering to Wall of Fame
@@ -37,6 +38,7 @@ Related docs:
   - city filter plus summary strip for faster scan
   - denser row chips so rider totals read quicker
   - Wall of Fame now pushes users deeper into city lanes and city boards
+  - Wall of Fame now opens with featured live-data cards instead of only a flat feed
 
 ## City content quality
 - [x] Improve checkpoint library depth for Wave 1 cities

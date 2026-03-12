@@ -3,6 +3,10 @@ import { buildQuarterLeaderboard, deriveBadges, getQuarterWindow } from "../../s
 import { buildSharedRiders } from "../../shared/account.js";
 
 const uniqueCount = (values = []) => new Set(values.filter(Boolean)).size;
+const toDayStamp = (value) => {
+  const date = new Date(value);
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())).getTime();
+};
 
 export async function onRequest({ request, env }) {
   const url = new URL(request.url);
@@ -71,6 +75,16 @@ export async function onRequest({ request, env }) {
       city_name,
       proof_count,
     }));
+  const uniqueProofDays = [...new Set(proofs.map((proof) => toDayStamp(proof.created_at)))].sort((a, b) => b - a);
+  let proofStreakDays = 0;
+  if (uniqueProofDays.length) {
+    proofStreakDays = 1;
+    for (let index = 1; index < uniqueProofDays.length; index += 1) {
+      const expected = uniqueProofDays[index - 1] - 24 * 60 * 60 * 1000;
+      if (uniqueProofDays[index] !== expected) break;
+      proofStreakDays += 1;
+    }
+  }
   const bestFinish = runs
     .map((run) => Number(run.finish_seconds || 0))
     .filter((value) => value > 0)
@@ -156,6 +170,11 @@ export async function onRequest({ request, env }) {
       ghost_delta: ghostSeconds !== null && typeof run.finish_seconds === "number" ? run.finish_seconds - ghostSeconds : null,
     };
   });
+  const cityClusters = cityBreakdown.slice(0, 3).map((city) => ({
+    city_name: city.city_name,
+    proof_count: city.proof_count,
+    posts: proofs.filter((proof) => proof.city_name === city.city_name).slice(0, 3),
+  }));
 
   return json({
     profile: {
@@ -177,6 +196,7 @@ export async function onRequest({ request, env }) {
       shared_challenges: challengeIds.length,
       rivals: sharedRiders.length,
       last_active_at: lastActiveAt ? new Date(lastActiveAt).toISOString() : null,
+      proof_streak_days: proofStreakDays,
     },
     badges: deriveBadges({
       quarterStats: quarterEntry
@@ -194,5 +214,6 @@ export async function onRequest({ request, env }) {
     recent_rivals: sharedRiders.slice(0, 6),
     recent_runs: recentRuns,
     city_breakdown: cityBreakdown,
+    city_clusters: cityClusters,
   });
 }
