@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from "react";
-import { AnimatePresence, motion, useScroll, useSpring, useTransform } from "framer-motion";
 import { createClient } from "@supabase/supabase-js";
-import heroImage from "./images/hero_6.png";
-import alleycatImage from "./images/hero_4.png";
+import heroImage from "./images/hero_6.jpg";
+import alleycatImage from "./images/hero_4.jpg";
 
 import Hero from "./components/Hero";
 import { formatDuration, getPageView, getRiderIdFromPath } from "./utils/routeUtils";
@@ -351,18 +350,7 @@ export default function App() {
     document.documentElement.setAttribute("data-theme", "dark");
   }, []);
 
-  const heroRef = useRef<HTMLDivElement | null>(null);
-  const { scrollYProgress } = useScroll();
-  const parallaxY = useSpring(useTransform(scrollYProgress, [0, 1], [30, -30]), {
-    stiffness: 120,
-    damping: 25,
-  });
-  const parallaxX = useSpring(useTransform(scrollYProgress, [0, 1], [0, 18]), {
-    stiffness: 120,
-    damping: 25,
-  });
   const [pageView, setPageView] = useState<PageView>(() => getPageView());
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -2944,7 +2932,7 @@ export default function App() {
                               )}
                               {proof ? (
                                 <div className="proof-preview">
-                                  <img src={proof.public_url} alt={`${checkpoint.name} proof`} />
+                                  <img src={proof.public_url} alt={`${checkpoint.name} proof`} loading="lazy" decoding="async" />
                                   <div className="proof-meta">
                                     <span>Posted</span>
                                     <strong>{proof.location_label}</strong>
@@ -3235,7 +3223,7 @@ export default function App() {
           <div className="wall-grid">
             {wallPosts.map((post) => (
               <div key={post.id} className="glass-card wall-card">
-                <img src={post.public_url} alt={`${post.checkpoint_name} by ${post.rider_name}`} className="wall-image" />
+                <img src={post.public_url} alt={`${post.checkpoint_name} by ${post.rider_name}`} className="wall-image" loading="lazy" decoding="async" />
                 <div className="wall-meta">
                   <div className="checkpoint-meta">
                     <span>Alleycat</span>
@@ -3456,6 +3444,8 @@ export default function App() {
                       src={publicRiderProfile.recent_proofs[0].public_url}
                       alt={`${publicRiderProfile.recent_proofs[0].checkpoint_name} by ${publicRiderProfile.profile.rider_name}`}
                       className="rider-feature-image"
+                      loading="lazy"
+                      decoding="async"
                     />
                     <div className="rider-feature-meta">
                       <span>Latest wall hit</span>
@@ -3578,7 +3568,7 @@ export default function App() {
                         </div>
                         <div className="rider-cluster-images">
                           {cluster.posts.map((post) => (
-                            <img key={post.id} src={post.public_url} alt={`${post.checkpoint_name} in ${cluster.city_name}`} />
+                            <img key={post.id} src={post.public_url} alt={`${post.checkpoint_name} in ${cluster.city_name}`} loading="lazy" decoding="async" />
                           ))}
                         </div>
                       </div>
@@ -3714,7 +3704,7 @@ export default function App() {
                 <div className="wall-grid rider-proof-grid">
                   {publicRiderProfile.recent_proofs.map((post) => (
                     <div key={post.id} className="glass-card wall-card">
-                      <img src={post.public_url} alt={`${post.checkpoint_name} by ${post.rider_name}`} className="wall-image" />
+                      <img src={post.public_url} alt={`${post.checkpoint_name} by ${post.rider_name}`} className="wall-image" loading="lazy" decoding="async" />
                       <div className="wall-meta">
                         <div className="checkpoint-meta">
                           <span>Alleycat</span>
@@ -3772,18 +3762,9 @@ export default function App() {
     >
       {renderHeader()}
       {renderModals()}
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.main
-          key={pageView}
-          className="page-stage"
-          initial={{ opacity: 0, y: 18, filter: "blur(10px)" }}
-          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-          exit={{ opacity: 0, y: -12, filter: "blur(8px)" }}
-          transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
-        >
-          {renderCurrentPage()}
-        </motion.main>
-      </AnimatePresence>
+      <main key={pageView} className="page-stage page-stage-enter">
+        {renderCurrentPage()}
+      </main>
       <footer className="site-footer">
         <div className="nav-container">
           <div className="nav-viewfinder">

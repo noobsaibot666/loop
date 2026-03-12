@@ -17,9 +17,9 @@ Related docs:
 - [x] Add stronger city-lane discovery hooks from rider pages
 
 ## Performance and frontend structure
-- [ ] Audit the large frontend bundle and choose a code-splitting plan
+- [x] Audit the large frontend bundle and choose a code-splitting plan
 - [ ] Split the heaviest public surfaces behind route/page boundaries
-- [ ] Recheck motion so transitions never hide content
+- [x] Recheck motion so transitions never hide content
 
 ## Editorial city surfaces
 - [ ] Review Wall of Fame featured logic on live mixed-user data

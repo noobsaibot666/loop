@@ -32,6 +32,12 @@ Scope:
 - reduce initial JS weight
 - keep motion and media from blocking content
 
+Status:
+- started
+- removed `framer-motion` from the main app path
+- replaced oversized PNG hero assets with compressed JPEGs
+- split vendor code into separate React and Supabase chunks
+
 ### 3. Editorial city surfaces
 Make public discovery pages feel more intentional.
 
