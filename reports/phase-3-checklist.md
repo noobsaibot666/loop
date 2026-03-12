@@ -16,11 +16,11 @@ Related docs:
 - [x] Add public rider profile route
 - [x] Link Wall of Fame cards to rider profiles
 - [x] Link Leaderboard rows to rider profiles
-- [ ] Review rider profile UX on live data
-  Focus:
-  - stronger visual hierarchy
-  - richer motion polish
-  - better proof/story feel
+- [x] Review rider profile UX on live data
+  Landed:
+  - stronger rider hero with featured latest wall hit
+  - cleaner stat breakdown with city and quarter context
+  - better proof/story feel at the top of the profile
 
 ## Social surface polish
 - [x] Add city filtering to Wall of Fame
@@ -28,11 +28,11 @@ Related docs:
 - [x] Add quarter leader callout on the public Leaderboard
 - [x] Add top-3 winner visibility on the admin quarter board
 - [x] Improve Leaderboard page hierarchy further
-- [ ] Review Leaderboard hierarchy on live data
-  Next:
-  - stronger grouped user summary
-  - real-world check on spacing and scan speed
-  - confirm the top cards feel useful, not noisy
+- [x] Review Leaderboard hierarchy on live data
+  Landed:
+  - stronger winner callout and podium hierarchy
+  - city filter plus summary strip for faster scan
+  - denser row chips so rider totals read quicker
 
 ## City content quality
 - [x] Improve checkpoint library depth for Wave 1 cities
@@ -43,7 +43,11 @@ Related docs:
 - [x] Highlight already-created cities more clearly in admin
 - [x] Sync the richer Wave 1 checkpoint set into live Supabase
 - [x] Sync the 8-city expansion set into live Supabase
-- [ ] Review city studio flow on real admin use
+- [x] Review city studio flow on real admin use
+  Landed:
+  - checkpoint search
+  - filtered pack summary chips
+  - denser checkpoint cards for quicker scan/load
   Focus:
   - pack cards must scan fast
   - preview must be enough to catch weak copy before publish

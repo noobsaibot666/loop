@@ -564,6 +564,34 @@
       gap: 8px;
     }
 
+    .checkpoint-toolbar {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .checkpoint-summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .checkpoint-card-admin {
+      display: grid;
+      gap: 12px;
+    }
+
+    .checkpoint-card-admin strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .checkpoint-meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
     .preview-checkpoints {
       display: grid;
       gap: 10px;
@@ -835,6 +863,10 @@
             <button id="previewManifest" class="secondary">Preview</button>
           </div>
           <div class="preview-box" id="previewBox">Pick a pack, then check how the manifest lands.</div>
+          <div class="checkpoint-toolbar">
+            <input id="checkpointSearch" type="text" placeholder="Search checkpoints, district, or category" />
+            <div class="checkpoint-summary" id="checkpointSummary"></div>
+          </div>
           <div class="list" id="checkpointsList"></div>
         </div>
       </div>
@@ -879,6 +911,8 @@
       const packsList = document.getElementById('packsList');
       const checkpointsList = document.getElementById('checkpointsList');
       const previewBox = document.getElementById('previewBox');
+      const checkpointSearchEl = document.getElementById('checkpointSearch');
+      const checkpointSummaryEl = document.getElementById('checkpointSummary');
       const deviceEl = document.getElementById('device');
       const userEl = document.getElementById('userId');
       const emailEl = document.getElementById('email');
@@ -992,6 +1026,7 @@
       let sb = window.__adminSupabase || null;
       let accessToken = null;
       let activeSection = 'overview';
+      let currentCheckpoints = [];
 
       const initSupabase = async () => {
         if (sb) return sb;
@@ -1267,17 +1302,35 @@
         });
       };
 
-      const loadCheckpoints = async (packId) => {
+      const renderCheckpointSummary = (checkpoints) => {
+        const liveCount = checkpoints.filter((checkpoint) => checkpoint.is_active !== false).length;
+        const districtCount = new Set(checkpoints.map((checkpoint) => checkpoint.district).filter(Boolean)).size;
+        checkpointSummaryEl.innerHTML = `
+          <span class="mini-chip active">${checkpoints.length} shown</span>
+          <span class="mini-chip">${liveCount} live</span>
+          <span class="mini-chip">${districtCount} districts</span>
+        `;
+      };
+
+      const renderCheckpoints = (checkpoints) => {
         checkpointsList.innerHTML = '';
-        if (!packId) return;
-        const data = await post('/api/admin/city-checkpoints', { pack_id: packId });
-        (data.checkpoints || []).forEach((checkpoint) => {
+        if (!checkpoints.length) {
+          checkpointsList.innerHTML = '<div class="label">No checkpoints match this filter yet.</div>';
+          return;
+        }
+        checkpoints.forEach((checkpoint) => {
           const row = document.createElement('div');
-          row.className = 'list-item';
+          row.className = 'list-item checkpoint-card-admin';
           row.innerHTML = `
               <div>
                 <strong>${checkpoint.name}</strong>
-                <span>${checkpoint.slug} · ${checkpoint.district || 'No district'} · ${checkpoint.category || 'No category'}</span>
+                <span>${checkpoint.slug}</span>
+                <div class="checkpoint-meta-row">
+                  <span class="mini-chip ${checkpoint.is_active !== false ? 'active' : ''}">${checkpoint.is_active !== false ? 'Live' : 'Hidden'}</span>
+                  <span class="mini-chip">${checkpoint.district || 'No district'}</span>
+                  <span class="mini-chip">${checkpoint.category || 'No category'}</span>
+                  <span class="mini-chip">${checkpoint.vibe || 'No vibe'}</span>
+                </div>
               </div>
               <div class="proof-actions">
                 <button class="secondary">Load</button>
@@ -1301,6 +1354,29 @@
           };
           checkpointsList.appendChild(row);
         });
+      };
+
+      const applyCheckpointFilter = () => {
+        const query = String(checkpointSearchEl.value || '').trim().toLowerCase();
+        const filtered = !query
+          ? currentCheckpoints
+          : currentCheckpoints.filter((checkpoint) =>
+              [checkpoint.name, checkpoint.slug, checkpoint.district, checkpoint.category, checkpoint.vibe]
+                .filter(Boolean)
+                .some((value) => String(value).toLowerCase().includes(query))
+            );
+        renderCheckpointSummary(filtered);
+        renderCheckpoints(filtered);
+      };
+
+      const loadCheckpoints = async (packId) => {
+        checkpointsList.innerHTML = '';
+        checkpointSummaryEl.innerHTML = '';
+        currentCheckpoints = [];
+        if (!packId) return;
+        const data = await post('/api/admin/city-checkpoints', { pack_id: packId });
+        currentCheckpoints = data.checkpoints || [];
+        applyCheckpointFilter();
       };
 
       const loadPacks = async () => {
@@ -1649,6 +1725,7 @@
       document.querySelectorAll('[data-task-template]').forEach((button) => {
         button.onclick = () => applyTaskTemplate(button.dataset.taskTemplate);
       });
+      checkpointSearchEl.oninput = applyCheckpointFilter;
 
       initSupabase()
         .then(() => refreshSession())

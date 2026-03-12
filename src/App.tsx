@@ -3204,6 +3204,40 @@ export default function App() {
               <span>{publicLeaderboard[0].public_proofs} proofs · {publicLeaderboard[0].finished_runs} finishes</span>
             </div>
           )}
+          {publicLeaderboard.length > 0 && (
+            <div className="result-grid result-grid-three leaderboard-glance-grid">
+              <div>
+                <span>Current filter</span>
+                <strong>{selectedLeaderboardCity ? ALLEYCAT_CITY_PRESETS.find((city) => city.toLowerCase() === selectedLeaderboardCity) || selectedLeaderboardCity : "All cities"}</strong>
+              </div>
+              <div>
+                <span>Leader share</span>
+                <strong>
+                  {Math.max(
+                    1,
+                    Math.round(
+                      (publicLeaderboard[0].public_proofs /
+                        Math.max(
+                          1,
+                          publicLeaderboard.reduce((sum, entry) => sum + entry.public_proofs, 0)
+                        )) *
+                        100
+                    )
+                  )}
+                  %
+                </strong>
+              </div>
+              <div>
+                <span>Avg proofs</span>
+                <strong>
+                  {(
+                    publicLeaderboard.reduce((sum, entry) => sum + entry.public_proofs, 0) /
+                    Math.max(1, publicLeaderboard.length)
+                  ).toFixed(1)}
+                </strong>
+              </div>
+            </div>
+          )}
           {publicLeaderboard.length > 1 && (
             <div className="leaderboard-podium">
               {publicLeaderboard.slice(0, 3).map((entry) => (
@@ -3232,6 +3266,11 @@ export default function App() {
                       </button>
                     </strong>
                     <span>{entry.public_proofs} proofs · {entry.finished_runs} finishes</span>
+                    <div className="leaderboard-meta-chips">
+                      <span className="mini-chip active">Top {entry.rank}</span>
+                      {entry.finished_runs > 0 && <span className="mini-chip">{entry.finished_runs} closed</span>}
+                      {entry.public_proofs > 0 && <span className="mini-chip">{entry.public_proofs} posted</span>}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -3260,17 +3299,34 @@ export default function App() {
           )}
           {publicRiderProfile && (
             <>
-              <div className="rider-profile-head">
-                <div>
-                  <div className="form-title">{publicRiderProfile.profile.rider_name}</div>
-                  <div className="form-subtitle">
-                    {publicRiderProfile.profile.home_location || publicRiderProfile.stats.top_city || "No city tag yet"}
+              <div className="rider-profile-hero">
+                <div className="rider-profile-head">
+                  <div>
+                    <div className="form-title">{publicRiderProfile.profile.rider_name}</div>
+                    <div className="form-subtitle">
+                      {publicRiderProfile.profile.home_location || publicRiderProfile.stats.top_city || "No city tag yet"}
+                    </div>
+                  </div>
+                  <div className="rider-bike-tag">
+                    <span>{publicRiderProfile.profile.bike_name || "Bike not set"}</span>
+                    <strong>{publicRiderProfile.profile.bike_ratio || "Ratio not set"}</strong>
                   </div>
                 </div>
-                <div className="rider-bike-tag">
-                  <span>{publicRiderProfile.profile.bike_name || "Bike not set"}</span>
-                  <strong>{publicRiderProfile.profile.bike_ratio || "Ratio not set"}</strong>
-                </div>
+
+                {publicRiderProfile.recent_proofs?.[0] && (
+                  <div className="rider-feature-card">
+                    <img
+                      src={publicRiderProfile.recent_proofs[0].public_url}
+                      alt={`${publicRiderProfile.recent_proofs[0].checkpoint_name} by ${publicRiderProfile.profile.rider_name}`}
+                      className="rider-feature-image"
+                    />
+                    <div className="rider-feature-meta">
+                      <span>Latest wall hit</span>
+                      <strong>{publicRiderProfile.recent_proofs[0].checkpoint_name}</strong>
+                      <em>{publicRiderProfile.recent_proofs[0].city_name} · {new Date(publicRiderProfile.recent_proofs[0].created_at).toLocaleDateString()}</em>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="result-grid result-grid-four rider-stat-grid">
@@ -3289,6 +3345,21 @@ export default function App() {
                 <div>
                   <span>Best finish</span>
                   <strong>{publicRiderProfile.stats.best_finish_seconds ? formatDuration(publicRiderProfile.stats.best_finish_seconds) : "--:--"}</strong>
+                </div>
+              </div>
+
+              <div className="result-grid result-grid-three rider-stat-grid rider-stat-grid-secondary">
+                <div>
+                  <span>Cities hit</span>
+                  <strong>{publicRiderProfile.stats.cities}</strong>
+                </div>
+                <div>
+                  <span>Top city</span>
+                  <strong>{publicRiderProfile.stats.top_city || "--"}</strong>
+                </div>
+                <div>
+                  <span>Quarter proofs</span>
+                  <strong>{publicRiderProfile.stats.quarter_public_proofs}</strong>
                 </div>
               </div>
 
