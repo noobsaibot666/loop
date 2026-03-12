@@ -34,6 +34,11 @@ export default function LeaderboardPage({
       <section className="sub-page-header">
         <h1 className="sub-page-title">Leaderboard</h1>
         <p className="sub-page-description">Quarter heat only. Proof first, finishes second.</p>
+        <div className="surface-story-strip">
+          <div className="mini-chip active">{publicQuarterLabel || "Current quarter"}</div>
+          <div className="mini-chip">{selectedLeaderboardCity ? `${getCityLabel(selectedLeaderboardCity)} board` : "All cities board"}</div>
+          <div className="mini-chip">Proof leads, closes settle ties</div>
+        </div>
       </section>
 
       <section className="builder-grid single reveals">

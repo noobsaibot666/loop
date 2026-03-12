@@ -3149,6 +3149,7 @@ export default function App() {
             ? (
               <Suspense fallback={<div className="status-message page-loader">Loading Wall of Fame…</div>}>
                 <WallPage
+                  publicQuarterLabel={publicQuarterLabel}
                   selectedWallCity={selectedWallCity}
                   setSelectedWallCity={setSelectedWallCity}
                   cityPresets={ALLEYCAT_CITY_PRESETS}

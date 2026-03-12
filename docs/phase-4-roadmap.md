@@ -39,6 +39,7 @@ Status:
 - split vendor code into separate React and Supabase chunks
 - split Wall of Fame, Leaderboard, and Rider Profile into lazy-loaded route chunks
 - rechecked multi-word city filters after the public-surface split
+- tightened checkpoint pooling so ranged Alleycat runs stay denser inside expanded-city packs
 
 ### 3. Editorial city surfaces
 Make public discovery pages feel more intentional.
@@ -48,6 +49,11 @@ Scope:
 - seasonal / quarter framing
 - better city lane callouts
 
+Status:
+- done
+- Wall of Fame now carries featured and spotlight logic with quarter/city framing
+- Leaderboard now carries clearer active-board framing without adding page clutter
+
 ### 4. Live QA hardening
 Close the gap between “implemented” and “robust under live use.”
 
@@ -55,6 +61,12 @@ Scope:
 - mixed-user scans on rider pages
 - real-city filter verification
 - city-pack density review in the expanded set
+
+Status:
+- done
+- live multi-word city filters were rechecked against public APIs
+- public wall / leaderboard / rider routes were rechecked after lazy splitting
+- expanded-city manifest generation now prefers denser local checkpoint pools inside the selected range
 
 ## Guardrails
 - keep comments/likes out
@@ -68,3 +80,6 @@ Phase 4 is successful if:
 - public discovery surfaces feel editorial, not accidental
 - frontend weight starts moving down instead of up
 - live QA issues are getting burned down, not carried forever
+
+Current result:
+- complete

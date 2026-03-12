@@ -12,6 +12,7 @@ type WallPost = {
 };
 
 type WallPageProps = {
+  publicQuarterLabel: string;
   selectedWallCity: string;
   setSelectedWallCity: (value: string) => void;
   cityPresets: string[];
@@ -27,6 +28,7 @@ type WallPageProps = {
 };
 
 export default function WallPage({
+  publicQuarterLabel,
   selectedWallCity,
   setSelectedWallCity,
   cityPresets,
@@ -45,6 +47,11 @@ export default function WallPage({
       <section className="sub-page-header">
         <h1 className="sub-page-title">Wall of Fame</h1>
         <p className="sub-page-description">Proof hits from real runs. Names, cities, no fluff.</p>
+        <div className="surface-story-strip">
+          <div className="mini-chip active">{publicQuarterLabel || "Current quarter"} live</div>
+          <div className="mini-chip">{selectedWallCity ? `${getCityLabel(selectedWallCity)} lane` : "All city lanes"}</div>
+          <div className="mini-chip">Fresh proof first</div>
+        </div>
       </section>
 
       <section className="wall-section reveals" id="wall-feed">

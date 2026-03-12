@@ -896,7 +896,11 @@ export const buildMessengerManifestFromPack = ({
           error: `${pack.name} cannot fit ${targetCount} checkpoints within ${resolvedRangeKm} km of ${startLabel || "that start area"}. Widen the range, lower the checkpoint count, or drop the difficulty.`,
         };
       }
-      candidatePool = inRange.map((entry) => entry.checkpoint);
+      const denseWindow = Math.min(
+        inRange.length,
+        Math.max(targetCount + 2, targetCount * 2)
+      );
+      candidatePool = inRange.slice(0, denseWindow).map((entry) => entry.checkpoint);
     } else {
       candidatePool = ranked.map((entry) => entry.checkpoint);
     }

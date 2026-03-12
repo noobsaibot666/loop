@@ -22,13 +22,13 @@ Related docs:
 - [x] Recheck motion so transitions never hide content
 
 ## Editorial city surfaces
-- [ ] Review Wall of Fame featured logic on live mixed-user data
-- [ ] Add clearer quarter/city framing where needed
+- [x] Review Wall of Fame featured logic on live mixed-user data
+- [x] Add clearer quarter/city framing where needed
 
 ## Live QA hardening
 - [x] Re-test multi-word city filtering on live data
-- [ ] Review expanded-city density on real manifests
-- [ ] Review rider profile scan speed on smaller screens
+- [x] Review expanded-city density on real manifests
+- [x] Review rider profile scan speed on smaller screens
 
 ## Deferred
 - [-] comments
