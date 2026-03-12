@@ -263,9 +263,9 @@ const checkpointsByCity = {
 };
 
 const difficultyConfig = {
-  easy: { count: 4, estimatedMinutes: 38, ghostSeconds: 42 * 60 },
-  medium: { count: 5, estimatedMinutes: 54, ghostSeconds: 58 * 60 },
-  hard: { count: 6, estimatedMinutes: 72, ghostSeconds: 75 * 60 },
+  easy: { count: 4, estimatedMinutes: 38, ghostSeconds: 37 * 60 },
+  medium: { count: 5, estimatedMinutes: 54, ghostSeconds: 50 * 60 },
+  hard: { count: 6, estimatedMinutes: 72, ghostSeconds: 64 * 60 },
 };
 
 const titleTokens = {

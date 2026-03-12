@@ -263,6 +263,26 @@
       margin-top: 4px;
     }
 
+    .winner-row {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      margin-bottom: 16px;
+    }
+
+    .winner-card {
+      padding: 16px 18px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      display: grid;
+      gap: 6px;
+    }
+
+    .winner-card .label {
+      color: #ffb575;
+    }
+
     .proofs {
       display: grid;
       gap: 18px;
@@ -642,6 +662,7 @@
     <section class="card" id="quarterPanel" data-section="overview" style="display:none;">
       <div class="eyebrow">Quarter board</div>
       <div class="sub" id="quarterLabel">Current quarter</div>
+      <div class="winner-row" id="quarterTop3"></div>
       <div class="sessions" id="quarterLeaders"></div>
     </section>
 
@@ -769,6 +790,7 @@
       const refreshProofsButton = document.getElementById('refreshProofs');
       const requestsList = document.getElementById('requestsList');
       const quarterLeaders = document.getElementById('quarterLeaders');
+      const quarterTop3 = document.getElementById('quarterTop3');
       const packsList = document.getElementById('packsList');
       const checkpointsList = document.getElementById('checkpointsList');
       const previewBox = document.getElementById('previewBox');
@@ -1268,6 +1290,7 @@
           document.getElementById('runsMetric').textContent = overview.metrics.alleycat_runs;
           sessionsList.innerHTML = '';
           quarterLeaders.innerHTML = '';
+          quarterTop3.innerHTML = '';
           document.getElementById('quarterLabel').textContent = overview.quarter?.label || 'Current quarter';
           if (!overview.recent_sessions.length) {
             sessionsList.innerHTML = '<div class="label">No recent Stripe sessions.</div>';
@@ -1291,6 +1314,16 @@
             quarterLeaders.innerHTML = '<div class="label">No ranked riders yet.</div>';
             return;
           }
+          overview.quarter.leaders.slice(0, 3).forEach((entry) => {
+            const card = document.createElement('div');
+            card.className = 'winner-card';
+            card.innerHTML = `
+              <div class="label">Top ${entry.rank}</div>
+              <strong>${entry.rider_name}</strong>
+              <span>${entry.public_proofs} proofs · ${entry.finished_runs} finishes</span>
+            `;
+            quarterTop3.appendChild(card);
+          });
           overview.quarter.leaders.forEach((entry) => {
             const row = document.createElement('div');
             row.className = 'session';

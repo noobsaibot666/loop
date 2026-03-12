@@ -8,3 +8,5 @@
 /wall/* / 200
 /leaderboard / 200
 /leaderboard/* / 200
+/rider / 200
+/rider/* / 200

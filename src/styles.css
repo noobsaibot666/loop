@@ -392,6 +392,25 @@ select {
   background: var(--accent-soft);
 }
 
+.share-manifest-button {
+  background: var(--accent) !important;
+  color: #000 !important;
+  border: 1px solid var(--accent) !important;
+  box-shadow: 0 0 0 1px rgba(255, 106, 0, 0.12), 0 14px 30px rgba(255, 106, 0, 0.16);
+}
+
+.share-manifest-button:hover {
+  background: #ff8b3d !important;
+  border-color: #ff8b3d !important;
+  color: #000 !important;
+}
+
+.share-manifest-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .hero {
   position: relative;
   min-height: 68vh;
@@ -1576,6 +1595,21 @@ input[type="range"]::-webkit-slider-thumb {
   font-weight: 600;
 }
 
+.inline-link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.inline-link-button:hover {
+  color: var(--accent);
+}
+
 .challenge-summary-head {
   display: flex;
   align-items: center;
@@ -2055,6 +2089,49 @@ input[type="range"]::-webkit-slider-thumb {
   font-size: 0.92rem;
   font-weight: 600;
   color: var(--text-main);
+}
+
+.rider-profile-card {
+  display: grid;
+  gap: 24px;
+}
+
+.rider-profile-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.rider-bike-tag {
+  display: grid;
+  gap: 4px;
+  min-width: 180px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.rider-bike-tag span {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.rider-bike-tag strong {
+  font-size: 1rem;
+}
+
+.rider-profile-proof-head {
+  display: grid;
+  gap: 6px;
+}
+
+.rider-proof-grid {
+  column-count: 2;
 }
 
 .user-row {
@@ -2822,6 +2899,10 @@ input[type="range"]::-webkit-slider-thumb {
 
   .wall-card {
     margin-bottom: 10px;
+  }
+
+  .rider-proof-grid {
+    column-count: 1;
   }
 
   .leaderboard-row {

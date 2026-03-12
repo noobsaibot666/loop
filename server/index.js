@@ -1647,7 +1647,7 @@ app.get("/api/wall", async (req, res) => {
   let { data, error } = await applyCity(
     supabase
       .from("messenger_proof_posts")
-      .select("id, rider_name, city_name, city_slug, checkpoint_name, location_label, public_url, created_at, bike_name, bike_ratio")
+      .select("id, user_id, rider_name, city_name, city_slug, checkpoint_name, location_label, public_url, created_at, bike_name, bike_ratio")
       .eq("is_public", true)
       .is("archived_at", null)
       .order("created_at", { ascending: false })
@@ -1657,7 +1657,7 @@ app.get("/api/wall", async (req, res) => {
     ({ data, error } = await applyCity(
       supabase
         .from("messenger_proof_posts")
-        .select("id, rider_name, city_name, city_slug, checkpoint_name, location_label, public_url, created_at")
+        .select("id, user_id, rider_name, city_name, city_slug, checkpoint_name, location_label, public_url, created_at")
         .eq("is_public", true)
         .order("created_at", { ascending: false })
         .limit(40)
@@ -1665,6 +1665,101 @@ app.get("/api/wall", async (req, res) => {
   }
   if (error) return res.status(500).json({ error: error.message });
   return res.json({ posts: data || [] });
+});
+
+app.get("/api/rider-profile", async (req, res) => {
+  const userId = String(req.query.user_id || "").trim();
+  if (!userId) return res.status(400).json({ error: "user_id required" });
+
+  const quarter = getQuarterWindow();
+  const [profileRes, proofsRes, runsRes, quarterProofsRes, quarterRunsRes] = await Promise.all([
+    supabase
+      .from("user_profiles")
+      .select("user_id, rider_name, home_location, bike_name, bike_ratio")
+      .eq("user_id", userId)
+      .maybeSingle(),
+    supabase
+      .from("messenger_proof_posts")
+      .select("id, user_id, rider_name, city_name, city_slug, checkpoint_name, location_label, public_url, created_at, bike_name, bike_ratio")
+      .eq("user_id", userId)
+      .eq("is_public", true)
+      .is("archived_at", null)
+      .order("created_at", { ascending: false })
+      .limit(18),
+    supabase
+      .from("messenger_runs")
+      .select("id, finished_at, finish_seconds")
+      .eq("user_id", userId)
+      .eq("status", "finished")
+      .order("finished_at", { ascending: false }),
+    supabase
+      .from("messenger_proof_posts")
+      .select("user_id, rider_name, city_name, created_at")
+      .eq("is_public", true)
+      .gte("created_at", quarter.start.toISOString())
+      .lt("created_at", quarter.end.toISOString()),
+    supabase
+      .from("messenger_runs")
+      .select("user_id, finished_at")
+      .eq("status", "finished")
+      .gte("finished_at", quarter.start.toISOString())
+      .lt("finished_at", quarter.end.toISOString()),
+  ]);
+
+  if (proofsRes.error) return res.status(500).json({ error: proofsRes.error.message });
+  if (runsRes.error) return res.status(500).json({ error: runsRes.error.message });
+
+  const proofs = proofsRes.data || [];
+  const runs = runsRes.data || [];
+  const riderName = profileRes.data?.rider_name || proofs[0]?.rider_name || "Rider";
+  const quarterBoard = buildQuarterLeaderboard({
+    proofs: quarterProofsRes.data || [],
+    finishedRuns: quarterRunsRes.data || [],
+  });
+  const quarterEntry = quarterBoard.find((entry) => entry.user_id === userId) || null;
+  const proofsByCity = new Map();
+  for (const proof of proofs) {
+    const key = proof.city_name || "Unknown city";
+    proofsByCity.set(key, (proofsByCity.get(key) || 0) + 1);
+  }
+  const topCity = [...proofsByCity.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "";
+  const bestFinish = runs
+    .map((run) => Number(run.finish_seconds || 0))
+    .filter((value) => value > 0)
+    .sort((a, b) => a - b)[0] || null;
+
+  return res.json({
+    profile: {
+      user_id: userId,
+      rider_name: riderName,
+      home_location: profileRes.data?.home_location || proofs[0]?.city_name || "",
+      bike_name: profileRes.data?.bike_name || proofs[0]?.bike_name || "",
+      bike_ratio: profileRes.data?.bike_ratio || proofs[0]?.bike_ratio || "",
+    },
+    stats: {
+      public_proofs: proofs.length,
+      finished_runs: runs.length,
+      cities: new Set(proofs.map((proof) => proof.city_name).filter(Boolean)).size,
+      top_city: topCity,
+      best_finish_seconds: bestFinish,
+      quarter_rank: quarterEntry?.rank || null,
+      quarter_public_proofs: quarterEntry?.public_proofs || 0,
+      quarter_finishes: quarterEntry?.finished_runs || 0,
+    },
+    badges: deriveBadges({
+      quarterStats: quarterEntry
+        ? {
+            rank: quarterEntry.rank,
+            public_proofs: quarterEntry.public_proofs,
+            finished_runs: quarterEntry.finished_runs,
+          }
+        : null,
+      proofs,
+      manifests: [],
+      challenges: [],
+    }),
+    recent_proofs: proofs,
+  });
 });
 
 app.post("/api/admin/proofs", requireAdmin, async (_req, res) => {
@@ -1697,27 +1792,52 @@ app.post("/api/admin/proof-archive-month", requireAdmin, async (req, res) => {
   return res.json({ ok: true, month, archived: data?.length || 0 });
 });
 
-app.get("/api/leaderboard", async (_req, res) => {
+app.get("/api/leaderboard", async (req, res) => {
+  const city = String(req.query.city || "").trim().toLowerCase();
   const quarter = getQuarterWindow();
-  const [proofsRes, runsRes] = await Promise.all([
-    supabase
-      .from("messenger_proof_posts")
-      .select("user_id,rider_name,city_name,created_at")
-      .eq("is_public", true)
-      .gte("created_at", quarter.start.toISOString())
-      .lt("created_at", quarter.end.toISOString()),
-    supabase
+  const proofsQuery = supabase
+    .from("messenger_proof_posts")
+    .select("user_id,rider_name,city_name,created_at")
+    .eq("is_public", true)
+    .gte("created_at", quarter.start.toISOString())
+    .lt("created_at", quarter.end.toISOString());
+  if (city) proofsQuery.eq("city_slug", city);
+  const proofsRes = await proofsQuery;
+  let runsRes;
+  if (city) {
+    const manifestsRes = await supabase.from("messenger_manifests").select("id").eq("city_slug", city);
+    if (manifestsRes.error) return res.status(500).json({ error: manifestsRes.error.message });
+    const manifestIds = (manifestsRes.data || []).map((item) => item.id).filter(Boolean);
+    if (!manifestIds.length) {
+      return res.json({
+        quarter: {
+          label: quarter.label,
+          city,
+          leaders: [],
+        },
+      });
+    }
+    runsRes = await supabase
+      .from("messenger_runs")
+      .select("user_id,finished_at")
+      .eq("status", "finished")
+      .in("manifest_id", manifestIds)
+      .gte("finished_at", quarter.start.toISOString())
+      .lt("finished_at", quarter.end.toISOString());
+  } else {
+    runsRes = await supabase
       .from("messenger_runs")
       .select("user_id,finished_at")
       .eq("status", "finished")
       .gte("finished_at", quarter.start.toISOString())
-      .lt("finished_at", quarter.end.toISOString()),
-  ]);
+      .lt("finished_at", quarter.end.toISOString());
+  }
   if (proofsRes.error) return res.status(500).json({ error: proofsRes.error.message });
   if (runsRes.error) return res.status(500).json({ error: runsRes.error.message });
   return res.json({
     quarter: {
       label: quarter.label,
+      city,
       leaders: buildQuarterLeaderboard({ proofs: proofsRes.data || [], finishedRuns: runsRes.data || [] }).slice(0, 25),
     },
   });

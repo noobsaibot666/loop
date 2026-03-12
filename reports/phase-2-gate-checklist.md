@@ -11,19 +11,18 @@ Status legend:
 - `[-]` intentionally deferred
 
 ## Wall and social surface
-- [ ] Wall loads correctly with mixed users and cities
-- [ ] Admin hide/show for proof posts works correctly from the admin page
+- [x] Wall loads correctly with mixed users and cities
+- [x] Admin hide/show for proof posts works correctly from the admin page
+- [ ] Admin delete for proof posts works correctly from the admin page
+- [ ] Month archive works correctly in admin and archived posts disappear from the public wall
 
 ## Shared challenge flow
 - [ ] Leaderboard page and shared challenge board need final UX review on live data
+- [ ] Share code action after manifest generation needs live retest with the stronger button treatment
 
 ## Account data richness
 - [ ] Quarter board renders correctly on real rider data
-- [ ] Badge logic looks correct on real rider data
-- [ ] Loop history looks correct on real rider data
-- [ ] Alleycat history looks correct on real rider data
-- [ ] Challenge log looks correct on real rider data
-- [ ] Shared rider list looks correct on real rider data
+- [ ] Ghost targets feel challenging but still fair on real rider runs
 
 ## Admin tooling
 - [ ] City request flow needs full retest

@@ -5,9 +5,9 @@ import heroImage from "./images/hero_6.png";
 import alleycatImage from "./images/hero_4.png";
 
 import Hero from "./components/Hero";
-import { formatDuration, getPageView } from "./utils/routeUtils";
+import { formatDuration, getPageView, getRiderIdFromPath } from "./utils/routeUtils";
 
-export type PageView = "home" | "loop" | "messenger" | "account" | "wall" | "leaderboard";
+export type PageView = "home" | "loop" | "messenger" | "account" | "wall" | "leaderboard" | "rider";
 
 type Usage = {
   free_used: number;
@@ -180,6 +180,7 @@ type AccountSummary = {
 };
 type WallPost = {
   id: string;
+  user_id?: string;
   rider_name: string;
   city_name: string;
   city_slug: string;
@@ -196,6 +197,31 @@ type PublicLeaderboardEntry = {
   public_proofs: number;
   finished_runs: number;
   rank: number;
+};
+type PublicRiderProfile = {
+  profile: {
+    user_id: string;
+    rider_name: string;
+    home_location: string;
+    bike_name: string;
+    bike_ratio: string;
+  };
+  stats: {
+    public_proofs: number;
+    finished_runs: number;
+    cities: number;
+    top_city: string;
+    best_finish_seconds: number | null;
+    quarter_rank: number | null;
+    quarter_public_proofs: number;
+    quarter_finishes: number;
+  };
+  badges: {
+    id: string;
+    label: string;
+    description: string;
+  }[];
+  recent_proofs: WallPost[];
 };
 
 const API_BASE = (() => {
@@ -335,9 +361,13 @@ export default function App() {
   const [isSendingReset, setIsSendingReset] = useState(false);
   const [wallPosts, setWallPosts] = useState<WallPost[]>([]);
   const [isLoadingWall, setIsLoadingWall] = useState(false);
+  const [selectedWallCity, setSelectedWallCity] = useState("");
   const [publicLeaderboard, setPublicLeaderboard] = useState<PublicLeaderboardEntry[]>([]);
   const [publicQuarterLabel, setPublicQuarterLabel] = useState("");
   const [isLoadingPublicLeaderboard, setIsLoadingPublicLeaderboard] = useState(false);
+  const [selectedLeaderboardCity, setSelectedLeaderboardCity] = useState("");
+  const [publicRiderProfile, setPublicRiderProfile] = useState<PublicRiderProfile | null>(null);
+  const [isLoadingPublicRiderProfile, setIsLoadingPublicRiderProfile] = useState(false);
   const [showCityRequest, setShowCityRequest] = useState(false);
   const [cityRequestName, setCityRequestName] = useState("");
   const [cityRequestLocation, setCityRequestLocation] = useState("");
@@ -750,7 +780,7 @@ export default function App() {
     setIsLoadingWall(true);
     (async () => {
       try {
-        const response = await fetch(`${API_BASE}/api/wall`, { cache: "no-store" });
+        const response = await fetch(`${API_BASE}/api/wall${selectedWallCity ? `?city=${encodeURIComponent(selectedWallCity)}` : ""}`, { cache: "no-store" });
         const data = (await response.json()) as { posts: WallPost[] };
         if (!cancelled) setWallPosts(data.posts || []);
       } catch {
@@ -762,7 +792,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [pageView]);
+  }, [pageView, selectedWallCity]);
 
   useEffect(() => {
     if (pageView !== "leaderboard") return;
@@ -770,7 +800,7 @@ export default function App() {
     setIsLoadingPublicLeaderboard(true);
     (async () => {
       try {
-        const response = await fetch(`${API_BASE}/api/leaderboard`, { cache: "no-store" });
+        const response = await fetch(`${API_BASE}/api/leaderboard${selectedLeaderboardCity ? `?city=${encodeURIComponent(selectedLeaderboardCity)}` : ""}`, { cache: "no-store" });
         const data = (await response.json()) as { quarter?: { label?: string; leaders?: PublicLeaderboardEntry[] } };
         if (cancelled) return;
         setPublicQuarterLabel(data.quarter?.label || "");
@@ -782,6 +812,31 @@ export default function App() {
         }
       } finally {
         if (!cancelled) setIsLoadingPublicLeaderboard(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pageView, selectedLeaderboardCity]);
+
+  useEffect(() => {
+    if (pageView !== "rider") return;
+    const riderId = getRiderIdFromPath();
+    if (!riderId) {
+      setPublicRiderProfile(null);
+      return;
+    }
+    let cancelled = false;
+    setIsLoadingPublicRiderProfile(true);
+    (async () => {
+      try {
+        const response = await fetch(`${API_BASE}/api/rider-profile?user_id=${encodeURIComponent(riderId)}`, { cache: "no-store" });
+        const data = (await response.json()) as PublicRiderProfile;
+        if (!cancelled) setPublicRiderProfile(data);
+      } catch {
+        if (!cancelled) setPublicRiderProfile(null);
+      } finally {
+        if (!cancelled) setIsLoadingPublicRiderProfile(false);
       }
     })();
     return () => {
@@ -887,9 +942,19 @@ export default function App() {
               ? "/wall"
               : target === "leaderboard"
                 ? "/leaderboard"
+              : target === "rider"
+                ? "/rider"
               : "/";
     window.history.pushState({}, "", path);
     setPageView(target);
+    setMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleOpenRiderProfile = (userId?: string) => {
+    if (!userId) return;
+    window.history.pushState({}, "", `/rider/${encodeURIComponent(userId)}`);
+    setPageView("rider");
     setMenuOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -2607,7 +2672,7 @@ export default function App() {
                   )}
                   {messengerManifestId && (
                     <button
-                      className="ghost-button"
+                      className="share-manifest-button"
                       type="button"
                       onClick={handleCreateShareCode}
                       disabled={isSharingManifest}
@@ -2957,7 +3022,24 @@ export default function App() {
         <p className="sub-page-description">Proof hits from real runs. Names, cities, no fluff.</p>
       </section>
 
-      <section className="wall-section reveals" id="wall-feed">{isLoadingWall && <div className="status-message">Loading Wall of Fame…</div>}
+      <section className="wall-section reveals" id="wall-feed">
+        <div className="filter-strip">
+          <span className="filter-label">City filter</span>
+          <div className="pill-group">
+            <button type="button" className={`pill ${selectedWallCity === "" ? "active" : ""}`} onClick={() => setSelectedWallCity("")}>All cities</button>
+            {ALLEYCAT_CITY_PRESETS.map((city) => (
+              <button
+                key={city}
+                type="button"
+                className={`pill ${selectedWallCity === city.toLowerCase() ? "active" : ""}`}
+                onClick={() => setSelectedWallCity(city.toLowerCase())}
+              >
+                {city}
+              </button>
+            ))}
+          </div>
+        </div>
+        {isLoadingWall && <div className="status-message">Loading Wall of Fame…</div>}
         {!isLoadingWall && wallPosts.length === 0 && (
           <div className="builder-grid single">
             <div className="glass-card form-card">
@@ -2978,7 +3060,11 @@ export default function App() {
                     <span>Alleycat</span>
                     <span>{post.city_name}</span>
                   </div>
-                  <div className="checkpoint-name">{post.rider_name}</div>
+                  <div className="checkpoint-name">
+                    <button className="inline-link-button" type="button" onClick={() => handleOpenRiderProfile(post.user_id)}>
+                      {post.rider_name}
+                    </button>
+                  </div>
                   <div className="wall-detail-grid">
                     <div>
                       <span>Location</span>
@@ -3015,7 +3101,25 @@ export default function App() {
 
       <section className="builder-grid single reveals">
         <div className="glass-card form-card">
-          <div className="form-title">{publicQuarterLabel || "Current quarter"}</div>
+          <div className="leaderboard-public-head">
+            <div>
+              <div className="form-title">{publicQuarterLabel || "Current quarter"}</div>
+              <div className="form-subtitle">Filter by city or keep it wide open.</div>
+            </div>
+            <div className="pill-group">
+              <button type="button" className={`pill ${selectedLeaderboardCity === "" ? "active" : ""}`} onClick={() => setSelectedLeaderboardCity("")}>All cities</button>
+              {ALLEYCAT_CITY_PRESETS.map((city) => (
+                <button
+                  key={city}
+                  type="button"
+                  className={`pill ${selectedLeaderboardCity === city.toLowerCase() ? "active" : ""}`}
+                  onClick={() => setSelectedLeaderboardCity(city.toLowerCase())}
+                >
+                  {city}
+                </button>
+              ))}
+            </div>
+          </div>
           {isLoadingPublicLeaderboard && <div className="status-message">Loading leaderboard…</div>}
           {!isLoadingPublicLeaderboard && publicLeaderboard.length === 0 && (
             <div className="empty-state">
@@ -3024,17 +3128,138 @@ export default function App() {
             </div>
           )}
           {publicLeaderboard.length > 0 && (
+            <div className="winner-callout">
+              <span className="winner-label">Quarter leader</span>
+              <strong>{publicLeaderboard[0].rider_name}</strong>
+              <span>{publicLeaderboard[0].public_proofs} proofs · {publicLeaderboard[0].finished_runs} finishes</span>
+            </div>
+          )}
+          {publicLeaderboard.length > 0 && (
             <div className="leaderboard-list public-board">
               {publicLeaderboard.map((entry) => (
                 <div key={entry.user_id} className="leaderboard-row">
                   <div className="leaderboard-rank">#{entry.rank}</div>
                   <div className="leaderboard-main">
-                    <strong>{entry.rider_name}</strong>
+                    <strong>
+                      <button className="inline-link-button" type="button" onClick={() => handleOpenRiderProfile(entry.user_id)}>
+                        {entry.rider_name}
+                      </button>
+                    </strong>
                     <span>{entry.public_proofs} proofs · {entry.finished_runs} finishes</span>
                   </div>
                 </div>
               ))}
             </div>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+
+  const renderPublicRiderProfile = () => (
+    <div className="sequential-layout sub-page">
+      <section className="sub-page-header">
+        <h1 className="sub-page-title">{publicRiderProfile?.profile?.rider_name || "Rider profile"}</h1>
+        <p className="sub-page-description">Public proof, quarter heat, and bike setup from the wall.</p>
+      </section>
+
+      <section className="builder-grid single reveals">
+        <div className="glass-card form-card rider-profile-card">
+          {isLoadingPublicRiderProfile && <div className="status-message">Loading rider profile…</div>}
+          {!isLoadingPublicRiderProfile && !publicRiderProfile && (
+            <div className="empty-state">
+              <div className="empty-state-title">Rider not found</div>
+              <div className="empty-state-body">That profile is not public yet or the link is stale.</div>
+            </div>
+          )}
+          {publicRiderProfile && (
+            <>
+              <div className="rider-profile-head">
+                <div>
+                  <div className="form-title">{publicRiderProfile.profile.rider_name}</div>
+                  <div className="form-subtitle">
+                    {publicRiderProfile.profile.home_location || publicRiderProfile.stats.top_city || "No city tag yet"}
+                  </div>
+                </div>
+                <div className="rider-bike-tag">
+                  <span>{publicRiderProfile.profile.bike_name || "Bike not set"}</span>
+                  <strong>{publicRiderProfile.profile.bike_ratio || "Ratio not set"}</strong>
+                </div>
+              </div>
+
+              <div className="result-grid result-grid-four rider-stat-grid">
+                <div>
+                  <span>Public proofs</span>
+                  <strong>{publicRiderProfile.stats.public_proofs}</strong>
+                </div>
+                <div>
+                  <span>Finished runs</span>
+                  <strong>{publicRiderProfile.stats.finished_runs}</strong>
+                </div>
+                <div>
+                  <span>Quarter rank</span>
+                  <strong>{publicRiderProfile.stats.quarter_rank ? `#${publicRiderProfile.stats.quarter_rank}` : "--"}</strong>
+                </div>
+                <div>
+                  <span>Best finish</span>
+                  <strong>{publicRiderProfile.stats.best_finish_seconds ? formatDuration(publicRiderProfile.stats.best_finish_seconds) : "--:--"}</strong>
+                </div>
+              </div>
+
+              {publicRiderProfile.badges?.length > 0 && (
+                <div className="badge-list">
+                  {publicRiderProfile.badges.map((badge) => (
+                    <div key={badge.id} className="badge-chip">
+                      <strong>{badge.label}</strong>
+                      <span>{badge.description}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="rider-profile-proof-head">
+                <div className="form-title">Recent proof</div>
+                <div className="form-subtitle">The latest public hits from this rider.</div>
+              </div>
+              {!publicRiderProfile.recent_proofs?.length ? (
+                <div className="empty-state">
+                  <div className="empty-state-body">No public proof yet.</div>
+                </div>
+              ) : (
+                <div className="wall-grid rider-proof-grid">
+                  {publicRiderProfile.recent_proofs.map((post) => (
+                    <div key={post.id} className="glass-card wall-card">
+                      <img src={post.public_url} alt={`${post.checkpoint_name} by ${post.rider_name}`} className="wall-image" />
+                      <div className="wall-meta">
+                        <div className="checkpoint-meta">
+                          <span>Alleycat</span>
+                          <span>{post.city_name}</span>
+                        </div>
+                        <div className="checkpoint-name">{post.rider_name}</div>
+                        <div className="wall-detail-grid">
+                          <div>
+                            <span>Location</span>
+                            <strong>{post.location_label || post.city_name}</strong>
+                          </div>
+                          <div>
+                            <span>Date</span>
+                            <strong>{new Date(post.created_at).toLocaleDateString()}</strong>
+                          </div>
+                          <div>
+                            <span>Bike</span>
+                            <strong>{post.bike_name || publicRiderProfile.profile.bike_name || "Bike not set"}</strong>
+                          </div>
+                          <div>
+                            <span>Ratio</span>
+                            <strong>{post.bike_ratio || publicRiderProfile.profile.bike_ratio || "Ratio not set"}</strong>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       </section>
@@ -3052,6 +3277,8 @@ export default function App() {
             ? renderWall()
             : pageView === "leaderboard"
               ? renderPublicLeaderboard()
+              : pageView === "rider"
+                ? renderPublicRiderProfile()
             : renderHome();
 
   return (
