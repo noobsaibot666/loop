@@ -18,7 +18,7 @@ Related docs:
 
 ## Performance and frontend structure
 - [x] Audit the large frontend bundle and choose a code-splitting plan
-- [ ] Split the heaviest public surfaces behind route/page boundaries
+- [x] Split the heaviest public surfaces behind route/page boundaries
 - [x] Recheck motion so transitions never hide content
 
 ## Editorial city surfaces
@@ -26,7 +26,7 @@ Related docs:
 - [ ] Add clearer quarter/city framing where needed
 
 ## Live QA hardening
-- [ ] Re-test multi-word city filtering on live data
+- [x] Re-test multi-word city filtering on live data
 - [ ] Review expanded-city density on real manifests
 - [ ] Review rider profile scan speed on smaller screens
 

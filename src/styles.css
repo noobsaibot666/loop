@@ -1569,6 +1569,11 @@ input[type="range"]::-webkit-slider-thumb {
   line-height: 1.55;
 }
 
+.page-loader {
+  margin: 3rem auto;
+  text-align: center;
+}
+
 .leaderboard-list {
   display: grid;
   gap: 10px;

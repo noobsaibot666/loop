@@ -37,6 +37,8 @@ Status:
 - removed `framer-motion` from the main app path
 - replaced oversized PNG hero assets with compressed JPEGs
 - split vendor code into separate React and Supabase chunks
+- split Wall of Fame, Leaderboard, and Rider Profile into lazy-loaded route chunks
+- rechecked multi-word city filters after the public-surface split
 
 ### 3. Editorial city surfaces
 Make public discovery pages feel more intentional.
