@@ -6,6 +6,7 @@ export async function onRequest({ request, env }) {
   const buildFilters = (select) => {
     const filters = [
       "is_public=eq.true",
+      "archived_at=is.null",
       "order=created_at.desc",
       "limit=40",
       `select=${select}`,
@@ -28,7 +29,7 @@ export async function onRequest({ request, env }) {
     rows =
       (await supabaseRequest(
         env,
-        `messenger_proof_posts?${buildFilters("id,rider_name,city_name,city_slug,checkpoint_name,location_label,public_url,created_at")}`,
+        `messenger_proof_posts?is_public=eq.true&order=created_at.desc&limit=40${city.trim() ? `&city_slug=eq.${encodeURIComponent(city.trim().toLowerCase())}` : ""}&select=id,rider_name,city_name,city_slug,checkpoint_name,location_label,public_url,created_at`,
         { method: "GET" }
       )) || [];
   }

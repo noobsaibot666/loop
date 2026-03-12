@@ -346,7 +346,7 @@ app.post("/api/admin/overview", requireAdmin, async (req, res) => {
       supabase.from("messenger_challenges").select("id"),
       supabase
         .from("messenger_proof_posts")
-        .select("id, rider_name, city_name, checkpoint_name, is_public, created_at, public_url")
+        .select("id, rider_name, city_name, checkpoint_name, is_public, created_at, public_url, storage_path")
         .order("created_at", { ascending: false })
         .limit(12),
       supabase
@@ -539,6 +539,27 @@ app.post("/api/admin/proof-visibility", requireAdmin, async (req, res) => {
     ok: true,
     proof: data?.[0] || null,
   });
+});
+
+app.post("/api/admin/proof-delete", requireAdmin, async (req, res) => {
+  const proof_id = String(req.body?.proof_id || "").trim();
+  if (!proof_id) return res.status(400).json({ error: "proof_id required" });
+
+  const { data: proof, error: proofError } = await supabase
+    .from("messenger_proof_posts")
+    .select("id, storage_path")
+    .eq("id", proof_id)
+    .maybeSingle();
+  if (proofError) return res.status(500).json({ error: proofError.message });
+  if (!proof) return res.status(404).json({ error: "proof not found" });
+
+  if (proof.storage_path) {
+    await supabase.from("storage.objects").delete().eq("bucket_id", "alleycat-proofs").eq("name", proof.storage_path);
+  }
+
+  const { error } = await supabase.from("messenger_proof_posts").delete().eq("id", proof_id);
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ ok: true, deleted_id: proof_id });
 });
 
 app.post("/api/admin/city-requests", requireAdmin, async (req, res) => {
@@ -1628,6 +1649,7 @@ app.get("/api/wall", async (req, res) => {
       .from("messenger_proof_posts")
       .select("id, rider_name, city_name, city_slug, checkpoint_name, location_label, public_url, created_at, bike_name, bike_ratio")
       .eq("is_public", true)
+      .is("archived_at", null)
       .order("created_at", { ascending: false })
       .limit(40)
   );
@@ -1643,6 +1665,36 @@ app.get("/api/wall", async (req, res) => {
   }
   if (error) return res.status(500).json({ error: error.message });
   return res.json({ posts: data || [] });
+});
+
+app.post("/api/admin/proofs", requireAdmin, async (_req, res) => {
+  const { data, error } = await supabase
+    .from("messenger_proof_posts")
+    .select("id, rider_name, city_name, checkpoint_name, is_public, created_at, public_url, storage_path, archived_at")
+    .order("created_at", { ascending: false })
+    .limit(250);
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ proofs: data || [] });
+});
+
+app.post("/api/admin/proof-archive-month", requireAdmin, async (req, res) => {
+  const month = String(req.body?.month || "").trim();
+  const match = month.match(/^(\d{4})-(\d{2})$/);
+  if (!match) return res.status(400).json({ error: "month must be YYYY-MM" });
+  const year = Number(match[1]);
+  const monthIndex = Number(match[2]) - 1;
+  const start = new Date(Date.UTC(year, monthIndex, 1)).toISOString();
+  const end = new Date(Date.UTC(year, monthIndex + 1, 1)).toISOString();
+
+  const { data, error } = await supabase
+    .from("messenger_proof_posts")
+    .update({ archived_at: new Date().toISOString() })
+    .gte("created_at", start)
+    .lt("created_at", end)
+    .is("archived_at", null)
+    .select("id");
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ ok: true, month, archived: data?.length || 0 });
 });
 
 app.get("/api/leaderboard", async (_req, res) => {

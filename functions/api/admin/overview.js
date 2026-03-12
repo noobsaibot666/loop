@@ -14,7 +14,7 @@ export async function onRequest({ request, env }) {
     supabaseRequest(env, "messenger_challenges?select=id", { method: "GET" }),
     supabaseRequest(
       env,
-      "messenger_proof_posts?select=id,rider_name,city_name,checkpoint_name,is_public,created_at,public_url&order=created_at.desc&limit=12",
+      "messenger_proof_posts?select=id,rider_name,city_name,checkpoint_name,is_public,created_at,public_url,storage_path&order=created_at.desc&limit=12",
       { method: "GET" }
     ),
     supabaseRequest(

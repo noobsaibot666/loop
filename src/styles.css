@@ -573,6 +573,7 @@ p {
   letter-spacing: 0.02em;
   line-height: 1.1;
   margin: 0 0 12px;
+  text-wrap: balance;
 }
 
 .sub-page-description {
@@ -581,6 +582,7 @@ p {
   line-height: 1.6;
   max-width: 50ch;
   margin: 0 0 24px;
+  overflow-wrap: anywhere;
 }
 
 .sub-page-actions {
@@ -755,6 +757,7 @@ p {
 .modular-cell {
   padding: 40px 40px;
   border-right: 1px solid hsla(0, 0%, 100%, 0.1);
+  min-width: 0;
 }
 
 .modular-cell:last-child {
@@ -773,6 +776,7 @@ p {
   font-size: 1rem;
   line-height: 1.2;
   margin-bottom: 12px;
+  text-wrap: balance;
 }
 
 .cell-body {
@@ -780,6 +784,7 @@ p {
   line-height: 1.55;
   color: var(--text-muted);
   margin-bottom: 18px;
+  overflow-wrap: anywhere;
 }
 
 /* SPLIT MODULAR SECTION */
@@ -1088,6 +1093,7 @@ p {
   font-weight: 700;
   letter-spacing: 0.02em;
   text-transform: uppercase;
+  text-wrap: balance;
 }
 
 .hero-card-subtitle,
@@ -1102,6 +1108,7 @@ p {
   color: var(--text-muted);
   font-size: 0.95rem;
   line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .loops-left {
@@ -2286,6 +2293,7 @@ input[type="range"]::-webkit-slider-thumb {
   color: var(--text-muted);
   font-size: 0.85rem;
   line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .history-actions {
@@ -2314,6 +2322,7 @@ input[type="range"]::-webkit-slider-thumb {
 .purchase-row span {
   color: var(--text-muted);
   font-size: 0.82rem;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 1100px) {
@@ -2519,6 +2528,7 @@ input[type="range"]::-webkit-slider-thumb {
     font-size: 0.78rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
+    white-space: normal;
   }
 
   .mobile-nav-links .nav-link.active {
@@ -2541,6 +2551,17 @@ input[type="range"]::-webkit-slider-thumb {
   .hero-copy {
     padding: 20px 16px 16px;
     max-width: none;
+  }
+
+  .hero-copy h1,
+  .sub-page-title,
+  .form-title,
+  .result-title,
+  .cell-title,
+  .module-title,
+  .manifest-title,
+  .checkpoint-name {
+    text-wrap: balance;
   }
 
   .hero,
@@ -2652,6 +2673,7 @@ input[type="range"]::-webkit-slider-thumb {
   .user-card {
     padding: 20px;
     gap: 18px;
+    border-radius: 22px;
   }
 
   .section-block {
@@ -2665,6 +2687,7 @@ input[type="range"]::-webkit-slider-thumb {
 
   .section-block-copy {
     font-size: 0.78rem;
+    line-height: 1.45;
   }
 
   .modular-grid {
@@ -2674,6 +2697,7 @@ input[type="range"]::-webkit-slider-thumb {
   .modular-cell,
   .module-card {
     padding: 18px 16px;
+    min-width: 0;
   }
 
   .modular-cell:nth-child(2n),
@@ -2714,6 +2738,46 @@ input[type="range"]::-webkit-slider-thumb {
   .form-header,
   .account-topbar {
     gap: 10px;
+  }
+
+  .form-actions,
+  .checkpoint-actions,
+  .manifest-action-buttons,
+  .route-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .form-actions > *,
+  .checkpoint-actions > *,
+  .manifest-action-buttons > *,
+  .route-actions > * {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .loops-left,
+  .manifest-metrics,
+  .result-grid,
+  .result-grid-two,
+  .result-grid-three,
+  .challenge-stats-grid,
+  .account-credit-grid,
+  .wall-detail-grid,
+  .profile-grid {
+    gap: 10px 12px;
+  }
+
+  .checkpoint-task,
+  .checkpoint-hint,
+  .account-note,
+  .challenge-summary-copy span,
+  .challenge-card-copy,
+  .user-value,
+  .wall-detail-grid strong {
+    overflow-wrap: anywhere;
   }
 
   .history-list,
@@ -2777,6 +2841,40 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 @media (max-width: 420px) {
+  .sub-page-title {
+    font-size: 1.3rem;
+    line-height: 1.08;
+  }
+
+  .form-title,
+  .result-title,
+  .cell-title,
+  .module-title,
+  .manifest-title,
+  .checkpoint-name {
+    font-size: 0.92rem;
+    line-height: 1.2;
+  }
+
+  .form-subtitle,
+  .sub-page-description,
+  .cell-body,
+  .module-body,
+  .checkpoint-task,
+  .checkpoint-hint,
+  .history-row span,
+  .purchase-row span {
+    font-size: 0.8rem;
+    line-height: 1.5;
+  }
+
+  .form-card,
+  .user-card,
+  .modular-cell,
+  .module-card {
+    padding: 16px 14px;
+  }
+
   .wall-grid {
     column-count: 1;
   }

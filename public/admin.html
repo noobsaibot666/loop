@@ -265,44 +265,120 @@
 
     .proofs {
       display: grid;
-      gap: 12px;
+      gap: 18px;
     }
 
-    .proof {
+    .proof-month {
       display: grid;
-      grid-template-columns: 88px 1fr auto;
-      gap: 16px;
-      align-items: center;
-      padding: 16px 18px;
-      border-radius: 18px;
-      background: rgba(255, 255, 255, 0.04);
+      gap: 14px;
+      padding: 18px;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.03);
       border: 1px solid var(--border);
     }
 
-    .proof img {
-      width: 88px;
-      height: 88px;
+    .proof-month[open] {
+      background: rgba(255, 255, 255, 0.045);
+    }
+
+    .proof-month.archived {
+      opacity: 0.74;
+    }
+
+    .proof-month summary {
+      list-style: none;
+      cursor: pointer;
+    }
+
+    .proof-month summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .proof-month-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .proof-month-summary {
+      display: grid;
+      gap: 6px;
+    }
+
+    .proof-month-summary strong {
+      font-size: 1rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .proof-month-meta {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .proof-month-grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    }
+
+    .proof-tile {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+    }
+
+    .proof-tile img {
+      width: 100%;
+      aspect-ratio: 1 / 1;
       object-fit: cover;
-      border-radius: 4px;
+      border-radius: 14px;
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
-    .proof strong,
-    .proof span {
+    .proof-tile strong,
+    .proof-tile span {
       display: block;
     }
 
-    .proof span {
+    .proof-tile strong {
+      font-size: 0.9rem;
+      line-height: 1.25;
+      word-break: break-word;
+    }
+
+    .proof-tile span {
       color: var(--muted);
-      font-size: 0.85rem;
-      margin-top: 4px;
+      font-size: 0.76rem;
+      line-height: 1.4;
     }
 
     .proof-actions {
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
-      justify-content: flex-end;
+      justify-content: flex-start;
+    }
+
+    .proof-actions button {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .danger {
+      border-color: rgba(255, 87, 87, 0.28);
+      color: #ffd0d0;
+      background: rgba(255, 87, 87, 0.08);
+    }
+
+    .danger:hover {
+      background: rgba(255, 87, 87, 0.14);
+      border-color: rgba(255, 87, 87, 0.4);
     }
 
     .studio-grid {
@@ -456,12 +532,12 @@
         flex-direction: column;
       }
 
-      .proof {
-        grid-template-columns: 1fr;
-      }
-
       .proof-actions {
         justify-content: flex-start;
+      }
+
+      .proof-month-grid {
+        grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
       }
 
       .list-item {
@@ -553,11 +629,6 @@
     <section class="card" id="sessionsPanel" data-section="overview" style="display:none;">
       <div class="eyebrow">Recent top-ups</div>
       <div class="sessions" id="sessionsList"></div>
-    </section>
-
-    <section class="card" id="proofsPanel" data-section="wall" style="display:none;">
-      <div class="eyebrow">Wall of Fame</div>
-      <div class="proofs" id="proofsList"></div>
     </section>
 
     <section class="card" id="requestsPanel" data-section="requests" style="display:none;">
@@ -663,6 +734,18 @@
       </div>
     </section>
 
+    <section class="card" id="proofsPanel" data-section="wall" style="display:none;">
+      <div class="section-head">
+        <div class="section-title">
+          <div class="eyebrow">Wall of Fame</div>
+          <h2>Proof archive</h2>
+          <p class="mini-note">Tiny rider tiles, month by month. Archive a month when it is done, delete what should not live.</p>
+        </div>
+        <button id="refreshProofs" class="secondary">Refresh wall</button>
+      </div>
+      <div class="proofs" id="proofsList"></div>
+    </section>
+
     <div class="status" id="status"></div>
   </div>
 
@@ -683,6 +766,7 @@
       const cityStudioPanel = document.getElementById('cityStudioPanel');
       const sessionsList = document.getElementById('sessionsList');
       const proofsList = document.getElementById('proofsList');
+      const refreshProofsButton = document.getElementById('refreshProofs');
       const requestsList = document.getElementById('requestsList');
       const quarterLeaders = document.getElementById('quarterLeaders');
       const packsList = document.getElementById('packsList');
@@ -782,7 +866,7 @@
 
       const applySection = (section) => {
         activeSection = section;
-        document.querySelectorAll('[data-section]').forEach((element) => {
+        document.querySelectorAll('section[data-section]').forEach((element) => {
           element.style.display = element.dataset.section === section ? 'block' : 'none';
         });
         document.querySelectorAll('.section-chip').forEach((button) => {
@@ -842,6 +926,119 @@
         } catch (error) {
           statusEl.textContent = error.message;
         }
+      };
+
+      const deleteProof = async (proofId) => {
+        const confirmed = window.confirm('Delete this Wall of Fame post?');
+        if (!confirmed) return;
+        statusEl.textContent = 'Deleting proof...';
+        try {
+          await post('/api/admin/proof-delete', {
+            proof_id: proofId
+          });
+          statusEl.textContent = 'Proof deleted.';
+          await paintOverview();
+        } catch (error) {
+          statusEl.textContent = error.message;
+        }
+      };
+
+      const archiveProofMonth = async (month) => {
+        const confirmed = window.confirm(`Archive all Wall of Fame posts from ${month}? This hides them from the public wall but keeps them in admin.`);
+        if (!confirmed) return;
+        statusEl.textContent = `Archiving ${month}...`;
+        try {
+          const data = await post('/api/admin/proof-archive-month', { month });
+          statusEl.textContent = `Archived ${data.archived || 0} post(s) from ${month}.`;
+          await loadProofs();
+        } catch (error) {
+          statusEl.textContent = error.message;
+        }
+      };
+
+      const formatProofMonth = (monthKey) => {
+        const [year, month] = monthKey.split('-').map(Number);
+        const date = new Date(Date.UTC(year, month - 1, 1));
+        return date.toLocaleDateString(undefined, { month: 'long', year: 'numeric', timeZone: 'UTC' });
+      };
+
+      const groupProofsByMonth = (proofs) => {
+        return proofs.reduce((map, proof) => {
+          const monthKey = String(proof.created_at || '').slice(0, 7) || 'unknown';
+          if (!map.has(monthKey)) map.set(monthKey, []);
+          map.get(monthKey).push(proof);
+          return map;
+        }, new Map());
+      };
+
+      const renderProofMonth = (month, proofs, openByDefault) => {
+        const archivedCount = proofs.filter((proof) => proof.archived_at).length;
+        const publicCount = proofs.filter((proof) => proof.is_public).length;
+        const details = document.createElement('details');
+        details.className = `proof-month${archivedCount === proofs.length ? ' archived' : ''}`;
+        details.open = openByDefault;
+        details.innerHTML = `
+          <summary>
+            <div class="proof-month-head">
+              <div class="proof-month-summary">
+                <strong>${formatProofMonth(month)}</strong>
+                <div class="proof-month-meta">${proofs.length} posts · ${publicCount} public${archivedCount ? ` · ${archivedCount} archived` : ''}</div>
+              </div>
+              <div class="proof-actions">
+                <button class="secondary" data-archive-month="${month}" ${archivedCount === proofs.length ? 'disabled' : ''}>
+                  ${archivedCount === proofs.length ? 'Archived' : 'Archive month'}
+                </button>
+              </div>
+            </div>
+          </summary>
+          <div class="proof-month-grid"></div>
+        `;
+        const grid = details.querySelector('.proof-month-grid');
+        proofs.forEach((proof) => {
+          const tile = document.createElement('article');
+          tile.className = 'proof-tile';
+          tile.innerHTML = `
+            <img src="${proof.public_url}" alt="${proof.checkpoint_name || proof.rider_name || 'Wall post'}" />
+            <div>
+              <strong>${proof.rider_name || 'Unknown rider'}</strong>
+              <span>${proof.city_name || 'Unknown city'}</span>
+              <span>${new Date(proof.created_at).toLocaleDateString()} · ${proof.is_public ? 'Public' : 'Hidden'}${proof.archived_at ? ' · Archived' : ''}</span>
+            </div>
+            <div class="proof-actions">
+              <button class="secondary" data-proof-id="${proof.id}" data-next="${proof.is_public ? 'hide' : 'show'}">
+                ${proof.is_public ? 'Hide' : 'Show'}
+              </button>
+              <button class="secondary danger" data-proof-delete="${proof.id}">
+                Delete
+              </button>
+            </div>
+          `;
+          const toggleButton = tile.querySelector('[data-proof-id]');
+          const deleteButton = tile.querySelector('[data-proof-delete]');
+          toggleButton.onclick = () => toggleProofVisibility(proof.id, !proof.is_public);
+          deleteButton.onclick = () => deleteProof(proof.id);
+          grid.appendChild(tile);
+        });
+        const archiveButton = details.querySelector('[data-archive-month]');
+        archiveButton.onclick = (event) => {
+          event.preventDefault();
+          archiveProofMonth(month);
+        };
+        return details;
+      };
+
+      const loadProofs = async () => {
+        proofsList.innerHTML = '';
+        const data = await post('/api/admin/proofs', {});
+        const proofs = data.proofs || [];
+        if (!proofs.length) {
+          proofsList.innerHTML = '<div class="label">No proof posts yet.</div>';
+          return;
+        }
+        const groups = Array.from(groupProofsByMonth(proofs).entries());
+        groups.forEach(([month, monthProofs], index) => {
+          proofsList.appendChild(renderProofMonth(month, monthProofs, index === 0));
+        });
       };
 
       const loadRequests = async () => {
@@ -1070,7 +1267,6 @@
           document.getElementById('creditsMetric').textContent = overview.metrics.total_paid_credits;
           document.getElementById('runsMetric').textContent = overview.metrics.alleycat_runs;
           sessionsList.innerHTML = '';
-          proofsList.innerHTML = '';
           quarterLeaders.innerHTML = '';
           document.getElementById('quarterLabel').textContent = overview.quarter?.label || 'Current quarter';
           if (!overview.recent_sessions.length) {
@@ -1090,29 +1286,7 @@
               `;
             sessionsList.appendChild(row);
           });
-          if (!overview.recent_proofs?.length) {
-            proofsList.innerHTML = '<div class="label">No proof posts yet.</div>';
-          }
-          overview.recent_proofs.forEach((proof) => {
-            const row = document.createElement('div');
-            row.className = 'proof';
-            row.innerHTML = `
-                <img src="${proof.public_url}" alt="${proof.checkpoint_name}" />
-                <div>
-                  <strong>${proof.rider_name}</strong>
-                  <span>${proof.city_name} · ${proof.checkpoint_name}</span>
-                  <span>${new Date(proof.created_at).toLocaleString()} · ${proof.is_public ? 'Public' : 'Hidden'}</span>
-                </div>
-                <div class="proof-actions">
-                  <button class="${proof.is_public ? 'secondary' : ''}" data-proof-id="${proof.id}" data-next="${proof.is_public ? 'hide' : 'show'}">
-                    ${proof.is_public ? 'Hide' : 'Show'}
-                  </button>
-                </div>
-              `;
-            const button = row.querySelector('button');
-            button.onclick = () => toggleProofVisibility(proof.id, !proof.is_public);
-            proofsList.appendChild(row);
-          });
+          await loadProofs();
           if (!overview.quarter?.leaders?.length) {
             quarterLeaders.innerHTML = '<div class="label">No ranked riders yet.</div>';
             return;
@@ -1256,6 +1430,9 @@
       };
       document.getElementById('refreshRequests').onclick = async () => {
         try { await loadRequests(); statusEl.textContent = 'Requests reloaded.'; } catch (e) { statusEl.textContent = e.message; }
+      };
+      refreshProofsButton.onclick = async () => {
+        try { await loadProofs(); statusEl.textContent = 'Wall of Fame reloaded.'; } catch (e) { statusEl.textContent = e.message; }
       };
 
       document.querySelectorAll('.section-chip').forEach((button) => {
