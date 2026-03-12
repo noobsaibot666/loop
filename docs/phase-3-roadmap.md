@@ -75,7 +75,9 @@ Status:
   - Barcelona
   - Sao Paulo
 - admin city studio shells now match the expanded city set
-- next focus is syncing the expansion set into live Supabase and then reviewing city studio flow on real admin use
+- the 8-city expansion set is now synced into live Supabase
+- admin preview now calls out weak district spread before publish
+- next focus is reviewing city studio flow on real admin use
 
 ### 4. Rivalry and social history
 Make async competition feel more personal.

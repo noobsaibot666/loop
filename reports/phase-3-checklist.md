@@ -42,7 +42,7 @@ Related docs:
 - [x] Improve admin preview clarity for city packs
 - [x] Highlight already-created cities more clearly in admin
 - [x] Sync the richer Wave 1 checkpoint set into live Supabase
-- [ ] Sync the 8-city expansion set into live Supabase
+- [x] Sync the 8-city expansion set into live Supabase
 - [ ] Review city studio flow on real admin use
   Focus:
   - pack cards must scan fast

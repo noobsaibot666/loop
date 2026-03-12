@@ -544,6 +544,26 @@
       margin-bottom: 6px;
     }
 
+    .preview-alert {
+      padding: 14px 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(246, 43, 10, 0.2);
+      background: rgba(246, 43, 10, 0.08);
+      color: #ffbf91;
+    }
+
+    .preview-alert.good {
+      border-color: rgba(87, 255, 163, 0.18);
+      background: rgba(87, 255, 163, 0.08);
+      color: #b8ffd5;
+    }
+
+    .preview-districts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
     .preview-checkpoints {
       display: grid;
       gap: 10px;
@@ -1012,6 +1032,16 @@
       };
 
       const renderManifestPreview = (manifest, source) => {
+        const districtCounts = (manifest.checkpoints || []).reduce((map, checkpoint) => {
+          const key = (checkpoint.district || 'Unknown').trim();
+          map.set(key, (map.get(key) || 0) + 1);
+          return map;
+        }, new Map());
+        const districtEntries = Array.from(districtCounts.entries());
+        const repeatedDistricts = districtEntries.filter(([, count]) => count > 1);
+        const spreadWarning = repeatedDistricts.length
+          ? `Repeated district load: ${repeatedDistricts.map(([district, count]) => `${district} x${count}`).join(' · ')}`
+          : 'District spread looks clean in this preview.';
         const spreadLine = manifest.range_km
           ? `Locked to ${manifest.range_km} km${manifest.start_label ? ` from ${manifest.start_label}` : ''}${manifest.max_distance_km ? ` · farthest stop ${manifest.max_distance_km} km` : ''}`
           : 'No start-area lock on this preview.';
@@ -1026,6 +1056,10 @@
                 <div class="preview-manifest-meta">Ghost ${Math.round((manifest.ghost_seconds || 0) / 60)} min</div>
               </div>
               <div class="preview-sections">
+                <div class="preview-alert ${repeatedDistricts.length ? '' : 'good'}">
+                  <strong>${repeatedDistricts.length ? 'Spread warning' : 'Spread check'}</strong>
+                  <span>${spreadWarning}</span>
+                </div>
                 <div class="preview-section">
                   <strong>Route note</strong>
                   <span>${manifest.route_note}</span>
@@ -1033,6 +1067,14 @@
                 <div class="preview-section">
                   <strong>Spread lock</strong>
                   <span>${spreadLine}</span>
+                </div>
+                <div class="preview-section">
+                  <strong>District mix</strong>
+                  <div class="preview-districts">
+                    ${districtEntries.map(([district, count]) => `
+                      <span class="mini-chip ${count > 1 ? '' : 'active'}">${district}${count > 1 ? ` x${count}` : ''}</span>
+                    `).join('')}
+                  </div>
                 </div>
                 <div class="preview-section">
                   <strong>Finish call</strong>
