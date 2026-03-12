@@ -22,6 +22,8 @@ Status:
 - started
 - public city demand summary is now available to riders on Home and Alleycat
 - admin requests now show quick queue counts and top requested cities
+- admin requests can now move into `approved_for_draft` and `ai_drafted`
+- `Approve + AI draft` now creates an inactive city pack shell for review in City Studio
 
 ### 2. Admin release operations
 Make admin better at answering one question fast: what needs attention right now?
@@ -43,6 +45,10 @@ Scope:
 - connect demand signals to city studio
 - clearer pack status / publish readiness
 - better preview confidence before pushing a city live
+
+Status:
+- started
+- admin can now turn a city request into an AI-drafted inactive city pack for review
 
 ### 4. QA hardening for live use
 Keep the product release-ready while the city set grows.

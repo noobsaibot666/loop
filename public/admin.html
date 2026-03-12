@@ -1302,14 +1302,17 @@
               <strong>${request.requested_city || request.requested_location || 'Unknown spot'}</strong>
               <span>${request.requested_location || 'No area'} · ${request.requester_email || 'Guest request'}</span>
               <span>${request.note || 'No rider note'} </span>
+              <span>${request.status || 'new'}${request.admin_note ? ` · ${request.admin_note}` : ''}</span>
             </div>
             <div class="proof-actions">
+              <button class="secondary" data-status="approved_for_draft">Approve</button>
+              <button class="secondary" data-draft="1">Approve + AI draft</button>
               <button class="secondary" data-status="reviewing">Reviewing</button>
               <button class="secondary" data-status="queued">Queue</button>
               <button class="secondary" data-status="done">Done</button>
             </div>
           `;
-          row.querySelectorAll('button').forEach((button) => {
+          row.querySelectorAll('button[data-status]').forEach((button) => {
             button.onclick = async () => {
               statusEl.textContent = `Updating request ${request.id}...`;
               try {
@@ -1325,6 +1328,30 @@
               }
             };
           });
+          row.querySelector('[data-draft]').onclick = async () => {
+            statusEl.textContent = `Drafting city pack for ${request.requested_city || request.requested_location || 'request'}...`;
+            try {
+              const data = await post('/api/admin/city-requests', {
+                action: 'ai_draft',
+                request_id: request.id
+              });
+              if (data.pack?.id) {
+                packIdEl.value = data.pack.id || '';
+                packSlugEl.value = data.pack.slug || '';
+                packNameEl.value = data.pack.name || '';
+                packRouteEl.value = data.pack.route_note || '';
+                packFinishEl.value = data.pack.finish_label || '';
+                packSafetyEl.value = data.pack.safety_note || '';
+                packActiveEl.checked = data.pack.is_active !== false;
+                await loadCheckpoints(data.pack.id);
+              }
+              await loadPacks();
+              await loadRequests();
+              statusEl.textContent = `AI draft ready for ${data.pack?.name || 'city request'}. Review it in City studio before publish.`;
+            } catch (error) {
+              statusEl.textContent = error.message;
+            }
+          };
           requestsList.appendChild(row);
         });
       };

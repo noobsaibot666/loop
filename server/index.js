@@ -580,6 +580,95 @@ app.post("/api/admin/proof-delete", requireAdmin, async (req, res) => {
 });
 
 app.post("/api/admin/city-requests", requireAdmin, async (req, res) => {
+  if (String(req.body?.action || "") === "ai_draft") {
+    if (!OPENAI_API_KEY) return res.status(500).json({ error: "OPENAI_API_KEY missing" });
+    const requestId = String(req.body?.request_id || "").trim();
+    if (!requestId) return res.status(400).json({ error: "request_id required" });
+
+    const { data: requestRows, error: requestError } = await supabase
+      .from("city_requests")
+      .select("*")
+      .eq("id", requestId)
+      .limit(1);
+    if (requestError) return res.status(500).json({ error: requestError.message });
+    const requestRow = requestRows?.[0];
+    if (!requestRow) return res.status(404).json({ error: "request not found" });
+
+    const slugifyCity = (value = "") =>
+      String(value)
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "")
+        .slice(0, 48);
+    const titleCaseCity = (value = "") =>
+      String(value)
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ");
+
+    const cityName = titleCaseCity(requestRow.requested_city || requestRow.requested_location || "");
+    const slug = slugifyCity(cityName);
+    if (!cityName || !slug) return res.status(400).json({ error: "request needs a city name before drafting" });
+
+    const draft = await callOpenAIJson({
+      apiKey: OPENAI_API_KEY,
+      model: OPENAI_MODEL,
+      schemaName: "alleycat_pack_draft",
+      schema: packDraftSchema,
+      userPrompt: buildPackDraftPrompt({
+        city: cityName,
+        route_note: "",
+        finish_label: "",
+        checkpoints: [],
+      }),
+    });
+
+    const { data: existingPack } = await supabase
+      .from("city_packs")
+      .select("*")
+      .eq("slug", slug)
+      .maybeSingle();
+
+    const { data: packRows, error: packError } = await supabase
+      .from("city_packs")
+      .upsert({
+        id: existingPack?.id,
+        slug,
+        name: cityName,
+        route_note: String(draft.route_note || "").trim(),
+        finish_label: String(draft.finish_label || "").trim(),
+        safety_note: "Ride inside local laws, stay sharp in traffic, and keep every task safe and doable.",
+        is_active: false,
+      }, { onConflict: "slug" })
+      .select()
+      .limit(1);
+    if (packError) return res.status(500).json({ error: packError.message });
+    const pack = packRows?.[0] || null;
+
+    const { data: updatedRows, error: updateError } = await supabase
+      .from("city_requests")
+      .update({
+        status: "ai_drafted",
+        admin_note: `AI draft ready for ${cityName}${pack?.id ? ` · pack ${pack.id}` : ""}`,
+        handled_at: new Date().toISOString(),
+      })
+      .eq("id", requestId)
+      .select()
+      .limit(1);
+    if (updateError) return res.status(500).json({ error: updateError.message });
+
+    return res.json({
+      ok: true,
+      request: updatedRows?.[0] || null,
+      pack,
+      draft,
+    });
+  }
+
   if (String(req.body?.action || "") === "update") {
     const requestId = String(req.body?.request_id || "").trim();
     const status = String(req.body?.status || "").trim() || "reviewing";

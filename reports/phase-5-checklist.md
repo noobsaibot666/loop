@@ -23,8 +23,9 @@ Related docs:
 - [x] Make top requested cities obvious at a glance
 
 ## City pack release readiness
-- [ ] Connect request pressure to city studio cues
+- [x] Connect request pressure to city studio cues
 - [ ] Show pack/release readiness more clearly in admin
+- [x] Add admin approval to AI-draft handoff
 
 ## QA hardening
 - [ ] Re-test request submit flow on production
