@@ -1736,6 +1736,36 @@ input[type="range"]::-webkit-slider-thumb {
   margin-top: 14px;
 }
 
+.challenge-rivalry-card {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.challenge-rivalry-card span,
+.challenge-rivalry-card em {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-style: normal;
+}
+
+.challenge-rivalry-card strong {
+  display: block;
+  margin: 8px 0 10px;
+  color: var(--text-soft);
+  line-height: 1.55;
+}
+
+.challenge-rivalry-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
 .challenge-stat {
   border-radius: 16px;
   padding: 12px;
