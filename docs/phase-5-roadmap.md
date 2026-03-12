@@ -52,6 +52,7 @@ Status:
 - City Studio now shows draft/review/ready/live pack state
 - packs now show district coverage and copy-readiness before publish
 - admin can now publish a ready pack straight from the pack list
+- City Studio now shows live publish blockers while editing a pack
 
 ### 4. QA hardening for live use
 Keep the product release-ready while the city set grows.

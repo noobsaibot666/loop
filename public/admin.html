@@ -486,6 +486,25 @@
       border: 1px solid var(--border);
     }
 
+    .review-box {
+      display: grid;
+      gap: 10px;
+    }
+
+    .review-list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.45;
+    }
+
+    .review-list strong {
+      color: var(--text);
+    }
+
     .template-grid {
       display: grid;
       gap: 10px;
@@ -830,6 +849,12 @@
             <button id="draftPack" class="secondary">AI draft</button>
             <button id="refreshPacks" class="secondary">Reload</button>
           </div>
+          <div class="preview-box review-box">
+            <div class="eyebrow">Release read</div>
+            <div class="mini-chip-row" id="packReviewSummary"></div>
+            <div class="mini-note" id="packReviewHint">Load a pack to see publish blockers and readiness.</div>
+            <ul class="review-list" id="packReviewList"></ul>
+          </div>
           <div class="list" id="packsList"></div>
         </div>
 
@@ -933,6 +958,9 @@
       const packFinishEl = document.getElementById('packFinish');
       const packSafetyEl = document.getElementById('packSafety');
       const packActiveEl = document.getElementById('packActive');
+      const packReviewSummaryEl = document.getElementById('packReviewSummary');
+      const packReviewHintEl = document.getElementById('packReviewHint');
+      const packReviewListEl = document.getElementById('packReviewList');
       const checkpointIdEl = document.getElementById('checkpointId');
       const checkpointSlugEl = document.getElementById('checkpointSlug');
       const checkpointNameEl = document.getElementById('checkpointName');
@@ -1036,6 +1064,7 @@
       let accessToken = null;
       let activeSection = 'overview';
       let currentCheckpoints = [];
+      let currentPackMeta = null;
 
       const initSupabase = async () => {
         if (sb) return sb;
@@ -1336,6 +1365,7 @@
                 request_id: request.id
               });
               if (data.pack?.id) {
+                currentPackMeta = data.pack;
                 packIdEl.value = data.pack.id || '';
                 packSlugEl.value = data.pack.slug || '';
                 packNameEl.value = data.pack.name || '';
@@ -1345,6 +1375,7 @@
                 packActiveEl.checked = data.pack.is_active !== false;
                 await loadCheckpoints(data.pack.id);
               }
+              renderPackReview();
               await loadPacks();
               await loadRequests();
               statusEl.textContent = `AI draft ready for ${data.pack?.name || 'city request'}. Review it in City studio before publish.`;
@@ -1427,10 +1458,72 @@
         checkpointsList.innerHTML = '';
         checkpointSummaryEl.innerHTML = '';
         currentCheckpoints = [];
+        renderPackReview();
         if (!packId) return;
         const data = await post('/api/admin/city-checkpoints', { pack_id: packId });
         currentCheckpoints = data.checkpoints || [];
         applyCheckpointFilter();
+        renderPackReview();
+      };
+
+      const getDraftReadiness = () => {
+        const activeCheckpoints = currentCheckpoints.filter((checkpoint) => checkpoint.is_active !== false);
+        const districtCount = new Set(activeCheckpoints.map((checkpoint) => String(checkpoint.district || '').trim()).filter(Boolean)).size;
+        const copyReady = Boolean(
+          String(packRouteEl.value || '').trim() &&
+          String(packFinishEl.value || '').trim() &&
+          String(packSafetyEl.value || '').trim()
+        );
+        const blockers = [];
+        if (!String(packSlugEl.value || '').trim()) blockers.push('Set a pack slug.');
+        if (!String(packNameEl.value || '').trim()) blockers.push('Set a city name.');
+        if (!copyReady) blockers.push('Finish route note, finish line, and safety note.');
+        if (activeCheckpoints.length < 4) blockers.push('Add at least 4 live checkpoints.');
+        if (districtCount < 3) blockers.push('Spread the live pack across at least 3 districts.');
+        const canPublish = blockers.length === 0;
+        let status = 'draft';
+        if (packActiveEl.checked) status = 'live';
+        else if (canPublish) status = 'ready';
+        else if (copyReady || currentCheckpoints.length > 0) status = 'review';
+        return {
+          status,
+          canPublish,
+          blockers,
+          activeCheckpointCount: activeCheckpoints.length,
+          checkpointCount: currentCheckpoints.length,
+          districtCount,
+          copyReady,
+        };
+      };
+
+      const renderPackReview = () => {
+        const readiness = getDraftReadiness();
+        const statusLabel =
+          readiness.status === 'live'
+            ? 'Live'
+            : readiness.status === 'ready'
+              ? 'Ready'
+              : readiness.status === 'review'
+                ? 'Review'
+                : 'Draft';
+        packReviewSummaryEl.innerHTML = `
+          <span class="mini-chip ${readiness.status === 'live' || readiness.status === 'ready' ? 'active' : ''}">${statusLabel}</span>
+          <span class="mini-chip">${readiness.checkpointCount} spots</span>
+          <span class="mini-chip">${readiness.activeCheckpointCount} live</span>
+          <span class="mini-chip">${readiness.districtCount} districts</span>
+          <span class="mini-chip">${readiness.copyReady ? 'Copy set' : 'Copy missing'}</span>
+        `;
+        if (!String(packNameEl.value || '').trim() && !String(packSlugEl.value || '').trim()) {
+          packReviewHintEl.textContent = 'Load a pack to see publish blockers and readiness.';
+          packReviewListEl.innerHTML = '';
+          return;
+        }
+        packReviewHintEl.textContent = readiness.canPublish
+          ? 'This pack can go live now.'
+          : 'Fix the blockers below before publishing.';
+        packReviewListEl.innerHTML = readiness.canPublish
+          ? '<li><strong>Ready:</strong> copy is set, live checkpoint count is high enough, and district spread is covered.</li>'
+          : readiness.blockers.map((blocker) => `<li>${blocker}</li>`).join('');
       };
 
       const loadPacks = async () => {
@@ -1474,6 +1567,7 @@
               </div>
             `;
           row.querySelector('[data-pack-load]').onclick = async () => {
+            currentPackMeta = pack;
             packIdEl.value = pack.id || '';
             packSlugEl.value = pack.slug || '';
             packNameEl.value = pack.name || '';
@@ -1488,6 +1582,7 @@
           const publishButton = row.querySelector('[data-pack-publish]');
           if (publishButton) {
             publishButton.onclick = async () => {
+              currentPackMeta = { ...pack, is_active: true };
               packIdEl.value = pack.id || '';
               packSlugEl.value = pack.slug || '';
               packNameEl.value = pack.name || '';
@@ -1517,10 +1612,12 @@
           safety_note: packSafetyEl.value,
           is_active: packActiveEl.checked
         });
+        currentPackMeta = data.pack || currentPackMeta;
         packIdEl.value = data.pack?.id || packIdEl.value;
         statusEl.textContent = 'City pack saved.';
         await loadPacks();
         if (data.pack?.id) await loadCheckpoints(data.pack.id);
+        renderPackReview();
       };
 
       const saveCheckpoint = async () => {
@@ -1587,6 +1684,7 @@
         packRouteEl.value = data.draft.route_note || packRouteEl.value;
         packFinishEl.value = data.draft.finish_label || packFinishEl.value;
         previewBox.textContent = `AI pack draft ready. Route: ${data.draft.route_note || 'n/a'} | Spread: ${(data.draft.spread_suggestions || []).join(' | ')} | Avoid: ${(data.draft.tourist_overuse_warnings || []).join(' | ')}`;
+        renderPackReview();
       };
 
       const applyPackTemplate = (key) => {
@@ -1599,6 +1697,8 @@
         packFinishEl.value = template.finish_label;
         packSafetyEl.value = template.safety_note;
         previewBox.textContent = `${template.name} starter shell loaded. Add checkpoints next.`;
+        currentPackMeta = null;
+        renderPackReview();
       };
 
       const applyTaskTemplate = (key) => {
@@ -1783,6 +1883,10 @@
       document.getElementById('refreshPacks').onclick = async () => {
         try { await loadPacks(); statusEl.textContent = 'Packs reloaded.'; } catch (e) { statusEl.textContent = e.message; }
       };
+      [packSlugEl, packNameEl, packRouteEl, packFinishEl, packSafetyEl].forEach((el) => {
+        el.addEventListener('input', renderPackReview);
+      });
+      packActiveEl.addEventListener('change', renderPackReview);
       document.getElementById('saveCheckpoint').onclick = async () => {
         try { await saveCheckpoint(); } catch (e) { statusEl.textContent = e.message; }
       };
@@ -1812,6 +1916,7 @@
         button.onclick = () => applyTaskTemplate(button.dataset.taskTemplate);
       });
       checkpointSearchEl.oninput = applyCheckpointFilter;
+      renderPackReview();
 
       initSupabase()
         .then(() => refreshSession())

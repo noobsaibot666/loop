@@ -27,6 +27,7 @@ Related docs:
 - [x] Show pack/release readiness more clearly in admin
 - [x] Add admin approval to AI-draft handoff
 - [x] Add explicit publish-live action for ready packs
+- [x] Show live publish blockers inside City Studio
 
 ## QA hardening
 - [ ] Re-test request submit flow on production
