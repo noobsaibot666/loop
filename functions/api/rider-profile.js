@@ -34,7 +34,7 @@ export async function onRequest({ request, env }) {
     ),
     supabaseRequest(
       env,
-      `messenger_runs?user_id=eq.${encodeURIComponent(userId)}&status=eq.finished&select=id,finished_at,finish_seconds&order=finished_at.desc`,
+      `messenger_runs?user_id=eq.${encodeURIComponent(userId)}&status=eq.finished&select=id,manifest_id,finished_at,finish_seconds&order=finished_at.desc`,
       { method: "GET" }
     ).catch(() => []),
     supabaseRequest(
@@ -70,6 +70,16 @@ export async function onRequest({ request, env }) {
     .sort((a, b) => a - b)[0] || null;
 
   const riderName = profile?.rider_name || proofs[0]?.rider_name || "Rider";
+
+  const runManifestIds = [...new Set((runs || []).map((run) => run.manifest_id).filter(Boolean))];
+  let runManifests = [];
+  if (runManifestIds.length) {
+    runManifests = await supabaseRequest(
+      env,
+      `messenger_manifests?id=in.(${runManifestIds.map((id) => encodeURIComponent(id)).join(",")})&select=id,city_name,manifest_title,ghost_seconds`,
+      { method: "GET" }
+    ).catch(() => []);
+  }
 
   const challengeEntries = await supabaseRequest(
     env,
@@ -123,6 +133,23 @@ export async function onRequest({ request, env }) {
     ],
   });
 
+  const lastProofAt = proofs[0]?.created_at ? new Date(proofs[0].created_at).getTime() : 0;
+  const lastRunAt = runs[0]?.finished_at ? new Date(runs[0].finished_at).getTime() : 0;
+  const lastActiveAt = Math.max(lastProofAt, lastRunAt) || null;
+  const recentRuns = runs.slice(0, 6).map((run) => {
+    const manifest = (runManifests || []).find((item) => item.id === run.manifest_id);
+    const ghostSeconds = typeof manifest?.ghost_seconds === "number" ? manifest.ghost_seconds : null;
+    return {
+      id: run.id,
+      finished_at: run.finished_at,
+      finish_seconds: run.finish_seconds,
+      city_name: manifest?.city_name || "",
+      manifest_title: manifest?.manifest_title || "Manifest",
+      ghost_seconds: ghostSeconds,
+      ghost_delta: ghostSeconds !== null && typeof run.finish_seconds === "number" ? run.finish_seconds - ghostSeconds : null,
+    };
+  });
+
   return json({
     profile: {
       user_id: userId,
@@ -142,6 +169,7 @@ export async function onRequest({ request, env }) {
       quarter_finishes: quarterEntry?.finished_runs || 0,
       shared_challenges: challengeIds.length,
       rivals: sharedRiders.length,
+      last_active_at: lastActiveAt ? new Date(lastActiveAt).toISOString() : null,
     },
     badges: deriveBadges({
       quarterStats: quarterEntry
@@ -157,5 +185,6 @@ export async function onRequest({ request, env }) {
     }),
     recent_proofs: proofs,
     recent_rivals: sharedRiders.slice(0, 6),
+    recent_runs: recentRuns,
   });
 }

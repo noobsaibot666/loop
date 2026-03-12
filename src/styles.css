@@ -2297,6 +2297,13 @@ input[type="range"]::-webkit-slider-thumb {
   margin-top: -8px;
 }
 
+.rider-story-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: -6px;
+}
+
 .rider-rival-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2327,6 +2334,15 @@ input[type="range"]::-webkit-slider-thumb {
 
 .rider-rival-card:hover {
   border-color: var(--accent);
+}
+
+.rider-run-list {
+  gap: 12px;
+}
+
+.rider-run-row strong,
+.rider-run-row span {
+  overflow-wrap: anywhere;
 }
 
 .rider-proof-grid {

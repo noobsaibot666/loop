@@ -22,6 +22,7 @@ Related docs:
   - cleaner stat breakdown with city and quarter context
   - better proof/story feel at the top of the profile
   - real rivalry context with shared-code rider circle
+  - run ledger with finished-manifest ghost deltas
 
 ## Social surface polish
 - [x] Add city filtering to Wall of Fame

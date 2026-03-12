@@ -217,6 +217,7 @@ type PublicRiderProfile = {
     quarter_finishes: number;
     shared_challenges: number;
     rivals: number;
+    last_active_at: string | null;
   };
   badges: {
     id: string;
@@ -230,6 +231,15 @@ type PublicRiderProfile = {
     shared_challenges: number;
     last_joined_at: string;
     cities: string[];
+  }[];
+  recent_runs: {
+    id: string;
+    finished_at: string;
+    finish_seconds: number;
+    city_name: string;
+    manifest_title: string;
+    ghost_seconds: number | null;
+    ghost_delta: number | null;
   }[];
 };
 
@@ -3380,12 +3390,59 @@ export default function App() {
                 </div>
               </div>
 
+              <div className="rider-story-strip">
+                <div className="mini-chip active">
+                  {publicRiderProfile.stats.quarter_rank
+                    ? `Quarter heat: #${publicRiderProfile.stats.quarter_rank}`
+                    : "Quarter heat: building"}
+                </div>
+                <div className="mini-chip">
+                  {publicRiderProfile.stats.last_active_at
+                    ? `Last active ${new Date(publicRiderProfile.stats.last_active_at).toLocaleDateString()}`
+                    : "No recent run date yet"}
+                </div>
+                <div className="mini-chip">
+                  {publicRiderProfile.stats.top_city
+                    ? `${publicRiderProfile.stats.top_city} is the main lane`
+                    : "City story still loading"}
+                </div>
+              </div>
+
               {publicRiderProfile.badges?.length > 0 && (
                 <div className="badge-list">
                   {publicRiderProfile.badges.map((badge) => (
                     <div key={badge.id} className="badge-chip">
                       <strong>{badge.label}</strong>
                       <span>{badge.description}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="rider-profile-proof-head">
+                <div className="form-title">Run ledger</div>
+                <div className="form-subtitle">Closed manifests and how they landed against the ghost.</div>
+              </div>
+              {!publicRiderProfile.recent_runs?.length ? (
+                <div className="empty-state">
+                  <div className="empty-state-body">No finished Alleycat runs yet.</div>
+                </div>
+              ) : (
+                <div className="history-list rider-run-list">
+                  {publicRiderProfile.recent_runs.map((run) => (
+                    <div key={run.id} className="history-row rider-run-row">
+                      <div>
+                        <strong>{run.city_name || "City"} · {run.manifest_title}</strong>
+                        <span>{new Date(run.finished_at).toLocaleDateString()}</span>
+                      </div>
+                      <div className="history-actions">
+                        <strong>{formatDuration(run.finish_seconds)}</strong>
+                        <span className={run.ghost_delta !== null && run.ghost_delta <= 0 ? "good-time" : "slow-time"}>
+                          {run.ghost_delta !== null
+                            ? `${run.ghost_delta <= 0 ? "-" : "+"}${formatDuration(Math.abs(run.ghost_delta))} vs ghost`
+                            : "No ghost split"}
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
