@@ -1,8 +1,10 @@
 import { json, supabaseRequest } from "../_utils.js";
 
+const normalizeCitySlug = (value = "") => String(value).trim().toLowerCase().replace(/\s+/g, "");
+
 export async function onRequest({ request, env }) {
   const url = new URL(request.url);
-  const city = url.searchParams.get("city") || "";
+  const city = normalizeCitySlug(url.searchParams.get("city") || "");
   const buildFilters = (select) => {
     const filters = [
       "is_public=eq.true",
@@ -11,8 +13,8 @@ export async function onRequest({ request, env }) {
       "limit=40",
       `select=${select}`,
     ];
-    if (city.trim()) {
-      filters.unshift(`city_slug=eq.${encodeURIComponent(city.trim().toLowerCase())}`);
+    if (city) {
+      filters.unshift(`city_slug=eq.${encodeURIComponent(city)}`);
     }
     return filters.join("&");
   };
@@ -29,7 +31,7 @@ export async function onRequest({ request, env }) {
     rows =
       (await supabaseRequest(
         env,
-        `messenger_proof_posts?is_public=eq.true&order=created_at.desc&limit=40${city.trim() ? `&city_slug=eq.${encodeURIComponent(city.trim().toLowerCase())}` : ""}&select=id,user_id,rider_name,city_name,city_slug,checkpoint_name,location_label,public_url,created_at`,
+        `messenger_proof_posts?is_public=eq.true&order=created_at.desc&limit=40${city ? `&city_slug=eq.${encodeURIComponent(city)}` : ""}&select=id,user_id,rider_name,city_name,city_slug,checkpoint_name,location_label,public_url,created_at`,
         { method: "GET" }
       )) || [];
   }

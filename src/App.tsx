@@ -272,6 +272,8 @@ const MESSENGER_CREDIT_COST = 3;
 const ALLEYCAT_STORAGE_KEY = "loop_alleycat_state";
 const ALLEYCAT_CITY_PRESETS = ["Berlin", "London", "Tokyo", "Mexico City", "Bogota", "Warsaw", "Barcelona", "Sao Paulo"];
 const PROOF_BUCKET = "alleycat-proofs";
+const toCitySlug = (value = "") => value.trim().toLowerCase().replace(/\s+/g, "");
+const getCityLabel = (value = "") => ALLEYCAT_CITY_PRESETS.find((city) => toCitySlug(city) === toCitySlug(value)) || value;
 
 const loopSteps = [
   {
@@ -1013,7 +1015,7 @@ export default function App() {
 
   const handleOpenWallCity = (cityName?: string) => {
     if (!cityName) return handleNavigate("wall");
-    const slug = cityName.trim().toLowerCase();
+    const slug = toCitySlug(cityName);
     setSelectedWallCity(slug);
     window.history.pushState({}, "", "/wall");
     setPageView("wall");
@@ -1023,7 +1025,7 @@ export default function App() {
 
   const handleOpenLeaderboardCity = (cityName?: string) => {
     if (!cityName) return handleNavigate("leaderboard");
-    const slug = cityName.trim().toLowerCase();
+    const slug = toCitySlug(cityName);
     setSelectedLeaderboardCity(slug);
     window.history.pushState({}, "", "/leaderboard");
     setPageView("leaderboard");
@@ -2606,7 +2608,7 @@ export default function App() {
                     <button
                       key={city}
                       type="button"
-                      className={`pill ${messengerCity.trim().toLowerCase() === city.toLowerCase() ? "active" : ""}`}
+                      className={`pill ${toCitySlug(messengerCity) === toCitySlug(city) ? "active" : ""}`}
                       onClick={() => setMessengerCity(city)}
                     >
                       {city}
@@ -3143,8 +3145,8 @@ export default function App() {
               <button
                 key={city}
                 type="button"
-                className={`pill ${selectedWallCity === city.toLowerCase() ? "active" : ""}`}
-                onClick={() => setSelectedWallCity(city.toLowerCase())}
+                className={`pill ${selectedWallCity === toCitySlug(city) ? "active" : ""}`}
+                onClick={() => setSelectedWallCity(toCitySlug(city))}
               >
                 {city}
               </button>
@@ -3162,11 +3164,11 @@ export default function App() {
                 <span>Riders up</span>
                 <strong>{new Set(wallPosts.map((post) => post.user_id || post.rider_name)).size}</strong>
               </div>
-              <div>
-                <span>City lane</span>
-                <strong>{selectedWallCity ? ALLEYCAT_CITY_PRESETS.find((city) => city.toLowerCase() === selectedWallCity) || selectedWallCity : "All cities"}</strong>
-              </div>
+            <div>
+              <span>City lane</span>
+              <strong>{selectedWallCity ? getCityLabel(selectedWallCity) : "All cities"}</strong>
             </div>
+          </div>
             <div className="wall-editorial-grid">
               {wallFeaturedPost && (
                 <div className="wall-editorial-card wall-editorial-feature">
@@ -3281,15 +3283,15 @@ export default function App() {
             <div className="pill-group">
               <button type="button" className={`pill ${selectedLeaderboardCity === "" ? "active" : ""}`} onClick={() => setSelectedLeaderboardCity("")}>All cities</button>
               {ALLEYCAT_CITY_PRESETS.map((city) => (
-                <button
-                  key={city}
-                  type="button"
-                  className={`pill ${selectedLeaderboardCity === city.toLowerCase() ? "active" : ""}`}
-                  onClick={() => setSelectedLeaderboardCity(city.toLowerCase())}
-                >
-                  {city}
-                </button>
-              ))}
+              <button
+                key={city}
+                type="button"
+                className={`pill ${selectedLeaderboardCity === toCitySlug(city) ? "active" : ""}`}
+                onClick={() => setSelectedLeaderboardCity(toCitySlug(city))}
+              >
+                {city}
+              </button>
+            ))}
             </div>
           </div>
           {isLoadingPublicLeaderboard && <div className="status-message">Loading leaderboard…</div>}
@@ -3326,7 +3328,7 @@ export default function App() {
             <div className="result-grid result-grid-three leaderboard-glance-grid">
               <div>
                 <span>Current filter</span>
-                <strong>{selectedLeaderboardCity ? ALLEYCAT_CITY_PRESETS.find((city) => city.toLowerCase() === selectedLeaderboardCity) || selectedLeaderboardCity : "All cities"}</strong>
+                <strong>{selectedLeaderboardCity ? getCityLabel(selectedLeaderboardCity) : "All cities"}</strong>
               </div>
               <div>
                 <span>Leader share</span>

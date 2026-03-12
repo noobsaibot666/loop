@@ -48,6 +48,7 @@ Status:
 - Leaderboard hierarchy now includes summary stats and a podium block
 - Wall of Fame now uses city-linked story actions to push users into filtered city views
 - Wall of Fame now opens with featured live-data cards to frame the feed more editorially
+- city filtering is now normalized for multi-word city slugs so discovery works consistently across public surfaces
 
 ### 3. City content quality
 Make city packs feel more like real alleycats and less like generic route data.
@@ -108,3 +109,12 @@ Phase 3 is successful if:
 - public rider pages feel useful and linkable
 - leaderboard and wall feel connected
 - city content quality improves without opening moderation problems
+
+## Closeout
+Phase 3 is functionally complete.
+
+The final live-QA cleanup in this phase focused on:
+- editorial framing on Wall of Fame
+- deeper rider-page storytelling
+- city-based discovery between rider pages, wall lanes, and city boards
+- city slug normalization so multi-word cities resolve correctly

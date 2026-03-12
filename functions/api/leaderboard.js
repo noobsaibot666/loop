@@ -1,9 +1,11 @@
 import { json, supabaseRequest } from "../_utils.js";
 import { buildQuarterLeaderboard, getQuarterWindow } from "../../shared/quarterly.js";
 
+const normalizeCitySlug = (value = "") => String(value).trim().toLowerCase().replace(/\s+/g, "");
+
 export async function onRequest({ request, env }) {
   const url = new URL(request.url);
-  const city = String(url.searchParams.get("city") || "").trim().toLowerCase();
+  const city = normalizeCitySlug(url.searchParams.get("city") || "");
   const quarter = getQuarterWindow();
   const proofs = await supabaseRequest(
     env,

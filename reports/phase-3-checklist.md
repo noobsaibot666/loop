@@ -39,6 +39,7 @@ Related docs:
   - denser row chips so rider totals read quicker
   - Wall of Fame now pushes users deeper into city lanes and city boards
   - Wall of Fame now opens with featured live-data cards instead of only a flat feed
+  - city filtering now normalizes multi-word city slugs correctly across wall and leaderboard
 
 ## City content quality
 - [x] Improve checkpoint library depth for Wave 1 cities
