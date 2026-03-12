@@ -63,7 +63,19 @@ Status:
 - rider-facing manifest copy now renders as labeled route / spread / finish blocks
 - generated manifests now prefer district spread when the pack has enough variety
 - Wave 1 fallback packs now have deeper spot coverage across Berlin, London, and Tokyo
-- next focus is syncing the richer Wave 1 checkpoint set into live Supabase and then expanding toward the planned 8-city set
+- the richer Wave 1 checkpoint set is now synced into live Supabase
+- builder shared-code entry is now modal-based to keep the Alleycat form cleaner
+- fallback and builder support now cover the planned 8-city set:
+  - Berlin
+  - London
+  - Tokyo
+  - Mexico City
+  - Bogota
+  - Warsaw
+  - Barcelona
+  - Sao Paulo
+- admin city studio shells now match the expanded city set
+- next focus is syncing the expansion set into live Supabase and then reviewing city studio flow on real admin use
 
 ### 4. Rivalry and social history
 Make async competition feel more personal.
@@ -72,6 +84,11 @@ Scope:
 - cleaner rivalry cards
 - better head-to-head summaries
 - rematch-friendly challenge surfaces
+
+Status:
+- started
+- challenge board now includes a clearer head-to-head summary
+- riders can run the same manifest back directly from the shared board
 
 ## Guardrails
 - keep comments/likes out

@@ -241,7 +241,7 @@ const supabase = supabaseUrl && supabaseAnon ? createClient(supabaseUrl, supabas
 const LOOP_FREE_LIMIT = 3;
 const MESSENGER_CREDIT_COST = 3;
 const ALLEYCAT_STORAGE_KEY = "loop_alleycat_state";
-const ALLEYCAT_CITY_PRESETS = ["Berlin", "London", "Tokyo"];
+const ALLEYCAT_CITY_PRESETS = ["Berlin", "London", "Tokyo", "Mexico City", "Bogota", "Warsaw", "Barcelona", "Sao Paulo"];
 const PROOF_BUCKET = "alleycat-proofs";
 
 const loopSteps = [
@@ -369,6 +369,7 @@ export default function App() {
   const [publicRiderProfile, setPublicRiderProfile] = useState<PublicRiderProfile | null>(null);
   const [isLoadingPublicRiderProfile, setIsLoadingPublicRiderProfile] = useState(false);
   const [showCityRequest, setShowCityRequest] = useState(false);
+  const [showShareJoinModal, setShowShareJoinModal] = useState(false);
   const [cityRequestName, setCityRequestName] = useState("");
   const [cityRequestLocation, setCityRequestLocation] = useState("");
   const [cityRequestNote, setCityRequestNote] = useState("");
@@ -900,6 +901,19 @@ export default function App() {
   const remainingCount = Math.max(0, totalCheckpoints - completedCount);
   const finishedRiders = leaderboard.filter((entry) => entry.status === "finished").length;
   const boardLeader = leaderboard.find((entry) => entry.best_seconds !== null) || null;
+  const ownBoardEntry = leaderboard.find((entry) => entry.user_id === user?.id) || null;
+  const fastestRival = leaderboard.find((entry) => entry.user_id !== user?.id && entry.best_seconds !== null) || null;
+  const rivalrySummary = useMemo(() => {
+    if (!ownBoardEntry?.best_seconds) {
+      if (challengeSummary?.winner_name) return `${challengeSummary.winner_name} is setting the pace. Jump in and make them sweat.`;
+      return "No clean time from you yet. Load the list and put a number on the board.";
+    }
+    if (!fastestRival?.best_seconds) return "You have the only clean time so far. Run it back or wait for someone brave enough to answer.";
+    const delta = ownBoardEntry.best_seconds - fastestRival.best_seconds;
+    if (delta === 0) return `Dead heat with ${fastestRival.rider_name}. Somebody has to blink.`;
+    if (delta < 0) return `You are ${formatDuration(Math.abs(delta))} up on ${fastestRival.rider_name}. Run it back and stretch the gap.`;
+    return `${fastestRival.rider_name} has you by ${formatDuration(delta)}. Run it back and take it back.`;
+  }, [challengeSummary?.winner_name, ownBoardEntry, fastestRival]);
 
   const parseLatLng = (value: string) => {
     const match = value.match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
@@ -1136,11 +1150,21 @@ export default function App() {
       }
       setShareStatus(`Shared manifest loaded from code ${data.source_code}.`);
       setMessengerStatus("Shared manifest loaded. Start when you are ready.");
+      setShowShareJoinModal(false);
     } catch (error) {
       setShareStatus(error instanceof Error ? error.message : "Could not load that share code.");
     } finally {
       setIsLoadingSharedManifest(false);
     }
+  };
+
+  const handleRematchChallenge = async () => {
+    if (!messengerManifest) return;
+    if (!messengerRun) {
+      await handleStartMessenger();
+      return;
+    }
+    await handleRestartMessenger();
   };
 
   const buildMapsUrl = (variant: string) => {
@@ -1784,6 +1808,38 @@ export default function App() {
               </button>
               <button className="primary-button" type="button" onClick={handleSubmitCityRequest} disabled={isSendingCityRequest}>
                 {isSendingCityRequest ? "Sending..." : "Send request"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showShareJoinModal && (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <div className="modal-card">
+            <div className="modal-title">Have a code?</div>
+            <div className="modal-subtitle">Drop the code, pull the same list, and pay your own credits to join.</div>
+            <label className="field">
+              <span>Share code</span>
+              <input
+                type="text"
+                value={shareInput}
+                onChange={(event) => setShareInput(event.target.value.toUpperCase())}
+                placeholder="Enter code"
+              />
+            </label>
+            {shareStatus && <div className="status-message">{shareStatus}</div>}
+            <div className="modal-actions">
+              <button className="ghost-button" type="button" onClick={() => setShowShareJoinModal(false)}>
+                Close
+              </button>
+              <button
+                className="primary-button"
+                type="button"
+                onClick={handleLoadShareCode}
+                disabled={isLoadingSharedManifest || !shareInput.trim()}
+              >
+                {isLoadingSharedManifest ? "Loading..." : "Load manifest"}
               </button>
             </div>
           </div>
@@ -2467,33 +2523,6 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="form-section section-block compact-block">
-                <div className="section-block-head">
-                  <div className="section-block-title">Pull A Code</div>
-                  <div className="section-block-copy">Jump into the same list your people are running.</div>
-                </div>
-              <div className="share-strip">
-                <label className="field share-field">
-                  <span>Have a share code?</span>
-                  <input
-                    type="text"
-                    value={shareInput}
-                    onChange={(event) => setShareInput(event.target.value.toUpperCase())}
-                    placeholder="Enter code"
-                  />
-                </label>
-                <button
-                  className="ghost-button"
-                  type="button"
-                  onClick={handleLoadShareCode}
-                  disabled={isLoadingSharedManifest || !shareInput.trim()}
-                >
-                  {isLoadingSharedManifest ? "Loading..." : "Load shared manifest"}
-                </button>
-              </div>
-              {shareStatus && <div className="status-message">{shareStatus}</div>}
-              </div>
-
               <div className="form-section section-block">
                 <div className="section-block-head">
                   <div className="section-block-title">City Pull</div>
@@ -2657,6 +2686,9 @@ export default function App() {
                   <div className="section-block-copy">Build the list, reset the run, or pass the code.</div>
                 </div>
                 <div className="form-actions">
+                  <button className="ghost-button" type="button" onClick={() => setShowShareJoinModal(true)}>
+                    Have a code ?
+                  </button>
                   <button
                     className="primary-button premium-button"
                     type="button"
@@ -2958,6 +2990,19 @@ export default function App() {
                             <div className="challenge-stat">
                               <span>Best time</span>
                               <strong>{boardLeader?.best_seconds !== null && boardLeader?.best_seconds !== undefined ? formatDuration(boardLeader.best_seconds) : "--:--"}</strong>
+                            </div>
+                          </div>
+
+                          <div className="challenge-rivalry-card">
+                            <span>Head to head</span>
+                            <strong>{rivalrySummary}</strong>
+                            {ownBoardEntry?.best_seconds !== null && ownBoardEntry?.best_seconds !== undefined && (
+                              <em>Your best: {formatDuration(ownBoardEntry.best_seconds)}</em>
+                            )}
+                            <div className="challenge-rivalry-actions">
+                              <button className="ghost-button small" type="button" onClick={handleRematchChallenge}>
+                                Run it back
+                              </button>
                             </div>
                           </div>
                         </div>

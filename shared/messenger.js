@@ -359,6 +359,406 @@ const checkpointsByCity = {
       },
     },
   ],
+  mexicocity: [
+    {
+      id: "cdmx-doctores-cut",
+      name: "Doctores Shopfront Cut",
+      district: "Doctores",
+      lat: 19.4187,
+      lng: -99.1466,
+      hint: "Tool shops, fast blocks, and no reason to coast.",
+      tasks: {
+        local: "Clock one storefront detail that says this block works harder than it talks.",
+        fast: "Touch the cut, read the exit quick, and keep the cadence mean.",
+        chaotic: "Give the block one fake sponsor tag in your head and disappear.",
+      },
+    },
+    {
+      id: "cdmx-santa-maria",
+      name: "Santa Maria Kiosk Edge",
+      district: "Santa Maria la Ribera",
+      lat: 19.4491,
+      lng: -99.1624,
+      hint: "Open square, side-street pressure, easy to read wrong.",
+      tasks: {
+        local: "Clock the corner locals use like a shortcut and store it for later.",
+        fast: "Touch the edge, pick the clean seam, and get out before the square flattens you.",
+        chaotic: "Make one dramatic face at the kiosk like it called you out, then move.",
+      },
+    },
+    {
+      id: "cdmx-obrera-rail",
+      name: "Obrera Rail Edge",
+      district: "Obrera",
+      lat: 19.4135,
+      lng: -99.1404,
+      hint: "Rail pressure, loud corners, and fast decisions.",
+      tasks: {
+        local: "Notice which side of the block feels louder than it should and why.",
+        fast: "Hit the edge, trust the line, and keep your speed cleaner than the street deserves.",
+        chaotic: "Quietly announce this was a tactical masterpiece and leave before anyone checks.",
+      },
+    },
+    {
+      id: "cdmx-roma-backline",
+      name: "Roma Backline",
+      district: "Roma Sur",
+      lat: 19.4068,
+      lng: -99.1632,
+      hint: "Pretty blocks nearby, but this line is not here for that.",
+      tasks: {
+        local: "Find the least polished corner and trust it more than the postcard version.",
+        fast: "Touch the backline, lock the next move, and keep it sharp.",
+        chaotic: "Give the block a fake style score out of ten and ride off before the rating sinks in.",
+      },
+    },
+    {
+      id: "cdmx-san-rafael",
+      name: "San Rafael Split",
+      district: "San Rafael",
+      lat: 19.4354,
+      lng: -99.1668,
+      hint: "Bad angles, useful exits, no softness.",
+      tasks: {
+        local: "Clock the corner that feels like old city stubbornness and remember it.",
+        fast: "Touch the split, trust the fast side, and keep the hesitation off your face.",
+        chaotic: "Mutter one fake team-radio line to yourself and move on.",
+      },
+    },
+    {
+      id: "cdmx-canal-nacional",
+      name: "Canal Nacional Run-Up",
+      district: "Iztacalco",
+      lat: 19.3899,
+      lng: -99.1214,
+      hint: "Water drag, long reads, one wrong move into dead air.",
+      tasks: {
+        local: "Clock how the water changes the feel of the block before you touch it.",
+        fast: "Touch the run-up, pick the hard exit, and stay on top of it.",
+        chaotic: "Throw one fake champion nod at the canal and bounce before it gets corny.",
+      },
+    },
+  ],
+  bogota: [
+    {
+      id: "bogota-teusaquillo-cut",
+      name: "Teusaquillo Cut",
+      district: "Teusaquillo",
+      lat: 4.6391,
+      lng: -74.0858,
+      hint: "Wide blocks, hidden speed, easy to underestimate.",
+      tasks: {
+        local: "Clock the first corner that feels more rider than commuter.",
+        fast: "Touch the cut, stay on top of the line, and keep it moving.",
+        chaotic: "Give the block one fake alleycat title and leave before it objects.",
+      },
+    },
+    {
+      id: "bogota-chapinero-rise",
+      name: "Chapinero Rise",
+      district: "Chapinero",
+      lat: 4.6488,
+      lng: -74.0617,
+      hint: "A little lift, a little pressure, no free speed.",
+      tasks: {
+        local: "Notice where the block starts feeling less flat than the map promised.",
+        fast: "Tag the rise, breathe once, and punch through clean.",
+        chaotic: "Act like that tiny rise was mountain-stage drama and keep rolling.",
+      },
+    },
+    {
+      id: "bogota-san-felipe",
+      name: "San Felipe Grid",
+      district: "San Felipe",
+      lat: 4.6647,
+      lng: -74.0732,
+      hint: "Warehouse edges, art spill, and cuts that reward nerve.",
+      tasks: {
+        local: "Clock one wall detail that feels more local hustle than gallery gloss.",
+        fast: "Touch the grid, call the exit fast, and keep the noise behind you.",
+        chaotic: "Pretend you curated the whole block for two seconds, then disappear.",
+      },
+    },
+    {
+      id: "bogota-parkway",
+      name: "Parkway Edge",
+      district: "La Soledad",
+      lat: 4.6352,
+      lng: -74.0757,
+      hint: "Open center, tight edges, no easy choice.",
+      tasks: {
+        local: "Clock which side of the strip feels more alive without trying.",
+        fast: "Touch the edge, choose the clean lane, and do not drift.",
+        chaotic: "Give the strip one fake race commentary line and move on.",
+      },
+    },
+    {
+      id: "bogota-industrial-line",
+      name: "Puente Aranda Line",
+      district: "Puente Aranda",
+      lat: 4.6217,
+      lng: -74.1113,
+      hint: "Industrial blocks, long sightlines, and bad decisions if you switch off.",
+      tasks: {
+        local: "Clock the exact moment the block feels more machine than city.",
+        fast: "Touch the line, keep your speed honest, and leave before it drags.",
+        chaotic: "Give the whole strip a fake union-strong salute and keep it moving.",
+      },
+    },
+    {
+      id: "bogota-river-seam",
+      name: "Salitre River Seam",
+      district: "Salitre",
+      lat: 4.6591,
+      lng: -74.1098,
+      hint: "Wind seam, awkward edges, good reset if you read it right.",
+      tasks: {
+        local: "Notice what the wind does to the mood of the block and why.",
+        fast: "Use the river seam as a reset, then get back into the grid sharply.",
+        chaotic: "Throw one fake championship glare at the water and bounce.",
+      },
+    },
+  ],
+  warsaw: [
+    {
+      id: "warsaw-powisle-drop",
+      name: "Powiśle Drop",
+      district: "Powiśle",
+      lat: 52.2376,
+      lng: 21.0348,
+      hint: "River pull, underpass choices, no space for soft calls.",
+      tasks: {
+        local: "Clock the corner that feels most like locals actually use it, not maps.",
+        fast: "Hit the drop, choose the clean exit, and keep the line tight.",
+        chaotic: "Give the river one fake title-defense nod and move along.",
+      },
+    },
+    {
+      id: "warsaw-praga-yard",
+      name: "Praga Yard Edge",
+      district: "Praga",
+      lat: 52.2501,
+      lng: 21.0496,
+      hint: "Brick, rails, and the right amount of friction.",
+      tasks: {
+        local: "Clock the roughest useful corner and remember why it works.",
+        fast: "Touch the yard edge, trust the next cut, and keep it blunt.",
+        chaotic: "Quietly rate the whole block like a harsh race judge and leave.",
+      },
+    },
+    {
+      id: "warsaw-muranow-cut",
+      name: "Muranów Cut",
+      district: "Muranów",
+      lat: 52.2498,
+      lng: 20.9941,
+      hint: "Open blocks with just enough confusion to matter.",
+      tasks: {
+        local: "Clock which side street feels calmer than it should.",
+        fast: "Touch the cut, call the exit in one glance, and go.",
+        chaotic: "Give the block a fake tactical breakdown under your breath and move on.",
+      },
+    },
+    {
+      id: "warsaw-ochota-line",
+      name: "Ochota Line",
+      district: "Ochota",
+      lat: 52.2196,
+      lng: 20.9847,
+      hint: "Wide roads nearby, better lines tucked off them.",
+      tasks: {
+        local: "Clock one useful line that a tourist would never pick.",
+        fast: "Touch the line, keep the pace honest, and leave before it opens up too much.",
+        chaotic: "Make one fake radio-check to yourself and carry on.",
+      },
+    },
+    {
+      id: "warsaw-zoliborz-pocket",
+      name: "Żoliborz Pocket",
+      district: "Żoliborz",
+      lat: 52.2689,
+      lng: 20.9862,
+      hint: "Quiet pocket, fast exits, looks softer than it is.",
+      tasks: {
+        local: "Notice how fast the block mood changes when you enter it.",
+        fast: "Touch the pocket, pick the quick exit, and don’t overthink it.",
+        chaotic: "Act like this was your secret training ground all along, then leave.",
+      },
+    },
+    {
+      id: "warsaw-mokotow-split",
+      name: "Mokotów Split",
+      district: "Mokotów",
+      lat: 52.1942,
+      lng: 21.0308,
+      hint: "Too many useful exits, which is exactly the problem.",
+      tasks: {
+        local: "Clock the side that feels more lived in than designed.",
+        fast: "Touch the split, choose hard, and keep the cadence clean.",
+        chaotic: "Give the junction one sarcastic compliment and bounce.",
+      },
+    },
+  ],
+  barcelona: [
+    {
+      id: "barcelona-poblenou-grid",
+      name: "Poblenou Grid",
+      district: "Poblenou",
+      lat: 41.4015,
+      lng: 2.2026,
+      hint: "Long blocks, sharp turns, no reason to drift into the beach fantasy.",
+      tasks: {
+        local: "Clock the first block that feels more workday than waterfront.",
+        fast: "Touch the grid, lock the clean lane, and stay off cruise mode.",
+        chaotic: "Tell yourself this is not a postcard out loud and keep moving.",
+      },
+    },
+    {
+      id: "barcelona-sants-cut",
+      name: "Sants Cut",
+      district: "Sants",
+      lat: 41.3777,
+      lng: 2.1366,
+      hint: "Station gravity nearby, better moves off to the side.",
+      tasks: {
+        local: "Clock the corner commuters ignore but riders should not.",
+        fast: "Touch the cut, pick the hard exit, and keep your line tight.",
+        chaotic: "Make one fake team-director call to yourself and carry on.",
+      },
+    },
+    {
+      id: "barcelona-gracia-rise",
+      name: "Gràcia Rise",
+      district: "Gràcia",
+      lat: 41.4042,
+      lng: 2.1568,
+      hint: "A little climb, a little noise, zero free points.",
+      tasks: {
+        local: "Notice where the street stops feeling flat and starts feeling personal.",
+        fast: "Tag the rise, breathe once, and push through before it turns into a thing.",
+        chaotic: "Treat that lift like a mountain stage and then immediately get over yourself.",
+      },
+    },
+    {
+      id: "barcelona-raval-edge",
+      name: "Raval Edge",
+      district: "Raval",
+      lat: 41.3799,
+      lng: 2.1686,
+      hint: "Tight edges, fast reads, easy to get distracted.",
+      tasks: {
+        local: "Clock the least polished useful corner and trust it.",
+        fast: "Touch the edge, leave before the block tries to keep your attention.",
+        chaotic: "Give the block a fake style award and vanish.",
+      },
+    },
+    {
+      id: "barcelona-sant-antoni",
+      name: "Sant Antoni Ring",
+      district: "Sant Antoni",
+      lat: 41.3785,
+      lng: 2.1595,
+      hint: "Good exits, bad geometry, perfect.",
+      tasks: {
+        local: "Clock which side of the ring feels calmer than it should.",
+        fast: "Touch the ring, trust the fast side, and don’t drift into soft lines.",
+        chaotic: "Mutter one fake apology to traffic and keep rolling.",
+      },
+    },
+    {
+      id: "barcelona-clot-line",
+      name: "Clot Line",
+      district: "Clot",
+      lat: 41.4121,
+      lng: 2.1907,
+      hint: "Rail pressure nearby, useful cuts if you read them right.",
+      tasks: {
+        local: "Clock the line locals use when they are trying not to be seen waiting.",
+        fast: "Touch the line, read the next move once, and go.",
+        chaotic: "Give the whole strip one fake alleycat sponsor tag and bounce.",
+      },
+    },
+  ],
+  saopaulo: [
+    {
+      id: "saopaulo-bixiga-cut",
+      name: "Bixiga Cut",
+      district: "Bixiga",
+      lat: -23.5584,
+      lng: -46.6462,
+      hint: "Short climbs, loud corners, proper city bite.",
+      tasks: {
+        local: "Clock the first corner that feels more neighborhood than performance.",
+        fast: "Touch the cut, keep the pressure on, and leave before the block slows you.",
+        chaotic: "Act like that corner was your home straight and move on.",
+      },
+    },
+    {
+      id: "saopaulo-liberdade-edge",
+      name: "Liberdade Edge",
+      district: "Liberdade",
+      lat: -23.5552,
+      lng: -46.6357,
+      hint: "Crowd pull, side-street exits, easy to read wrong.",
+      tasks: {
+        local: "Clock one tiny detail that locals would notice before visitors ever do.",
+        fast: "Touch the edge, pick the cleaner line, and get gone.",
+        chaotic: "Give the whole block a fake rating out of ten and disappear.",
+      },
+    },
+    {
+      id: "saopaulo-barra-funda",
+      name: "Barra Funda Yard",
+      district: "Barra Funda",
+      lat: -23.5252,
+      lng: -46.6672,
+      hint: "Rail energy, rough edges, good decisions matter here.",
+      tasks: {
+        local: "Clock the exact point where the block feels more machine than city.",
+        fast: "Touch the yard edge, trust the next cut, and keep it clean.",
+        chaotic: "Throw one fake champion stare at the rails and bounce.",
+      },
+    },
+    {
+      id: "saopaulo-vila-madalena",
+      name: "Vila Madalena Backline",
+      district: "Vila Madalena",
+      lat: -23.5507,
+      lng: -46.6917,
+      hint: "Hills, bars, and side streets that reward commitment.",
+      tasks: {
+        local: "Clock the least polished useful corner and trust it more than the obvious one.",
+        fast: "Touch the backline, hold your pace, and do not let the hill get in your head.",
+        chaotic: "Make one fake heroic face at the slope and keep it pushing.",
+      },
+    },
+    {
+      id: "saopaulo-luz-runup",
+      name: "Luz Run-Up",
+      district: "Luz",
+      lat: -23.5346,
+      lng: -46.6358,
+      hint: "Station gravity and long reads under pressure.",
+      tasks: {
+        local: "Clock which direction feels rougher than the map would admit.",
+        fast: "Touch the run-up, pick your line, and keep the hesitation out of it.",
+        chaotic: "Quietly narrate the move like race radio and leave before it gets weird.",
+      },
+    },
+    {
+      id: "saopaulo-mooca-line",
+      name: "Mooca Line",
+      district: "Mooca",
+      lat: -23.5538,
+      lng: -46.6015,
+      hint: "Old factory energy, useful corners, zero need for a scenic detour.",
+      tasks: {
+        local: "Clock one sign the block still wears from an older version of itself.",
+        fast: "Touch the line, lock the exit, and keep the whole move blunt.",
+        chaotic: "Give the line one fake sponsor shout and cut out.",
+      },
+    },
+  ],
 };
 
 const difficultyConfig = {
@@ -373,6 +773,17 @@ const titleTokens = {
   chaotic: "Street Noise",
 };
 
+const cityDisplayNames = {
+  berlin: "Berlin",
+  london: "London",
+  tokyo: "Tokyo",
+  mexicocity: "Mexico City",
+  bogota: "Bogota",
+  warsaw: "Warsaw",
+  barcelona: "Barcelona",
+  saopaulo: "Sao Paulo",
+};
+
 const normalize = (value = "") => value.toLowerCase().replace(/[^a-z]/g, "");
 
 export const getMessengerCityPack = (city = "") => {
@@ -382,7 +793,7 @@ export const getMessengerCityPack = (city = "") => {
   if (!exact) return null;
   return {
     slug: exact,
-    name: exact.charAt(0).toUpperCase() + exact.slice(1),
+    name: cityDisplayNames[exact] || exact.charAt(0).toUpperCase() + exact.slice(1),
     checkpoints: checkpointsByCity[exact],
   };
 };
@@ -565,7 +976,7 @@ export const buildMessengerManifest = ({
 }) => {
   const pack = getMessengerCityPack(city);
   if (!pack) {
-    return { error: "City not supported yet. Start with Berlin, London, or Tokyo." };
+    return { error: "City not supported yet. Start with Berlin, London, Tokyo, Mexico City, Bogota, Warsaw, Barcelona, or Sao Paulo." };
   }
   return buildMessengerManifestFromPack({
     pack,

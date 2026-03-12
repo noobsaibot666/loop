@@ -36,12 +36,13 @@ Related docs:
 
 ## City content quality
 - [x] Improve checkpoint library depth for Wave 1 cities
-- [ ] Expand city support toward the planned 8-city set
+- [x] Expand city support toward the planned 8-city set
 - [x] Improve district spread rules in generated manifests
 - [x] Improve rider-facing manifest copy and directions
 - [x] Improve admin preview clarity for city packs
 - [x] Highlight already-created cities more clearly in admin
-- [ ] Sync the richer Wave 1 checkpoint set into live Supabase
+- [x] Sync the richer Wave 1 checkpoint set into live Supabase
+- [ ] Sync the 8-city expansion set into live Supabase
 - [ ] Review city studio flow on real admin use
   Focus:
   - pack cards must scan fast
@@ -49,8 +50,8 @@ Related docs:
   - city density gaps should be obvious before the next expansion wave
 
 ## Rivalry and social history
-- [ ] Add cleaner head-to-head summaries
-- [ ] Add rematch-friendly challenge surfaces
+- [x] Add cleaner head-to-head summaries
+- [x] Add rematch-friendly challenge surfaces
 
 ## Deferred
 - [-] comments
