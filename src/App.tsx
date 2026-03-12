@@ -241,6 +241,10 @@ type PublicRiderProfile = {
     ghost_seconds: number | null;
     ghost_delta: number | null;
   }[];
+  city_breakdown: {
+    city_name: string;
+    proof_count: number;
+  }[];
 };
 
 const API_BASE = (() => {
@@ -988,6 +992,26 @@ export default function App() {
     if (!userId) return;
     window.history.pushState({}, "", `/rider/${encodeURIComponent(userId)}`);
     setPageView("rider");
+    setMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleOpenWallCity = (cityName?: string) => {
+    if (!cityName) return handleNavigate("wall");
+    const slug = cityName.trim().toLowerCase();
+    setSelectedWallCity(slug);
+    window.history.pushState({}, "", "/wall");
+    setPageView("wall");
+    setMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleOpenLeaderboardCity = (cityName?: string) => {
+    if (!cityName) return handleNavigate("leaderboard");
+    const slug = cityName.trim().toLowerCase();
+    setSelectedLeaderboardCity(slug);
+    window.history.pushState({}, "", "/leaderboard");
+    setPageView("leaderboard");
     setMenuOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -2556,7 +2580,7 @@ export default function App() {
                     placeholder="Berlin, London, or Tokyo"
                   />
                   <div className="field-inline-actions">
-                    <span className="field-hint">V1 ships with curated city packs.</span>
+                    <span className="field-hint">Start local and keep the spread tight.</span>
                     <button className="ghost-button small" type="button" onClick={() => setShowCityRequest(true)}>
                       Don’t see your city?
                     </button>
@@ -3112,6 +3136,22 @@ export default function App() {
             ))}
           </div>
         </div>
+        {!isLoadingWall && wallPosts.length > 0 && (
+          <div className="result-grid result-grid-three wall-story-grid">
+            <div>
+              <span>Posts up</span>
+              <strong>{wallPosts.length}</strong>
+            </div>
+            <div>
+              <span>Riders up</span>
+              <strong>{new Set(wallPosts.map((post) => post.user_id || post.rider_name)).size}</strong>
+            </div>
+            <div>
+              <span>City lane</span>
+              <strong>{selectedWallCity ? ALLEYCAT_CITY_PRESETS.find((city) => city.toLowerCase() === selectedWallCity) || selectedWallCity : "All cities"}</strong>
+            </div>
+          </div>
+        )}
         {isLoadingWall && <div className="status-message">Loading Wall of Fame…</div>}
         {!isLoadingWall && wallPosts.length === 0 && (
           <div className="builder-grid single">
@@ -3131,7 +3171,9 @@ export default function App() {
                 <div className="wall-meta">
                   <div className="checkpoint-meta">
                     <span>Alleycat</span>
-                    <span>{post.city_name}</span>
+                    <button className="inline-link-button checkpoint-inline-link" type="button" onClick={() => handleOpenWallCity(post.city_name)}>
+                      {post.city_name}
+                    </button>
                   </div>
                   <div className="checkpoint-name">
                     <button className="inline-link-button" type="button" onClick={() => handleOpenRiderProfile(post.user_id)}>
@@ -3155,6 +3197,14 @@ export default function App() {
                       <span>Ratio</span>
                       <strong>{post.bike_ratio || "Ratio not set"}</strong>
                     </div>
+                  </div>
+                  <div className="wall-city-actions">
+                    <button className="ghost-button small" type="button" onClick={() => handleOpenWallCity(post.city_name)}>
+                      More from {post.city_name}
+                    </button>
+                    <button className="ghost-button small" type="button" onClick={() => handleOpenLeaderboardCity(post.city_name)}>
+                      City board
+                    </button>
                   </div>
                 </div>
               </div>
@@ -3407,6 +3457,31 @@ export default function App() {
                     : "City story still loading"}
                 </div>
               </div>
+
+              {!!publicRiderProfile.city_breakdown?.length && (
+                <>
+                  <div className="rider-profile-proof-head">
+                    <div className="form-title">City lanes</div>
+                    <div className="form-subtitle">Follow the cities this rider actually leaves marks in.</div>
+                  </div>
+                  <div className="rider-city-grid">
+                    {publicRiderProfile.city_breakdown.map((city) => (
+                      <div key={city.city_name} className="rider-city-card">
+                        <span className="winner-label">{city.proof_count} proof{city.proof_count === 1 ? "" : "s"}</span>
+                        <strong>{city.city_name}</strong>
+                        <div className="rider-city-actions">
+                          <button className="ghost-button small" type="button" onClick={() => handleOpenWallCity(city.city_name)}>
+                            Open wall
+                          </button>
+                          <button className="ghost-button small" type="button" onClick={() => handleOpenLeaderboardCity(city.city_name)}>
+                            City board
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
 
               {publicRiderProfile.badges?.length > 0 && (
                 <div className="badge-list">

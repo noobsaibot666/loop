@@ -1610,6 +1610,10 @@ input[type="range"]::-webkit-slider-thumb {
   color: var(--accent);
 }
 
+.checkpoint-inline-link {
+  color: var(--text-muted);
+}
+
 .leaderboard-public-head {
   display: flex;
   align-items: flex-start;
@@ -2302,6 +2306,36 @@ input[type="range"]::-webkit-slider-thumb {
   flex-wrap: wrap;
   gap: 10px;
   margin-top: -6px;
+}
+
+.wall-story-grid {
+  margin: 14px 0 18px;
+}
+
+.rider-city-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.rider-city-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.rider-city-card strong {
+  font-size: 1rem;
+}
+
+.rider-city-actions,
+.wall-city-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .rider-rival-grid {
@@ -3128,6 +3162,7 @@ input[type="range"]::-webkit-slider-thumb {
     column-count: 1;
   }
 
+  .rider-city-grid,
   .rider-rival-grid {
     grid-template-columns: 1fr;
   }

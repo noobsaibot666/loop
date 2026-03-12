@@ -28,7 +28,7 @@ Status:
 - public rider profile route and API implemented
 - Wall of Fame cards link into rider profiles
 - Leaderboard rows link into rider profiles
-- rider profile page renders public stats, bike setup, badges, recent proof, shared-code rider circle, and a closed-run ledger
+- rider profile page renders public stats, bike setup, badges, recent proof, shared-code rider circle, a closed-run ledger, and city-lane discovery
 
 ### 2. Social surface polish
 Turn the read-only public surfaces into something more connected.
@@ -46,6 +46,7 @@ Status:
 - quarter leader callout is live on the public Leaderboard
 - top-3 winner visibility is live on the admin quarter board
 - Leaderboard hierarchy now includes summary stats and a podium block
+- Wall of Fame now uses city-linked story actions to push users into filtered city views
 
 ### 3. City content quality
 Make city packs feel more like real alleycats and less like generic route data.

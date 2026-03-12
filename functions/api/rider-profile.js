@@ -64,6 +64,13 @@ export async function onRequest({ request, env }) {
     proofsByCity.set(key, (proofsByCity.get(key) || 0) + 1);
   }
   const topCity = [...proofsByCity.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "";
+  const cityBreakdown = [...proofsByCity.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([city_name, proof_count]) => ({
+      city_name,
+      proof_count,
+    }));
   const bestFinish = runs
     .map((run) => Number(run.finish_seconds || 0))
     .filter((value) => value > 0)
@@ -186,5 +193,6 @@ export async function onRequest({ request, env }) {
     recent_proofs: proofs,
     recent_rivals: sharedRiders.slice(0, 6),
     recent_runs: recentRuns,
+    city_breakdown: cityBreakdown,
   });
 }
