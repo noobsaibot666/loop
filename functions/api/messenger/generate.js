@@ -8,7 +8,10 @@ export async function onRequest({ request, env }) {
   const userId = authUser?.id || "";
   if (!userId) return json({ error: "login required" }, { status: 401 });
 
-  const { city, difficulty, style, start_lat, start_lng, start_label, range_km } = body;
+  const { city, difficulty, style, start_lat, start_lng, start_label, range_km, checkpoint_count } = body;
+  if (!String(start_label || "").trim() || !Number.isFinite(Number(start_lat)) || !Number.isFinite(Number(start_lng))) {
+    return json({ error: "start area required" }, { status: 400 });
+  }
   const seed = Math.floor(Math.random() * 100000);
   const startPoint =
     Number.isFinite(Number(start_lat)) && Number.isFinite(Number(start_lng))
@@ -42,6 +45,7 @@ export async function onRequest({ request, env }) {
           startPoint,
           startLabel: String(start_label || ""),
           rangeKm: Number(range_km || 0) || null,
+          checkpointCount: Number(checkpoint_count || 0) || null,
         })
       : buildMessengerManifest({
           city,
@@ -51,6 +55,7 @@ export async function onRequest({ request, env }) {
           startPoint,
           startLabel: String(start_label || ""),
           rangeKm: Number(range_km || 0) || null,
+          checkpointCount: Number(checkpoint_count || 0) || null,
         });
 
   if (built.error) {

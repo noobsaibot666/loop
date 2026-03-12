@@ -288,6 +288,7 @@ export const buildMessengerManifestFromPack = ({
   startPoint = null,
   startLabel = "",
   rangeKm = null,
+  checkpointCount = null,
 }) => {
   if (!pack || !Array.isArray(sourceCheckpoints) || !sourceCheckpoints.length) {
     return { error: "City pack is empty." };
@@ -296,8 +297,11 @@ export const buildMessengerManifestFromPack = ({
   const difficultyKey = difficultyConfig[difficulty] ? difficulty : "medium";
   const styleKey = ["local", "fast", "chaotic"].includes(style) ? style : "local";
   const config = difficultyConfig[difficultyKey];
+  const requestedCount = Number.isFinite(Number(checkpointCount)) ? Math.round(Number(checkpointCount)) : null;
+  const targetCount = requestedCount ? Math.max(3, requestedCount) : config.count;
   const resolvedRangeKm = Number.isFinite(Number(rangeKm)) ? Math.max(2, Number(rangeKm)) : null;
   let candidatePool = [...sourceCheckpoints];
+  let maxDistanceKm = null;
 
   if (startPoint?.lat && startPoint?.lng) {
     const ranked = [...sourceCheckpoints]
@@ -311,13 +315,25 @@ export const buildMessengerManifestFromPack = ({
       ? ranked.filter((entry) => entry.distance <= resolvedRangeKm * 1000)
       : ranked;
 
-    candidatePool =
-      inRange.length >= config.count
-        ? inRange.map((entry) => entry.checkpoint)
-        : ranked.map((entry) => entry.checkpoint);
+    if (resolvedRangeKm) {
+      if (inRange.length < targetCount) {
+        return {
+          error: `${pack.name} cannot fit ${targetCount} checkpoints within ${resolvedRangeKm} km of ${startLabel || "that start area"}. Widen the range, lower the checkpoint count, or drop the difficulty.`,
+        };
+      }
+      candidatePool = inRange.map((entry) => entry.checkpoint);
+    } else {
+      candidatePool = ranked.map((entry) => entry.checkpoint);
+    }
   }
 
-  const ordered = seededOrder(candidatePool, seed).slice(0, Math.min(config.count, candidatePool.length));
+  if (candidatePool.length < targetCount) {
+    return {
+      error: `${pack.name} only has ${candidatePool.length} usable checkpoints right now. Lower the checkpoint count or switch packs.`,
+    };
+  }
+
+  const ordered = seededOrder(candidatePool, seed).slice(0, Math.min(targetCount, candidatePool.length));
 
   const checkpoints = ordered.map((checkpoint, index) => ({
     id: checkpoint.id,
@@ -334,7 +350,17 @@ export const buildMessengerManifestFromPack = ({
       "Read the street, clear the spot, and keep moving.",
   }));
 
+  if (startPoint?.lat && startPoint?.lng && checkpoints.length) {
+    maxDistanceKm = Math.max(
+      ...checkpoints.map((checkpoint) =>
+        distanceBetweenMeters(startPoint, { lat: checkpoint.lat, lng: checkpoint.lng }) / 1000
+      )
+    );
+  }
+
   const title = `${pack.name} ${titleTokens[styleKey]} ${difficultyKey.charAt(0).toUpperCase()}${difficultyKey.slice(1)}`;
+  const estimatedMinutes = Math.max(20, Math.round((config.estimatedMinutes / config.count) * checkpoints.length));
+  const ghostSeconds = Math.max(20 * 60, Math.round((config.ghostSeconds / config.count) * checkpoints.length));
 
   return {
     manifest: {
@@ -344,11 +370,12 @@ export const buildMessengerManifestFromPack = ({
       difficulty: difficultyKey,
       style: styleKey,
       manifest_title: title,
-      estimated_minutes: config.estimatedMinutes,
-      ghost_seconds: config.ghostSeconds,
+      estimated_minutes: estimatedMinutes,
+      ghost_seconds: ghostSeconds,
       checkpoint_count: checkpoints.length,
       start_label: startLabel || "",
       range_km: resolvedRangeKm,
+      max_distance_km: maxDistanceKm ? Number(maxDistanceKm.toFixed(1)) : null,
       route_note:
         pack.route_note || "Any order. Pick your own line through the city and clear every checkpoint before the finish.",
       finish_label:
@@ -368,6 +395,7 @@ export const buildMessengerManifest = ({
   startPoint = null,
   startLabel = "",
   rangeKm = null,
+  checkpointCount = null,
 }) => {
   const pack = getMessengerCityPack(city);
   if (!pack) {
@@ -382,6 +410,7 @@ export const buildMessengerManifest = ({
     startPoint,
     startLabel,
     rangeKm,
+    checkpointCount,
   });
 };
 

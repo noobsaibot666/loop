@@ -43,6 +43,7 @@ type MessengerManifest = {
   checkpoint_count: number;
   start_label?: string;
   range_km?: number | null;
+  max_distance_km?: number | null;
   route_note: string;
   finish_label: string;
   safety_note: string;
@@ -332,6 +333,7 @@ export default function App() {
   const [messengerLocation, setMessengerLocation] = useState("");
   const [messengerDifficulty, setMessengerDifficulty] = useState("medium");
   const [messengerStyle, setMessengerStyle] = useState("local");
+  const [messengerCheckpointCount, setMessengerCheckpointCount] = useState(5);
   const [messengerRange, setMessengerRange] = useState(8);
   const [messengerUnit, setMessengerUnit] = useState<"km" | "mi">("km");
   const [messengerManifest, setMessengerManifest] = useState<MessengerManifest | null>(null);
@@ -354,6 +356,7 @@ export default function App() {
   const [proofFiles, setProofFiles] = useState<Record<string, File | null>>({});
   const [proofStatus, setProofStatus] = useState<Record<string, string>>({});
   const [isUploadingProof, setIsUploadingProof] = useState<Record<string, boolean>>({});
+  const geocodeCacheRef = useRef(new Map<string, { lat: number; lng: number; label: string }>());
 
   const isMobile = useMemo(() => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent), []);
 
@@ -376,6 +379,9 @@ export default function App() {
   };
 
   const geocodeStartPoint = async (text: string) => {
+    const key = text.trim().toLowerCase();
+    const cached = geocodeCacheRef.current.get(key);
+    if (cached) return cached;
     const response = await postJSON<{ features?: Array<{ geometry?: { coordinates?: number[] }; properties?: { label?: string } }> }>(
       "/api/geocode",
       { text }
@@ -385,11 +391,13 @@ export default function App() {
     if (coordinates.length < 2) {
       throw new Error("Couldn’t place that start spot. Try a clearer area or street name.");
     }
-    return {
+    const resolved = {
       lng: Number(coordinates[0]),
       lat: Number(coordinates[1]),
       label: hit?.properties?.label || text,
     };
+    geocodeCacheRef.current.set(key, resolved);
+    return resolved;
   };
 
   useEffect(() => {
@@ -515,6 +523,7 @@ export default function App() {
         location?: string;
         difficulty?: string;
         style?: string;
+        checkpointCount?: number;
         range?: number;
         unit?: "km" | "mi";
         manifestId?: string;
@@ -526,6 +535,7 @@ export default function App() {
       if (saved.location) setMessengerLocation(saved.location);
       if (saved.difficulty) setMessengerDifficulty(saved.difficulty);
       if (saved.style) setMessengerStyle(saved.style);
+      if (typeof saved.checkpointCount === "number") setMessengerCheckpointCount(saved.checkpointCount);
       if (typeof saved.range === "number") setMessengerRange(saved.range);
       if (saved.unit === "km" || saved.unit === "mi") setMessengerUnit(saved.unit);
       if (saved.manifestId) setMessengerManifestId(saved.manifestId);
@@ -549,6 +559,7 @@ export default function App() {
           location: messengerLocation,
           difficulty: messengerDifficulty,
           style: messengerStyle,
+          checkpointCount: messengerCheckpointCount,
           range: messengerRange,
           unit: messengerUnit,
           manifestId: messengerManifestId,
@@ -560,7 +571,7 @@ export default function App() {
     } catch {
       // Ignore storage failures.
     }
-  }, [messengerCity, messengerLocation, messengerDifficulty, messengerStyle, messengerRange, messengerUnit, messengerManifestId, messengerManifest, messengerRun, challenge]);
+  }, [messengerCity, messengerLocation, messengerDifficulty, messengerStyle, messengerCheckpointCount, messengerRange, messengerUnit, messengerManifestId, messengerManifest, messengerRun, challenge]);
 
   useEffect(() => {
     if (!user?.id || !messengerRun?.runId) return;
@@ -1227,6 +1238,10 @@ export default function App() {
       requireLogin("Log in to unlock Alleycat Mode.");
       return;
     }
+    if (!messengerLocation.trim()) {
+      setMessengerStatus("Drop a start area first so the spread stays tied to your line.");
+      return;
+    }
     setIsGeneratingMessenger(true);
     setMessengerStatus("");
     try {
@@ -1236,7 +1251,7 @@ export default function App() {
         startPayload = {
           start_lat: geocoded.lat,
           start_lng: geocoded.lng,
-          start_label: messengerLocation.trim(),
+          start_label: geocoded.label,
         };
       }
       const rangeKm = messengerUnit === "km" ? messengerRange : messengerRange * 1.60934;
@@ -1250,6 +1265,7 @@ export default function App() {
         city: messengerCity,
         difficulty: messengerDifficulty,
         style: messengerStyle,
+        checkpoint_count: messengerCheckpointCount,
         range_km: Number(rangeKm.toFixed(1)),
         ...startPayload,
       });
@@ -2197,7 +2213,7 @@ export default function App() {
                     onChange={(event) => setMessengerLocation(event.target.value)}
                     placeholder="Kreuzberg, Soho, Shibuya..."
                   />
-                  <span className="field-hint">Drop a neighborhood or street area so the list stays closer to your line.</span>
+                  <span className="field-hint">Required. This is the center point for your task spread.</span>
                 </label>
               </div>
 
@@ -2275,6 +2291,23 @@ export default function App() {
                 </label>
 
                 <label className="field">
+                  <span>Checkpoint count</span>
+                  <div className="pill-group">
+                    {[3, 4, 5, 6].map((count) => (
+                      <button
+                        key={count}
+                        type="button"
+                        className={`pill ${messengerCheckpointCount === count ? "active" : ""}`}
+                        onClick={() => setMessengerCheckpointCount(count)}
+                      >
+                        {count} stops
+                      </button>
+                    ))}
+                  </div>
+                  <span className="field-hint">Pick how many tasks you want on the list. More stops need more room.</span>
+                </label>
+
+                <label className="field">
                   <span>Street tone</span>
                   <div className="pill-group">
                     {[
@@ -2305,7 +2338,7 @@ export default function App() {
                     className="primary-button premium-button"
                     type="button"
                     onClick={handleGenerateMessenger}
-                    disabled={isGeneratingMessenger || !messengerCity.trim()}
+                    disabled={isGeneratingMessenger || !messengerCity.trim() || !messengerLocation.trim()}
                   >
                     {isGeneratingMessenger ? "Building..." : "Build manifest"}
                   </button>
@@ -2357,7 +2390,15 @@ export default function App() {
 
                   <div className="manifest-notes">
                     <div>{messengerManifest.route_note}</div>
-                    {messengerManifest.range_km ? <div>Spread locked to about {messengerManifest.range_km} km from your start area.</div> : null}
+                    {messengerManifest.range_km ? (
+                      <div>
+                        Spread locked to {messengerManifest.range_km} km from your start area
+                        {messengerManifest.max_distance_km
+                          ? ` · farthest stop lands at ${messengerManifest.max_distance_km} km`
+                          : ""}
+                        .
+                      </div>
+                    ) : null}
                     <div>{messengerManifest.finish_label}</div>
                   </div>
 

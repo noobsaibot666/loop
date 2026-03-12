@@ -10,6 +10,13 @@ export async function onRequest({ request, env }) {
   const difficulty = String(body.difficulty || "medium").toLowerCase();
   const style = String(body.style || "local").toLowerCase();
   const seed = Number(body.seed || 777);
+  const checkpointCount = Number(body.checkpoint_count || 0) || null;
+  const startPoint =
+    Number.isFinite(Number(body.start_lat)) && Number.isFinite(Number(body.start_lng))
+      ? { lat: Number(body.start_lat), lng: Number(body.start_lng) }
+      : null;
+  const startLabel = String(body.start_label || "").trim();
+  const rangeKm = Number(body.range_km || 0) || null;
   const packId = String(body.pack_id || "").trim();
   const city = String(body.city || "").trim();
 
@@ -46,8 +53,12 @@ export async function onRequest({ request, env }) {
           difficulty,
           style,
           seed,
+          startPoint,
+          startLabel,
+          rangeKm,
+          checkpointCount,
         })
-      : buildMessengerManifest({ city, difficulty, style, seed });
+      : buildMessengerManifest({ city, difficulty, style, seed, startPoint, startLabel, rangeKm, checkpointCount });
 
   if (built.error) return json({ error: built.error }, { status: 400 });
   return json({ manifest: built.manifest, source: pack ? "database" : "fallback" });

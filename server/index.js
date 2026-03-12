@@ -138,7 +138,7 @@ const getDbPackCheckpoints = async (packId, activeOnly = true) => {
   return data || [];
 };
 
-const buildManifestFromDatabasePack = ({ pack, checkpoints, difficulty, style, seed, startPoint, startLabel, rangeKm }) =>
+const buildManifestFromDatabasePack = ({ pack, checkpoints, difficulty, style, seed, startPoint, startLabel, rangeKm, checkpointCount }) =>
   buildMessengerManifestFromPack({
     pack: {
       slug: pack.slug,
@@ -163,6 +163,7 @@ const buildManifestFromDatabasePack = ({ pack, checkpoints, difficulty, style, s
     startPoint,
     startLabel,
     rangeKm,
+    checkpointCount,
   });
 
 const getActiveMessengerRun = async (manifest_id, user_id) => {
@@ -456,6 +457,13 @@ app.post("/api/admin/preview-manifest", requireAdmin, async (req, res) => {
   const difficulty = String(req.body?.difficulty || "medium").trim().toLowerCase();
   const style = String(req.body?.style || "local").trim().toLowerCase();
   const seed = Number(req.body?.seed || 777);
+  const checkpointCount = Number(req.body?.checkpoint_count || 0) || null;
+  const startPoint =
+    Number.isFinite(Number(req.body?.start_lat)) && Number.isFinite(Number(req.body?.start_lng))
+      ? { lat: Number(req.body.start_lat), lng: Number(req.body.start_lng) }
+      : null;
+  const startLabel = String(req.body?.start_label || "").trim();
+  const rangeKm = Number(req.body?.range_km || 0) || null;
   const packId = String(req.body?.pack_id || "").trim();
   const city = String(req.body?.city || "").trim();
 
@@ -465,15 +473,15 @@ app.post("/api/admin/preview-manifest", requireAdmin, async (req, res) => {
     const checkpoints = pack ? await getDbPackCheckpoints(pack.id, false) : [];
     built =
       pack && checkpoints.length
-        ? buildManifestFromDatabasePack({ pack, checkpoints, difficulty, style, seed })
+        ? buildManifestFromDatabasePack({ pack, checkpoints, difficulty, style, seed, startPoint, startLabel, rangeKm, checkpointCount })
         : { error: "Pack not found or empty." };
   } else {
     const pack = await getDbCityPackByCity(city);
     const checkpoints = pack ? await getDbPackCheckpoints(pack.id, true) : [];
     built =
       pack && checkpoints.length
-        ? buildManifestFromDatabasePack({ pack, checkpoints, difficulty, style, seed })
-        : buildMessengerManifest({ city, difficulty, style, seed });
+        ? buildManifestFromDatabasePack({ pack, checkpoints, difficulty, style, seed, startPoint, startLabel, rangeKm, checkpointCount })
+        : buildMessengerManifest({ city, difficulty, style, seed, startPoint, startLabel, rangeKm, checkpointCount });
   }
 
   if (built.error) return res.status(400).json({ error: built.error });
@@ -969,7 +977,10 @@ app.post("/api/messenger/generate", async (req, res) => {
   const user_id = authUser?.id || "";
   if (!user_id) return res.status(401).json({ error: "login required" });
 
-  const { city, difficulty, style, start_lat, start_lng, start_label, range_km } = req.body || {};
+  const { city, difficulty, style, start_lat, start_lng, start_label, range_km, checkpoint_count } = req.body || {};
+  if (!String(start_label || "").trim() || !Number.isFinite(Number(start_lat)) || !Number.isFinite(Number(start_lng))) {
+    return res.status(400).json({ error: "start area required" });
+  }
   const seed = Math.floor(Math.random() * 100000);
   const startPoint =
     Number.isFinite(Number(start_lat)) && Number.isFinite(Number(start_lng))
@@ -988,6 +999,7 @@ app.post("/api/messenger/generate", async (req, res) => {
           startPoint,
           startLabel: String(start_label || ""),
           rangeKm: Number(range_km || 0) || null,
+          checkpointCount: Number(checkpoint_count || 0) || null,
         })
       : buildMessengerManifest({
           city,
@@ -997,6 +1009,7 @@ app.post("/api/messenger/generate", async (req, res) => {
           startPoint,
           startLabel: String(start_label || ""),
           rangeKm: Number(range_km || 0) || null,
+          checkpointCount: Number(checkpoint_count || 0) || null,
         });
 
   if (built.error) return res.status(400).json({ error: built.error });
