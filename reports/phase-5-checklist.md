@@ -24,8 +24,9 @@ Related docs:
 
 ## City pack release readiness
 - [x] Connect request pressure to city studio cues
-- [ ] Show pack/release readiness more clearly in admin
+- [x] Show pack/release readiness more clearly in admin
 - [x] Add admin approval to AI-draft handoff
+- [x] Add explicit publish-live action for ready packs
 
 ## QA hardening
 - [ ] Re-test request submit flow on production

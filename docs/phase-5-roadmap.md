@@ -49,6 +49,9 @@ Scope:
 Status:
 - started
 - admin can now turn a city request into an AI-drafted inactive city pack for review
+- City Studio now shows draft/review/ready/live pack state
+- packs now show district coverage and copy-readiness before publish
+- admin can now publish a ready pack straight from the pack list
 
 ### 4. QA hardening for live use
 Keep the product release-ready while the city set grows.

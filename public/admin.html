@@ -1438,6 +1438,18 @@
         const data = await post('/api/admin/city-packs', {});
         (data.packs || []).forEach((pack) => {
           const isLoaded = packIdEl.value && packIdEl.value === pack.id;
+          const readinessLabel =
+            pack.readiness_status === 'live'
+              ? 'Live'
+              : pack.readiness_status === 'ready'
+                ? 'Ready'
+                : pack.readiness_status === 'review'
+                  ? 'Review'
+                  : 'Draft';
+          const readinessClass =
+            pack.readiness_status === 'live' || pack.readiness_status === 'ready'
+              ? 'active'
+              : '';
           const row = document.createElement('div');
           row.className = `list-item pack-item${isLoaded ? ' is-loaded' : ''}`;
           row.innerHTML = `
@@ -1447,17 +1459,21 @@
                   <span>${pack.slug}</span>
                 </div>
                 <div class="pack-item-meta">
+                  <span class="mini-chip ${readinessClass}">${readinessLabel}</span>
                   <span class="mini-chip ${pack.is_active ? 'active' : ''}">${pack.is_active ? 'Active' : 'Hidden'}</span>
                   <span class="mini-chip">${pack.checkpoint_count || 0} spots</span>
                   <span class="mini-chip">${pack.active_checkpoint_count || 0} live</span>
+                  <span class="mini-chip">${pack.district_count || 0} districts</span>
+                  <span class="mini-chip">${pack.copy_ready ? 'Copy set' : 'Copy missing'}</span>
                   ${isLoaded ? '<span class="mini-chip active">Loaded</span>' : ''}
                 </div>
               </div>
               <div class="proof-actions">
-                <button class="secondary">Load</button>
+                <button class="secondary" data-pack-load>Review</button>
+                ${pack.can_publish && !pack.is_active ? '<button class="secondary" data-pack-publish>Publish live</button>' : ''}
               </div>
             `;
-          row.querySelector('button').onclick = async () => {
+          row.querySelector('[data-pack-load]').onclick = async () => {
             packIdEl.value = pack.id || '';
             packSlugEl.value = pack.slug || '';
             packNameEl.value = pack.name || '';
@@ -1469,6 +1485,22 @@
             await loadCheckpoints(pack.id);
             await loadPacks();
           };
+          const publishButton = row.querySelector('[data-pack-publish]');
+          if (publishButton) {
+            publishButton.onclick = async () => {
+              packIdEl.value = pack.id || '';
+              packSlugEl.value = pack.slug || '';
+              packNameEl.value = pack.name || '';
+              packRouteEl.value = pack.route_note || '';
+              packFinishEl.value = pack.finish_label || '';
+              packSafetyEl.value = pack.safety_note || '';
+              packActiveEl.checked = true;
+              checkpointIdEl.value = '';
+              await savePack();
+              if (pack.id) await loadCheckpoints(pack.id);
+              statusEl.textContent = `${pack.name} is live.`;
+            };
+          }
           packsList.appendChild(row);
         });
       };
