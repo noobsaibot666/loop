@@ -2371,6 +2371,10 @@ input[type="range"]::-webkit-slider-thumb {
   margin-bottom: 18px;
 }
 
+.city-editorial-grid {
+  margin-bottom: 4px;
+}
+
 .city-lane-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2427,6 +2431,10 @@ input[type="range"]::-webkit-slider-thumb {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.city-editorial-card {
+  min-height: 100%;
 }
 
 .wall-editorial-card {

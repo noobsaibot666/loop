@@ -30,6 +30,11 @@ Scope:
 - clearer live vs next-up separation
 - stronger movement between city surfaces
 
+Status:
+- in progress
+- editorial lead-lane and hot-ask framing added
+- city-specific jumps into Wall of Fame and Leaderboard tightened
+
 ### 3. Release visibility
 Expose the result of city demand and release work publicly in a controlled way.
 

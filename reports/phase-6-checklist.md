@@ -21,6 +21,8 @@ Related docs:
 - [x] Add direct Alleycat jump from city cards
 - [x] Add wall/leaderboard city links from live lanes
 - [x] Tighten city lane storytelling
+- [x] Add editorial lead-lane and hot-ask framing
+- [x] Add stronger city-specific jumps from `/cities`
 
 ## Release visibility
 - [x] Show live cities separately from next-up lanes

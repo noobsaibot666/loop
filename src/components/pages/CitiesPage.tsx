@@ -31,6 +31,9 @@ export default function CitiesPage({
 }: CitiesPageProps) {
   const liveCities = cityLanes.filter((lane) => lane.status === "live");
   const nextCities = cityLanes.filter((lane) => lane.status !== "live");
+  const leadLane = [...liveCities].sort((left, right) => {
+    return (right.active_checkpoint_count + right.district_count) - (left.active_checkpoint_count + left.district_count);
+  })[0];
   const hottestAsk = [...cityLanes]
     .filter((lane) => lane.demand_count > 0)
     .sort((left, right) => right.demand_count - left.demand_count)[0];
@@ -65,6 +68,56 @@ export default function CitiesPage({
 
       {!isLoadingCityLanes && (
         <>
+          {(leadLane || hottestAsk) && (
+            <section className="builder-grid single reveals">
+              <div className="wall-editorial-grid city-editorial-grid">
+                {leadLane && (
+                  <div className="wall-editorial-card city-editorial-card">
+                    <span className="winner-label">Lead lane</span>
+                    <strong>{leadLane.city_name}</strong>
+                    <span>{getLaneLine(leadLane)}</span>
+                    <div className="mini-chip-row compact">
+                      <div className="mini-chip active">{leadLane.active_checkpoint_count} live spots</div>
+                      <div className="mini-chip">{leadLane.district_count} districts</div>
+                    </div>
+                    <div className="city-lane-actions">
+                      <button className="primary-button small" type="button" onClick={() => onOpenMessengerCity(leadLane.city_name)}>
+                        Ride {leadLane.city_name}
+                      </button>
+                      <button className="ghost-button small" type="button" onClick={() => onOpenWallCity(leadLane.city_name)}>
+                        {leadLane.city_name} wall
+                      </button>
+                      <button className="ghost-button small" type="button" onClick={() => onOpenLeaderboardCity(leadLane.city_name)}>
+                        {leadLane.city_name} board
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {hottestAsk && (
+                  <div className="wall-editorial-card city-editorial-card">
+                    <span className="winner-label">Hot ask</span>
+                    <strong>{hottestAsk.city_name}</strong>
+                    <span>{hottestAsk.open_request_count} open asks are pushing this lane up the stack.</span>
+                    <div className="mini-chip-row compact">
+                      <div className="mini-chip">{hottestAsk.demand_count} total asks</div>
+                      <div className="mini-chip">{hottestAsk.status}</div>
+                    </div>
+                    <div className="city-lane-actions">
+                      <button className="ghost-button small" type="button" onClick={() => onOpenCityRequest(hottestAsk.city_name)}>
+                        Push {hottestAsk.city_name}
+                      </button>
+                      {hottestAsk.status !== "requested" && (
+                        <button className="ghost-button small" type="button" onClick={() => onOpenLeaderboardCity(hottestAsk.city_name)}>
+                          Open city board
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
           <section className="builder-grid single reveals">
             <div className="glass-card form-card">
               <div className="form-title">Live now</div>
@@ -100,6 +153,11 @@ export default function CitiesPage({
                           <span>Status</span>
                           <strong>Live</strong>
                         </div>
+                      </div>
+                      <div className="mini-chip-row compact">
+                        <div className="mini-chip">{lane.city_name} run lane</div>
+                        <div className="mini-chip">{lane.city_name} wall lane</div>
+                        <div className="mini-chip">{lane.city_name} board lane</div>
                       </div>
                       <div className="city-lane-actions">
                         <button className="primary-button small" type="button" onClick={() => onOpenMessengerCity(lane.city_name)}>
@@ -154,6 +212,10 @@ export default function CitiesPage({
                           <span>Open asks</span>
                           <strong>{lane.open_request_count}</strong>
                         </div>
+                      </div>
+                      <div className="mini-chip-row compact">
+                        <div className="mini-chip">{lane.status} lane</div>
+                        <div className="mini-chip">{lane.city_name} queue</div>
                       </div>
                       <div className="city-lane-actions">
                         <button className="ghost-button small" type="button" onClick={() => onOpenCityRequest(lane.city_name)}>
