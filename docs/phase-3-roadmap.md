@@ -61,6 +61,7 @@ Status:
 - admin pack visibility now shows pack state plus checkpoint counts
 - admin preview now breaks route line, spread lock, finish call, and safety frame into clear sections
 - rider-facing manifest copy now renders as labeled route / spread / finish blocks
+- generated manifests now prefer district spread when the pack has enough variety
 - next focus is deeper Wave 1 checkpoint density and better district spread before the bigger city expansion pass
 
 ### 4. Rivalry and social history

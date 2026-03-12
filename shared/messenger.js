@@ -301,6 +301,31 @@ const seededOrder = (items, seed) => {
   return copy;
 };
 
+const pickCheckpointSet = (items, count, seed) => {
+  const ordered = seededOrder(items, seed);
+  const selected = [];
+  const seenDistricts = new Set();
+  const leftovers = [];
+
+  for (const checkpoint of ordered) {
+    const districtKey = String(checkpoint.district || "").trim().toLowerCase();
+    if (districtKey && !seenDistricts.has(districtKey)) {
+      selected.push(checkpoint);
+      seenDistricts.add(districtKey);
+      if (selected.length >= count) return selected;
+      continue;
+    }
+    leftovers.push(checkpoint);
+  }
+
+  for (const checkpoint of leftovers) {
+    selected.push(checkpoint);
+    if (selected.length >= count) break;
+  }
+
+  return selected;
+};
+
 export function distanceBetweenMeters(pointA, pointB) {
   const toRad = (value) => (value * Math.PI) / 180;
   const earthRadius = 6371000;
@@ -373,12 +398,13 @@ export const buildMessengerManifestFromPack = ({
     };
   }
 
-  const ordered = seededOrder(candidatePool, seed).slice(0, Math.min(targetCount, candidatePool.length));
+  const ordered = pickCheckpointSet(candidatePool, Math.min(targetCount, candidatePool.length), seed);
 
   const checkpoints = ordered.map((checkpoint, index) => ({
     id: checkpoint.id,
     order: index + 1,
     name: checkpoint.name,
+    district: checkpoint.district || "",
     lat: checkpoint.lat,
     lng: checkpoint.lng,
     hint: checkpoint.hint,
