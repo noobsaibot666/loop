@@ -30,7 +30,7 @@ export async function onRequest({ request, env }) {
     checkpoints = pack ? await getPackCheckpoints(env, pack.id, true) : [];
   }
 
-  const built =
+  const dbBuilt =
     pack && checkpoints.length
       ? buildMessengerManifestFromPack({
           pack: {
@@ -58,7 +58,9 @@ export async function onRequest({ request, env }) {
           rangeKm,
           checkpointCount,
         })
-      : buildMessengerManifest({ city, difficulty, style, seed, startPoint, startLabel, rangeKm, checkpointCount });
+      : null;
+  const fallbackBuilt = buildMessengerManifest({ city, difficulty, style, seed, startPoint, startLabel, rangeKm, checkpointCount });
+  const built = dbBuilt?.error ? fallbackBuilt : dbBuilt || fallbackBuilt;
 
   if (built.error) return json({ error: built.error }, { status: 400 });
   return json({ manifest: built.manifest, source: pack ? "database" : "fallback" });

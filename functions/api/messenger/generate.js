@@ -19,7 +19,7 @@ export async function onRequest({ request, env }) {
       : null;
   const dbPack = await getPublishedCityPackByCity(env, normalizeCitySlug(city));
   const dbCheckpoints = dbPack ? await getPackCheckpoints(env, dbPack.id, true) : [];
-  const built =
+  const dbBuilt =
     dbPack && dbCheckpoints.length
       ? buildMessengerManifestFromPack({
           pack: {
@@ -47,16 +47,20 @@ export async function onRequest({ request, env }) {
           rangeKm: Number(range_km || 0) || null,
           checkpointCount: Number(checkpoint_count || 0) || null,
         })
-      : buildMessengerManifest({
-          city,
-          difficulty,
-          style,
-          seed,
-          startPoint,
-          startLabel: String(start_label || ""),
-          rangeKm: Number(range_km || 0) || null,
-          checkpointCount: Number(checkpoint_count || 0) || null,
-        });
+      : null;
+
+  const fallbackBuilt = buildMessengerManifest({
+    city,
+    difficulty,
+    style,
+    seed,
+    startPoint,
+    startLabel: String(start_label || ""),
+    rangeKm: Number(range_km || 0) || null,
+    checkpointCount: Number(checkpoint_count || 0) || null,
+  });
+
+  const built = dbBuilt?.error ? fallbackBuilt : dbBuilt || fallbackBuilt;
 
   if (built.error) {
     return json({ error: built.error }, { status: 400 });

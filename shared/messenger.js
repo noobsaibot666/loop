@@ -75,6 +75,18 @@ const checkpointsByCity = {
         chaotic: "Choose an exit purely by instinct and commit.",
       },
     },
+    {
+      id: "berlin-hansaviertel-cut",
+      name: "Hansaviertel Cut",
+      lat: 52.5189,
+      lng: 13.3476,
+      hint: "Quiet seam, fast exits, no reason to linger.",
+      tasks: {
+        local: "Clock the cleanest quiet line and remember how fast the city mood changed.",
+        fast: "Touch the cut, lock the exit, and keep your speed tidy.",
+        chaotic: "Act like this little pocket was your secret all along, then leave before it gets weird.",
+      },
+    },
   ],
   london: [
     {
@@ -298,8 +310,12 @@ export const buildMessengerManifestFromPack = ({
   const styleKey = ["local", "fast", "chaotic"].includes(style) ? style : "local";
   const config = difficultyConfig[difficultyKey];
   const requestedCount = Number.isFinite(Number(checkpointCount)) ? Math.round(Number(checkpointCount)) : null;
-  const targetCount = requestedCount ? Math.max(3, requestedCount) : config.count;
-  const resolvedRangeKm = Number.isFinite(Number(rangeKm)) ? Math.max(2, Number(rangeKm)) : null;
+  const normalizedRequestedCount = requestedCount ? Math.max(1, requestedCount) : config.count;
+  const resolvedRangeKm = Number.isFinite(Number(rangeKm)) ? Math.max(1, Number(rangeKm)) : null;
+  const effectiveRangeKm = resolvedRangeKm
+    ? Number(((resolvedRangeKm <= 1 ? resolvedRangeKm : resolvedRangeKm * 0.8)).toFixed(2))
+    : null;
+  const targetCount = resolvedRangeKm && resolvedRangeKm <= 1 ? Math.min(normalizedRequestedCount, 2) : normalizedRequestedCount;
   let candidatePool = [...sourceCheckpoints];
   let maxDistanceKm = null;
 
@@ -311,11 +327,11 @@ export const buildMessengerManifestFromPack = ({
       }))
       .sort((a, b) => a.distance - b.distance);
 
-    const inRange = resolvedRangeKm
-      ? ranked.filter((entry) => entry.distance <= resolvedRangeKm * 1000)
+    const inRange = effectiveRangeKm
+      ? ranked.filter((entry) => entry.distance <= effectiveRangeKm * 1000)
       : ranked;
 
-    if (resolvedRangeKm) {
+    if (effectiveRangeKm) {
       if (inRange.length < targetCount) {
         return {
           error: `${pack.name} cannot fit ${targetCount} checkpoints within ${resolvedRangeKm} km of ${startLabel || "that start area"}. Widen the range, lower the checkpoint count, or drop the difficulty.`,
@@ -375,6 +391,7 @@ export const buildMessengerManifestFromPack = ({
       checkpoint_count: checkpoints.length,
       start_label: startLabel || "",
       range_km: resolvedRangeKm,
+      effective_range_km: effectiveRangeKm,
       max_distance_km: maxDistanceKm ? Number(maxDistanceKm.toFixed(1)) : null,
       route_note:
         pack.route_note || "Any order. Pick your own line through the city and clear every checkpoint before the finish.",

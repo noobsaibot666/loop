@@ -471,17 +471,21 @@ app.post("/api/admin/preview-manifest", requireAdmin, async (req, res) => {
   if (packId) {
     const { data: pack } = await supabase.from("city_packs").select("*").eq("id", packId).maybeSingle();
     const checkpoints = pack ? await getDbPackCheckpoints(pack.id, false) : [];
-    built =
+    const dbBuilt =
       pack && checkpoints.length
         ? buildManifestFromDatabasePack({ pack, checkpoints, difficulty, style, seed, startPoint, startLabel, rangeKm, checkpointCount })
         : { error: "Pack not found or empty." };
+    const fallbackBuilt = buildMessengerManifest({ city: pack?.name || city, difficulty, style, seed, startPoint, startLabel, rangeKm, checkpointCount });
+    built = dbBuilt?.error ? fallbackBuilt : dbBuilt;
   } else {
     const pack = await getDbCityPackByCity(city);
     const checkpoints = pack ? await getDbPackCheckpoints(pack.id, true) : [];
-    built =
+    const dbBuilt =
       pack && checkpoints.length
         ? buildManifestFromDatabasePack({ pack, checkpoints, difficulty, style, seed, startPoint, startLabel, rangeKm, checkpointCount })
-        : buildMessengerManifest({ city, difficulty, style, seed, startPoint, startLabel, rangeKm, checkpointCount });
+        : null;
+    const fallbackBuilt = buildMessengerManifest({ city, difficulty, style, seed, startPoint, startLabel, rangeKm, checkpointCount });
+    built = dbBuilt?.error ? fallbackBuilt : dbBuilt || fallbackBuilt;
   }
 
   if (built.error) return res.status(400).json({ error: built.error });
@@ -988,7 +992,7 @@ app.post("/api/messenger/generate", async (req, res) => {
       : null;
   const dbPack = await getDbCityPackByCity(city);
   const dbCheckpoints = dbPack ? await getDbPackCheckpoints(dbPack.id, true) : [];
-  const built =
+  const dbBuilt =
     dbPack && dbCheckpoints.length
       ? buildManifestFromDatabasePack({
           pack: dbPack,
@@ -1001,16 +1005,18 @@ app.post("/api/messenger/generate", async (req, res) => {
           rangeKm: Number(range_km || 0) || null,
           checkpointCount: Number(checkpoint_count || 0) || null,
         })
-      : buildMessengerManifest({
-          city,
-          difficulty,
-          style,
-          seed,
-          startPoint,
-          startLabel: String(start_label || ""),
-          rangeKm: Number(range_km || 0) || null,
-          checkpointCount: Number(checkpoint_count || 0) || null,
-        });
+      : null;
+  const fallbackBuilt = buildMessengerManifest({
+    city,
+    difficulty,
+    style,
+    seed,
+    startPoint,
+    startLabel: String(start_label || ""),
+    rangeKm: Number(range_km || 0) || null,
+    checkpointCount: Number(checkpoint_count || 0) || null,
+  });
+  const built = dbBuilt?.error ? fallbackBuilt : dbBuilt || fallbackBuilt;
 
   if (built.error) return res.status(400).json({ error: built.error });
 

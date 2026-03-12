@@ -43,6 +43,7 @@ type MessengerManifest = {
   checkpoint_count: number;
   start_label?: string;
   range_km?: number | null;
+  effective_range_km?: number | null;
   max_distance_km?: number | null;
   route_note: string;
   finish_label: string;
@@ -333,7 +334,7 @@ export default function App() {
   const [messengerLocation, setMessengerLocation] = useState("");
   const [messengerDifficulty, setMessengerDifficulty] = useState("medium");
   const [messengerStyle, setMessengerStyle] = useState("local");
-  const [messengerCheckpointCount, setMessengerCheckpointCount] = useState(5);
+  const [messengerCheckpointCount, setMessengerCheckpointCount] = useState(4);
   const [messengerRange, setMessengerRange] = useState(8);
   const [messengerUnit, setMessengerUnit] = useState<"km" | "mi">("km");
   const [messengerManifest, setMessengerManifest] = useState<MessengerManifest | null>(null);
@@ -357,6 +358,7 @@ export default function App() {
   const [proofStatus, setProofStatus] = useState<Record<string, string>>({});
   const [isUploadingProof, setIsUploadingProof] = useState<Record<string, boolean>>({});
   const geocodeCacheRef = useRef(new Map<string, { lat: number; lng: number; label: string }>());
+  const messengerConfigRef = useRef("");
 
   const isMobile = useMemo(() => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent), []);
 
@@ -572,6 +574,43 @@ export default function App() {
       // Ignore storage failures.
     }
   }, [messengerCity, messengerLocation, messengerDifficulty, messengerStyle, messengerCheckpointCount, messengerRange, messengerUnit, messengerManifestId, messengerManifest, messengerRun, challenge]);
+
+  useEffect(() => {
+    const nextConfig = JSON.stringify({
+      city: messengerCity,
+      location: messengerLocation,
+      difficulty: messengerDifficulty,
+      style: messengerStyle,
+      checkpointCount: messengerCheckpointCount,
+      range: messengerRange,
+      unit: messengerUnit,
+    });
+
+    if (!messengerConfigRef.current) {
+      messengerConfigRef.current = nextConfig;
+      return;
+    }
+
+    if (messengerConfigRef.current === nextConfig) return;
+    messengerConfigRef.current = nextConfig;
+
+    if (!messengerManifest || messengerRun) return;
+    setMessengerManifest(null);
+    setMessengerManifestId("");
+    setChallenge(null);
+    setChallengeSummary(null);
+    setLeaderboard([]);
+    setShareCode("");
+    setShareStatus("");
+    setMessengerStatus("Settings changed. Build a fresh manifest.");
+  }, [messengerCity, messengerLocation, messengerDifficulty, messengerStyle, messengerCheckpointCount, messengerRange, messengerUnit, messengerManifest, messengerRun]);
+
+  useEffect(() => {
+    if (messengerUnit === "km" && messengerRange <= 1 && messengerCheckpointCount > 2) {
+      setMessengerCheckpointCount(2);
+      setMessengerStatus("1 km test mode caps the list at 2 checkpoints.");
+    }
+  }, [messengerRange, messengerUnit, messengerCheckpointCount]);
 
   useEffect(() => {
     if (!user?.id || !messengerRun?.runId) return;
@@ -986,7 +1025,7 @@ export default function App() {
   const maxDistance = unit === "km" ? 80 : 50;
   const rangePercent = ((distance - minDistance) / (maxDistance - minDistance)) * 100;
   const messengerRangeLabel = Number(messengerRange.toFixed(1));
-  const messengerMinRange = messengerUnit === "km" ? 2 : 1;
+  const messengerMinRange = messengerUnit === "km" ? 1 : 1;
   const messengerMaxRange = messengerUnit === "km" ? 20 : 12;
   const messengerRangePercent = ((messengerRange - messengerMinRange) / (messengerMaxRange - messengerMinRange)) * 100;
 
@@ -2293,7 +2332,7 @@ export default function App() {
                 <label className="field">
                   <span>Checkpoint count</span>
                   <div className="pill-group">
-                    {[3, 4, 5, 6].map((count) => (
+                    {[1, 2, 3, 4, 5, 6].map((count) => (
                       <button
                         key={count}
                         type="button"
@@ -2304,7 +2343,9 @@ export default function App() {
                       </button>
                     ))}
                   </div>
-                  <span className="field-hint">Pick how many tasks you want on the list. More stops need more room.</span>
+                  <span className="field-hint">
+                    Test mode is open right now. At 1 km spread, the list caps at 2 checkpoints.
+                  </span>
                 </label>
 
                 <label className="field">
@@ -2393,6 +2434,9 @@ export default function App() {
                     {messengerManifest.range_km ? (
                       <div>
                         Spread locked to {messengerManifest.range_km} km from your start area
+                        {messengerManifest.effective_range_km
+                          ? ` · using a tighter street-fit cutoff of ${messengerManifest.effective_range_km} km`
+                          : ""}
                         {messengerManifest.max_distance_km
                           ? ` · farthest stop lands at ${messengerManifest.max_distance_km} km`
                           : ""}

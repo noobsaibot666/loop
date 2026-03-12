@@ -24,6 +24,7 @@ Status legend:
 - [ ] Loop history is written to account history
 
 ## Alleycat core flow
+- [ ] Temporary QA mode is active: 1-stop and 2-stop Alleycat runs are enabled, and 1 km / 2 km spread testing is allowed. Remove this before wider release.
 - [ ] Finish run works only after valid checkpoint completion
 - [ ] Checkpoint completion state feels obvious after check-in
 - [ ] Follow-up task system for checkpoints is defined
