@@ -2712,20 +2712,29 @@ export default function App() {
                   </div>
 
                   <div className="manifest-notes">
-                    <div>{messengerManifest.route_note}</div>
+                    <div className="manifest-note-card">
+                      <span>Route line</span>
+                      <strong>{messengerManifest.route_note}</strong>
+                    </div>
                     {messengerManifest.range_km ? (
-                      <div>
-                        Spread locked to {messengerManifest.range_km} km from your start area
-                        {messengerManifest.effective_range_km
-                          ? ` · using a tighter street-fit cutoff of ${messengerManifest.effective_range_km} km`
-                          : ""}
-                        {messengerManifest.max_distance_km
-                          ? ` · farthest stop lands at ${messengerManifest.max_distance_km} km`
-                          : ""}
-                        .
+                      <div className="manifest-note-card">
+                        <span>Spread lock</span>
+                        <strong>
+                          Locked to {messengerManifest.range_km} km from your start area
+                          {messengerManifest.effective_range_km
+                            ? ` · tighter street-fit ${messengerManifest.effective_range_km} km`
+                            : ""}
+                          {messengerManifest.max_distance_km
+                            ? ` · farthest stop ${messengerManifest.max_distance_km} km`
+                            : ""}
+                          .
+                        </strong>
                       </div>
                     ) : null}
-                    <div>{messengerManifest.finish_label}</div>
+                    <div className="manifest-note-card">
+                      <span>Finish call</span>
+                      <strong>{messengerManifest.finish_label}</strong>
+                    </div>
                   </div>
 
                   <div className="manifest-actions">

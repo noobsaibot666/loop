@@ -57,8 +57,11 @@ Scope:
 - admin preview improvements
 
 Status:
-- next in progress
-- current focus is admin pack visibility, preview clarity, and rider-facing manifest copy polish before the bigger city expansion pass
+- started
+- admin pack visibility now shows pack state plus checkpoint counts
+- admin preview now breaks route line, spread lock, finish call, and safety frame into clear sections
+- rider-facing manifest copy now renders as labeled route / spread / finish blocks
+- next focus is deeper Wave 1 checkpoint density and better district spread before the bigger city expansion pass
 
 ### 4. Rivalry and social history
 Make async competition feel more personal.

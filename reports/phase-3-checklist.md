@@ -38,9 +38,14 @@ Related docs:
 - [ ] Improve checkpoint library depth for Wave 1 cities
 - [ ] Expand city support toward the planned 8-city set
 - [ ] Improve district spread rules in generated manifests
-- [ ] Improve rider-facing manifest copy and directions
-- [ ] Improve admin preview clarity for city packs
-- [ ] Highlight already-created cities more clearly in admin
+- [x] Improve rider-facing manifest copy and directions
+- [x] Improve admin preview clarity for city packs
+- [x] Highlight already-created cities more clearly in admin
+- [ ] Review city studio flow on real admin use
+  Focus:
+  - pack cards must scan fast
+  - preview must be enough to catch weak copy before publish
+  - city density gaps should be obvious before the next expansion wave
 
 ## Rivalry and social history
 - [ ] Add cleaner head-to-head summaries

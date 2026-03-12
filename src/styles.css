@@ -1889,6 +1889,27 @@ input[type="range"]::-webkit-slider-thumb {
   line-height: 1.6;
 }
 
+.manifest-note-card {
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--card-stroke);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.manifest-note-card span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.manifest-note-card strong {
+  color: var(--text-soft);
+  font-weight: 500;
+}
+
 .run-progress {
   border-radius: 8px;
   padding: 12px 14px;

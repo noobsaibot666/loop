@@ -407,9 +407,26 @@ app.post("/api/admin/city-packs", requireAdmin, async (req, res) => {
     return res.json({ ok: true, pack: data?.[0] || null });
   }
 
-  const { data, error } = await supabase.from("city_packs").select("*").order("name", { ascending: true });
-  if (error) return res.status(500).json({ error: error.message });
-  return res.json({ packs: data || [] });
+  const [packsRes, checkpointsRes] = await Promise.all([
+    supabase.from("city_packs").select("*").order("name", { ascending: true }),
+    supabase.from("city_checkpoints").select("pack_id,id,is_active"),
+  ]);
+  if (packsRes.error) return res.status(500).json({ error: packsRes.error.message });
+  if (checkpointsRes.error) return res.status(500).json({ error: checkpointsRes.error.message });
+  const counts = new Map();
+  for (const checkpoint of checkpointsRes.data || []) {
+    const current = counts.get(checkpoint.pack_id) || { checkpoint_count: 0, active_checkpoint_count: 0 };
+    current.checkpoint_count += 1;
+    if (checkpoint.is_active !== false) current.active_checkpoint_count += 1;
+    counts.set(checkpoint.pack_id, current);
+  }
+  return res.json({
+    packs: (packsRes.data || []).map((pack) => ({
+      ...pack,
+      checkpoint_count: counts.get(pack.id)?.checkpoint_count || 0,
+      active_checkpoint_count: counts.get(pack.id)?.active_checkpoint_count || 0,
+    })),
+  });
 });
 
 app.post("/api/admin/city-checkpoints", requireAdmin, async (req, res) => {

@@ -24,6 +24,24 @@ export async function onRequest({ request, env }) {
     return json({ ok: true, pack: rows?.[0] || null });
   }
 
-  const packs = await supabaseRequest(env, "city_packs?order=name.asc&select=*", { method: "GET" }).catch(() => []);
-  return json({ packs: packs || [] });
+  const [packs, checkpoints] = await Promise.all([
+    supabaseRequest(env, "city_packs?order=name.asc&select=*", { method: "GET" }).catch(() => []),
+    supabaseRequest(env, "city_checkpoints?select=pack_id,id,is_active", { method: "GET" }).catch(() => []),
+  ]);
+
+  const counts = new Map();
+  for (const checkpoint of checkpoints || []) {
+    const current = counts.get(checkpoint.pack_id) || { checkpoint_count: 0, active_checkpoint_count: 0 };
+    current.checkpoint_count += 1;
+    if (checkpoint.is_active !== false) current.active_checkpoint_count += 1;
+    counts.set(checkpoint.pack_id, current);
+  }
+
+  return json({
+    packs: (packs || []).map((pack) => ({
+      ...pack,
+      checkpoint_count: counts.get(pack.id)?.checkpoint_count || 0,
+      active_checkpoint_count: counts.get(pack.id)?.active_checkpoint_count || 0,
+    })),
+  });
 }

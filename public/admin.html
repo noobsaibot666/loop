@@ -429,6 +429,49 @@
       margin-top: 4px;
     }
 
+    .pack-item {
+      display: grid;
+      gap: 14px;
+    }
+
+    .pack-item.is-loaded {
+      border-color: var(--accent);
+      background: rgba(246, 43, 10, 0.08);
+    }
+
+    .pack-item-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .pack-item-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .mini-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      font-size: 0.74rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .mini-chip.active {
+      border-color: rgba(246, 43, 10, 0.4);
+      background: rgba(246, 43, 10, 0.12);
+      color: #ffb575;
+    }
+
     .preview-box {
       padding: 16px;
       border-radius: 18px;
@@ -482,6 +525,23 @@
     .preview-manifest-meta {
       color: var(--muted);
       font-size: 0.82rem;
+    }
+
+    .preview-sections {
+      display: grid;
+      gap: 10px;
+    }
+
+    .preview-section {
+      padding: 14px 16px;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .preview-section strong {
+      display: block;
+      margin-bottom: 6px;
     }
 
     .preview-checkpoints {
@@ -912,6 +972,10 @@
       };
 
       const renderManifestPreview = (manifest, source) => {
+        const spreadLine = manifest.range_km
+          ? `Locked to ${manifest.range_km} km${manifest.start_label ? ` from ${manifest.start_label}` : ''}${manifest.max_distance_km ? ` · farthest stop ${manifest.max_distance_km} km` : ''}`
+          : 'No start-area lock on this preview.';
+        const safetyLine = manifest.safety_note || 'Keep it legal, readable, and safe enough to actually ship.';
         previewBox.innerHTML = `
             <div class="preview-manifest-card">
               <div class="preview-manifest-head">
@@ -921,8 +985,24 @@
                 </div>
                 <div class="preview-manifest-meta">Ghost ${Math.round((manifest.ghost_seconds || 0) / 60)} min</div>
               </div>
-              <div class="template-note">${manifest.route_note}</div>
-              <div class="template-note">${manifest.finish_label}</div>
+              <div class="preview-sections">
+                <div class="preview-section">
+                  <strong>Route note</strong>
+                  <span>${manifest.route_note}</span>
+                </div>
+                <div class="preview-section">
+                  <strong>Spread lock</strong>
+                  <span>${spreadLine}</span>
+                </div>
+                <div class="preview-section">
+                  <strong>Finish call</strong>
+                  <span>${manifest.finish_label}</span>
+                </div>
+                <div class="preview-section">
+                  <strong>Safety frame</strong>
+                  <span>${safetyLine}</span>
+                </div>
+              </div>
               <div class="preview-checkpoints">
                 ${(manifest.checkpoints || []).map((checkpoint) => `
                   <div class="preview-checkpoint">
@@ -1145,12 +1225,21 @@
         packsList.innerHTML = '';
         const data = await post('/api/admin/city-packs', {});
         (data.packs || []).forEach((pack) => {
+          const isLoaded = packIdEl.value && packIdEl.value === pack.id;
           const row = document.createElement('div');
-          row.className = 'list-item';
+          row.className = `list-item pack-item${isLoaded ? ' is-loaded' : ''}`;
           row.innerHTML = `
-              <div>
-                <strong>${pack.name}</strong>
-                <span>${pack.slug} · ${pack.is_active ? 'Active' : 'Hidden'}</span>
+              <div class="pack-item-head">
+                <div>
+                  <strong>${pack.name}</strong>
+                  <span>${pack.slug}</span>
+                </div>
+                <div class="pack-item-meta">
+                  <span class="mini-chip ${pack.is_active ? 'active' : ''}">${pack.is_active ? 'Active' : 'Hidden'}</span>
+                  <span class="mini-chip">${pack.checkpoint_count || 0} spots</span>
+                  <span class="mini-chip">${pack.active_checkpoint_count || 0} live</span>
+                  ${isLoaded ? '<span class="mini-chip active">Loaded</span>' : ''}
+                </div>
               </div>
               <div class="proof-actions">
                 <button class="secondary">Load</button>
@@ -1166,6 +1255,7 @@
             packActiveEl.checked = pack.is_active !== false;
             checkpointIdEl.value = '';
             await loadCheckpoints(pack.id);
+            await loadPacks();
           };
           packsList.appendChild(row);
         });
