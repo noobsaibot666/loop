@@ -7,7 +7,7 @@ import alleycatImage from "./images/hero_4.png";
 import Hero from "./components/Hero";
 import { formatDuration, getPageView } from "./utils/routeUtils";
 
-export type PageView = "home" | "loop" | "messenger" | "account" | "wall";
+export type PageView = "home" | "loop" | "messenger" | "account" | "wall" | "leaderboard";
 
 type Usage = {
   free_used: number;
@@ -94,6 +94,13 @@ type AlleycatChallengeSummary = {
   rivalry: string;
 };
 type AccountSummary = {
+  profile: {
+    user_id: string;
+    rider_name: string;
+    home_location: string;
+    bike_name: string;
+    bike_ratio: string;
+  };
   purchases: {
     session_id: string;
     amount_cents: number;
@@ -178,8 +185,17 @@ type WallPost = {
   city_slug: string;
   checkpoint_name: string;
   location_label: string;
+  bike_name?: string | null;
+  bike_ratio?: string | null;
   public_url: string;
   created_at: string;
+};
+type PublicLeaderboardEntry = {
+  user_id: string;
+  rider_name: string;
+  public_proofs: number;
+  finished_runs: number;
+  rank: number;
 };
 
 const API_BASE = (() => {
@@ -308,12 +324,26 @@ export default function App() {
   const [showCredits, setShowCredits] = useState(false);
   const [creditAmount, setCreditAmount] = useState("5");
   const [accountSummary, setAccountSummary] = useState<AccountSummary | null>(null);
+  const [accountRiderName, setAccountRiderName] = useState("");
+  const [accountHomeLocation, setAccountHomeLocation] = useState("");
+  const [accountBikeName, setAccountBikeName] = useState("");
+  const [accountBikeRatio, setAccountBikeRatio] = useState("");
   const [accountPassword, setAccountPassword] = useState("");
   const [accountStatus, setAccountStatus] = useState("");
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [isSendingReset, setIsSendingReset] = useState(false);
   const [wallPosts, setWallPosts] = useState<WallPost[]>([]);
   const [isLoadingWall, setIsLoadingWall] = useState(false);
+  const [publicLeaderboard, setPublicLeaderboard] = useState<PublicLeaderboardEntry[]>([]);
+  const [publicQuarterLabel, setPublicQuarterLabel] = useState("");
+  const [isLoadingPublicLeaderboard, setIsLoadingPublicLeaderboard] = useState(false);
+  const [showCityRequest, setShowCityRequest] = useState(false);
+  const [cityRequestName, setCityRequestName] = useState("");
+  const [cityRequestLocation, setCityRequestLocation] = useState("");
+  const [cityRequestNote, setCityRequestNote] = useState("");
+  const [cityRequestStatus, setCityRequestStatus] = useState("");
+  const [isSendingCityRequest, setIsSendingCityRequest] = useState(false);
 
   const [loopPoint, setLoopPoint] = useState("");
   const [distance, setDistance] = useState(14);
@@ -372,9 +402,16 @@ export default function App() {
       body: JSON.stringify(body),
     });
     const text = await response.text();
-    const data = text ? JSON.parse(text) : null;
+    let data: any = null;
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = null;
+      }
+    }
     if (!response.ok) {
-      const message = data?.error || data?.message || `Request failed: ${response.status}`;
+      const message = data?.error || data?.message || text || `Request failed: ${response.status}`;
       throw new Error(message);
     }
     return data;
@@ -509,6 +546,13 @@ export default function App() {
       active = false;
     };
   }, [user?.id, usage?.credits_remaining, messengerRun?.finishSeconds]);
+
+  useEffect(() => {
+    setAccountRiderName(accountSummary?.profile?.rider_name || "");
+    setAccountHomeLocation(accountSummary?.profile?.home_location || "");
+    setAccountBikeName(accountSummary?.profile?.bike_name || "");
+    setAccountBikeRatio(accountSummary?.profile?.bike_ratio || "");
+  }, [accountSummary?.profile?.rider_name, accountSummary?.profile?.home_location, accountSummary?.profile?.bike_name, accountSummary?.profile?.bike_ratio]);
 
   useEffect(() => {
     if (!messengerRun || messengerRun.finishedAt) return;
@@ -706,13 +750,38 @@ export default function App() {
     setIsLoadingWall(true);
     (async () => {
       try {
-        const response = await fetch(`${API_BASE}/api/wall`);
+        const response = await fetch(`${API_BASE}/api/wall`, { cache: "no-store" });
         const data = (await response.json()) as { posts: WallPost[] };
         if (!cancelled) setWallPosts(data.posts || []);
       } catch {
         if (!cancelled) setWallPosts([]);
       } finally {
         if (!cancelled) setIsLoadingWall(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pageView]);
+
+  useEffect(() => {
+    if (pageView !== "leaderboard") return;
+    let cancelled = false;
+    setIsLoadingPublicLeaderboard(true);
+    (async () => {
+      try {
+        const response = await fetch(`${API_BASE}/api/leaderboard`, { cache: "no-store" });
+        const data = (await response.json()) as { quarter?: { label?: string; leaders?: PublicLeaderboardEntry[] } };
+        if (cancelled) return;
+        setPublicQuarterLabel(data.quarter?.label || "");
+        setPublicLeaderboard(data.quarter?.leaders || []);
+      } catch {
+        if (!cancelled) {
+          setPublicQuarterLabel("");
+          setPublicLeaderboard([]);
+        }
+      } finally {
+        if (!cancelled) setIsLoadingPublicLeaderboard(false);
       }
     })();
     return () => {
@@ -816,6 +885,8 @@ export default function App() {
             ? "/account"
             : target === "wall"
               ? "/wall"
+              : target === "leaderboard"
+                ? "/leaderboard"
               : "/";
     window.history.pushState({}, "", path);
     setPageView(target);
@@ -827,6 +898,31 @@ export default function App() {
     setAuthMode(mode);
     setAuthMessage(message);
     setShowLogin(true);
+  };
+
+  const handleSubmitCityRequest = async () => {
+    if (!cityRequestName.trim() && !cityRequestLocation.trim()) {
+      setCityRequestStatus("Drop a city or riding area first.");
+      return;
+    }
+    setIsSendingCityRequest(true);
+    setCityRequestStatus("");
+    try {
+      await postJSON("/api/city-request", {
+        city: cityRequestName.trim(),
+        location: cityRequestLocation.trim(),
+        note: cityRequestNote.trim(),
+        email: user?.email || "",
+      });
+      setCityRequestStatus("Request sent. We’ll check it and queue it for review.");
+      setCityRequestName("");
+      setCityRequestLocation("");
+      setCityRequestNote("");
+    } catch (error) {
+      setCityRequestStatus(error instanceof Error ? error.message : "Could not send the request.");
+    } finally {
+      setIsSendingCityRequest(false);
+    }
   };
 
   const buildCheckpointMapsUrl = (checkpoint: MessengerCheckpoint) => {
@@ -1110,6 +1206,29 @@ export default function App() {
       setAccountStatus(error instanceof Error ? error.message : "Could not update password.");
     } finally {
       setIsUpdatingPassword(false);
+    }
+  };
+
+  const handleProfileSave = async () => {
+    if (!user?.id) {
+      setAccountStatus("Log in first.");
+      return;
+    }
+    setIsSavingProfile(true);
+    setAccountStatus("");
+    try {
+      const data = await postJSON<{ ok: boolean; profile: AccountSummary["profile"] }>("/api/account/profile", {
+        rider_name: accountRiderName,
+        home_location: accountHomeLocation,
+        bike_name: accountBikeName,
+        bike_ratio: accountBikeRatio,
+      });
+      setAccountSummary((current) => (current ? { ...current, profile: data.profile } : current));
+      setAccountStatus("Profile saved. Wall posts updated too.");
+    } catch (error) {
+      setAccountStatus(error instanceof Error ? error.message : "Could not save profile.");
+    } finally {
+      setIsSavingProfile(false);
     }
   };
 
@@ -1417,6 +1536,7 @@ export default function App() {
             <button className={`nav-link ${pageView === 'loop' ? 'active' : ''}`} onClick={() => handleNavigate('loop')}>Loop</button>
             <button className={`nav-link ${pageView === 'messenger' ? 'active' : ''}`} onClick={() => handleNavigate('messenger')}>Alleycat</button>
             <button className={`nav-link ${pageView === 'wall' ? 'active' : ''}`} onClick={() => handleNavigate('wall')}>Wall of Fame</button>
+            <button className={`nav-link ${pageView === 'leaderboard' ? 'active' : ''}`} onClick={() => handleNavigate('leaderboard')}>Leaderboard</button>
           </nav>
         </div>
 
@@ -1445,6 +1565,7 @@ export default function App() {
             <button className={`nav-link ${pageView === 'loop' ? 'active' : ''}`} onClick={() => handleNavigate('loop')}>Loop</button>
             <button className={`nav-link ${pageView === 'messenger' ? 'active' : ''}`} onClick={() => handleNavigate('messenger')}>Alleycat</button>
             <button className={`nav-link ${pageView === 'wall' ? 'active' : ''}`} onClick={() => handleNavigate('wall')}>Wall of Fame</button>
+            <button className={`nav-link ${pageView === 'leaderboard' ? 'active' : ''}`} onClick={() => handleNavigate('leaderboard')}>Leaderboard</button>
             {user && <button className={`nav-link ${pageView === 'account' ? 'active' : ''}`} onClick={() => handleNavigate('account')}>Account</button>}
           </div>
           <div className="mobile-nav-actions">
@@ -1494,6 +1615,12 @@ export default function App() {
           <h3 className="cell-title">Wall of Fame</h3>
           <p className="cell-body">Proof hits, city tags, no soft stuff.</p>
           <button className="ghost-button small" onClick={() => handleNavigate('wall')}>Go Wall of Fame</button>
+        </div>
+        <div className="modular-cell">
+          <div className="cell-eyebrow">Missing your city?</div>
+          <h3 className="cell-title">Request a city</h3>
+          <p className="cell-body">Tell us where you ride and we’ll put it in the queue.</p>
+          <button className="ghost-button small" onClick={() => setShowCityRequest(true)}>Send request</button>
         </div>
       </section>
 
@@ -1559,6 +1686,41 @@ export default function App() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showCityRequest && (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <div className="modal-card">
+            <div className="modal-title">Request your city</div>
+            <div className="modal-subtitle">Don’t see your spot yet? Drop the city or riding area and we’ll queue it for review.</div>
+            <label className="field">
+              <span>City</span>
+              <input value={cityRequestName} onChange={(event) => setCityRequestName(event.target.value)} placeholder="Berlin, Bogotá, NYC..." />
+            </label>
+            <label className="field">
+              <span>Area</span>
+              <input value={cityRequestLocation} onChange={(event) => setCityRequestLocation(event.target.value)} placeholder="Kreuzberg, Bushwick, Roma Norte..." />
+            </label>
+            <label className="field">
+              <span>Why here?</span>
+              <textarea
+                value={cityRequestNote}
+                onChange={(event) => setCityRequestNote(event.target.value)}
+                placeholder="Tell us what makes the scene worth building for."
+                rows={4}
+              />
+            </label>
+            {cityRequestStatus && <div className="status-message compact-status">{cityRequestStatus}</div>}
+            <div className="modal-actions">
+              <button className="ghost-button" type="button" onClick={() => setShowCityRequest(false)}>
+                Close
+              </button>
+              <button className="primary-button" type="button" onClick={handleSubmitCityRequest} disabled={isSendingCityRequest}>
+                {isSendingCityRequest ? "Sending..." : "Send request"}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1647,7 +1809,7 @@ export default function App() {
         <div className="builder-grid account-grid">
           <div className="glass-card form-card account-summary-card">
             <div className="form-title">Profile & Security</div>
-            <div className="form-subtitle">The basic stuff. Keep it tight.</div>
+            <div className="form-subtitle">Set your rider tag and bike details once.</div>
             {authMessage && <div className="status-message compact-status">{authMessage}</div>}
             {accountStatus && <div className="status-message compact-status">{accountStatus}</div>}
             <div className="user-row">
@@ -1655,7 +1817,52 @@ export default function App() {
               <div className="user-value">{user.email || "No email"}</div>
             </div>
 
-            <label className="field" style={{ marginTop: '20px' }}>
+            <div className="profile-grid">
+              <label className="field">
+                <span>Rider name</span>
+                <input
+                  type="text"
+                  value={accountRiderName}
+                  onChange={(event) => setAccountRiderName(event.target.value)}
+                  placeholder="Your name on the wall"
+                />
+              </label>
+              <label className="field">
+                <span>Home location</span>
+                <input
+                  type="text"
+                  value={accountHomeLocation}
+                  onChange={(event) => setAccountHomeLocation(event.target.value)}
+                  placeholder="Berlin, Kreuzberg"
+                />
+              </label>
+              <label className="field">
+                <span>Bike name</span>
+                <input
+                  type="text"
+                  value={accountBikeName}
+                  onChange={(event) => setAccountBikeName(event.target.value)}
+                  placeholder="Black track build"
+                />
+              </label>
+              <label className="field">
+                <span>Bike ratio</span>
+                <input
+                  type="text"
+                  value={accountBikeRatio}
+                  onChange={(event) => setAccountBikeRatio(event.target.value)}
+                  placeholder="49x17"
+                />
+              </label>
+            </div>
+
+            <div className="form-actions">
+              <button className="primary-button" type="button" onClick={handleProfileSave} disabled={isSavingProfile}>
+                {isSavingProfile ? "Saving..." : "Save profile"}
+              </button>
+            </div>
+
+            <label className="field">
               <span>Change password</span>
               <input
                 type="password"
@@ -1678,17 +1885,23 @@ export default function App() {
             <div className="form-title">Credits</div>
             <div className="form-subtitle">See what is left and load more.</div>
 
-            <div className="user-row">
-              <div className="user-label">Loop balance</div>
-              <div className="user-value">{hasUnlimitedCredits ? "Unlimited for admin testing" : `${totalCredits} total runs available`}</div>
-            </div>
-            <div className="user-row">
-              <div className="user-label">Free left</div>
-              <div className="user-value">{hasUnlimitedCredits ? "Unlimited" : `${usage?.free_remaining || 0} free loops left`}</div>
-            </div>
-            <div className="user-row">
-              <div className="user-label">Paid credits</div>
-              <div className="user-value">{hasUnlimitedCredits ? "Unlimited" : `${messengerCreditsOnly} credits live`}</div>
+            <div className="result-grid result-grid-two account-credit-grid">
+              <div>
+                <span>Total credits</span>
+                <strong>{hasUnlimitedCredits ? "Unlimited" : totalCredits}</strong>
+              </div>
+              <div>
+                <span>Manifest cost</span>
+                <strong>{hasUnlimitedCredits ? "Free" : `${MESSENGER_CREDIT_COST} each`}</strong>
+              </div>
+              <div>
+                <span>Free loops left</span>
+                <strong>{hasUnlimitedCredits ? "Unlimited" : usage?.free_remaining || 0}</strong>
+              </div>
+              <div>
+                <span>Paid credits live</span>
+                <strong>{hasUnlimitedCredits ? "Unlimited" : messengerCreditsOnly}</strong>
+              </div>
             </div>
 
             <div className="form-actions" style={{ marginTop: '16px' }}>
@@ -1960,8 +2173,8 @@ export default function App() {
           <div className="glass-card form-card">
             <div className="form-header">
               <div>
-                <h2 className="form-title">Route Settings</h2>
-                <p className="form-subtitle">Point, distance, feel. Keep it simple.</p>
+                <h2 className="form-title">Dial The Loop</h2>
+                <p className="form-subtitle">Set the point, tune the feel, send the line.</p>
               </div>
               {usage && (
                 <div className="loops-left">
@@ -1971,10 +2184,10 @@ export default function App() {
               )}
             </div>
 
-            <div className="form-section section-block">
-              <div className="section-block-head">
-                <div className="section-block-title">Start point</div>
-                <div className="section-block-copy">Where the loop starts and lands back.</div>
+              <div className="form-section section-block">
+                <div className="section-block-head">
+                <div className="section-block-title">Anchor</div>
+                <div className="section-block-copy">The point you leave from and roll back into.</div>
               </div>
               <label className="field">
                 <span>Loop point</span>
@@ -2014,8 +2227,8 @@ export default function App() {
 
             <div className="form-section section-block">
               <div className="section-block-head">
-                <div className="section-block-title">Route settings</div>
-                <div className="section-block-copy">Tune distance, terrain, surface, and ride feel.</div>
+                <div className="section-block-title">Ride Dial</div>
+                <div className="section-block-copy">Distance, surface, terrain, and the way it should hit.</div>
               </div>
               <label className="field">
                 <span>Distance</span>
@@ -2116,8 +2329,8 @@ export default function App() {
 
             <div className="form-section section-block">
               <div className="section-block-head">
-                <div className="section-block-title">Launch</div>
-                <div className="section-block-copy">Generate the route and send it to Maps.</div>
+                <div className="section-block-title">Send It</div>
+                <div className="section-block-copy">Build the route, then crack it open in Maps.</div>
               </div>
               <div className="form-actions">
                 <button
@@ -2178,10 +2391,9 @@ export default function App() {
                 <div>
                   <div className="form-title premium-title">
                     Alleycat builder
-                    <span className="inline-badge">Premium</span>
                   </div>
                   <div className="form-subtitle">
-                    Pull a city pack, start the clock, clear the whole list.
+                    Pull the list, set the heat, run your own line.
                   </div>
                 </div>
                 <div className="loops-left">
@@ -2192,8 +2404,8 @@ export default function App() {
 
               <div className="form-section section-block compact-block">
                 <div className="section-block-head">
-                  <div className="section-block-title">Shared code</div>
-                  <div className="section-block-copy">Load the same manifest a friend is riding.</div>
+                  <div className="section-block-title">Pull A Code</div>
+                  <div className="section-block-copy">Jump into the same list your people are running.</div>
                 </div>
               <div className="share-strip">
                 <label className="field share-field">
@@ -2219,8 +2431,8 @@ export default function App() {
 
               <div className="form-section section-block">
                 <div className="section-block-head">
-                  <div className="section-block-title">City pack</div>
-                  <div className="section-block-copy">Pick the city and pull the pack.</div>
+                  <div className="section-block-title">City Pull</div>
+                  <div className="section-block-copy">Choose the pack and lock the area you want to hit.</div>
                 </div>
                 <label className="field">
                   <span>City or start area</span>
@@ -2230,7 +2442,12 @@ export default function App() {
                     onChange={(event) => setMessengerCity(event.target.value)}
                     placeholder="Berlin, London, or Tokyo"
                   />
-                  <span className="field-hint">V1 ships with curated city packs. More can be added cleanly later.</span>
+                  <div className="field-inline-actions">
+                    <span className="field-hint">V1 ships with curated city packs.</span>
+                    <button className="ghost-button small" type="button" onClick={() => setShowCityRequest(true)}>
+                      Don’t see your city?
+                    </button>
+                  </div>
                 </label>
                 <div className="pill-group city-preset-group">
                   {ALLEYCAT_CITY_PRESETS.map((city) => (
@@ -2258,8 +2475,8 @@ export default function App() {
 
               <div className="form-section section-block">
                 <div className="section-block-head">
-                  <div className="section-block-title">Route settings</div>
-                  <div className="section-block-copy">Set the pressure before you pull the list.</div>
+                  <div className="section-block-title">Set The Heat</div>
+                  <div className="section-block-copy">Choose the spread, stop count, and how rough you want it.</div>
                 </div>
                 <label className="field">
                   <span>Spread</span>
@@ -2371,8 +2588,8 @@ export default function App() {
 
               <div className="form-section section-block">
                 <div className="section-block-head">
-                  <div className="section-block-title">Run controls</div>
-                  <div className="section-block-copy">Build it, reset it, or pass the code.</div>
+                  <div className="section-block-title">Run It</div>
+                  <div className="section-block-copy">Build the list, reset the run, or pass the code.</div>
                 </div>
                 <div className="form-actions">
                   <button
@@ -2762,13 +2979,64 @@ export default function App() {
                     <span>{post.city_name}</span>
                   </div>
                   <div className="checkpoint-name">{post.rider_name}</div>
-                  <div className="checkpoint-task">{post.checkpoint_name}</div>
-                  <div className="checkpoint-hint">{new Date(post.created_at).toLocaleDateString()}</div>
+                  <div className="wall-detail-grid">
+                    <div>
+                      <span>Location</span>
+                      <strong>{post.location_label || post.city_name}</strong>
+                    </div>
+                    <div>
+                      <span>Date</span>
+                      <strong>{new Date(post.created_at).toLocaleDateString()}</strong>
+                    </div>
+                    <div>
+                      <span>Bike</span>
+                      <strong>{post.bike_name || "Bike not set"}</strong>
+                    </div>
+                    <div>
+                      <span>Ratio</span>
+                      <strong>{post.bike_ratio || "Ratio not set"}</strong>
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         )}
+      </section>
+    </div>
+  );
+
+  const renderPublicLeaderboard = () => (
+    <div className="sequential-layout sub-page">
+      <section className="sub-page-header">
+        <h1 className="sub-page-title">Leaderboard</h1>
+        <p className="sub-page-description">Quarter heat only. Proof first, finishes second.</p>
+      </section>
+
+      <section className="builder-grid single reveals">
+        <div className="glass-card form-card">
+          <div className="form-title">{publicQuarterLabel || "Current quarter"}</div>
+          {isLoadingPublicLeaderboard && <div className="status-message">Loading leaderboard…</div>}
+          {!isLoadingPublicLeaderboard && publicLeaderboard.length === 0 && (
+            <div className="empty-state">
+              <div className="empty-state-title">No ranked riders yet</div>
+              <div className="empty-state-body">Clear tasks, post proof, and the board will wake up.</div>
+            </div>
+          )}
+          {publicLeaderboard.length > 0 && (
+            <div className="leaderboard-list public-board">
+              {publicLeaderboard.map((entry) => (
+                <div key={entry.user_id} className="leaderboard-row">
+                  <div className="leaderboard-rank">#{entry.rank}</div>
+                  <div className="leaderboard-main">
+                    <strong>{entry.rider_name}</strong>
+                    <span>{entry.public_proofs} proofs · {entry.finished_runs} finishes</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </section>
     </div>
   );
@@ -2782,6 +3050,8 @@ export default function App() {
           ? renderAccount()
           : pageView === "wall"
             ? renderWall()
+            : pageView === "leaderboard"
+              ? renderPublicLeaderboard()
             : renderHome();
 
   return (
@@ -2816,6 +3086,7 @@ export default function App() {
           </div>
 
           <div className="footer-links">
+            <a className="ghost-link" href="/leaderboard">Leaderboard</a>
             <a className="ghost-link" href="/privacy.html">Privacy</a>
             <a className="ghost-link" href="/terms.html">Terms</a>
             <a className="ghost-link" href="/how.html">How</a>

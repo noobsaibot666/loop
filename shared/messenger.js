@@ -40,6 +40,30 @@ const checkpointsByCity = {
       },
     },
     {
+      id: "berlin-luftbruecke",
+      name: "Platz der Luftbruecke Edge",
+      lat: 52.4849,
+      lng: 13.3852,
+      hint: "Big circle energy, quick exits, zero reason to drift.",
+      tasks: {
+        local: "Clock which side of the circle feels calmer than it should.",
+        fast: "Touch the edge, lock your escape, and keep your pace honest.",
+        chaotic: "Give the roundabout one fake salute and cut before it gets ceremonial.",
+      },
+    },
+    {
+      id: "berlin-victoriapark-rise",
+      name: "Victoriapark Lower Rise",
+      lat: 52.4885,
+      lng: 13.3927,
+      hint: "Short climb pressure and a clean exit if you read it right.",
+      tasks: {
+        local: "Notice the first point where the block stops feeling flat.",
+        fast: "Tag the rise, breathe once, and punch out before it drags on.",
+        chaotic: "Act like that tiny lift was alpine drama, then move on.",
+      },
+    },
+    {
       id: "berlin-victory-column",
       name: "Victory Column",
       lat: 52.514496,

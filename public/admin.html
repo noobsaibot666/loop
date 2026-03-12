@@ -7,42 +7,74 @@
   <link rel="icon" href="/favicon.png" />
   <title>Admin · GIVE ME THE LOOP</title>
   <style>
+    @import url("https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap");
+
     :root {
       color-scheme: dark;
-      --bg: #0b0b0b;
-      --card: rgba(255, 255, 255, 0.06);
-      --border: rgba(255, 255, 255, 0.12);
-      --text: #f4f4f4;
-      --muted: #b7b7b7;
-      --accent: #f62b0a;
-      --accent-soft: #ff8f3d;
+      --bg: hsl(0, 0%, 2%);
+      --bg-elev: hsl(0, 0%, 6%);
+      --text: hsl(0, 0%, 98%);
+      --text-soft: hsl(0, 0%, 85%);
+      --muted: hsl(0, 0%, 60%);
+      --accent: hsl(20, 100%, 50%);
+      --accent-soft: hsla(20, 100%, 50%, 0.16);
+      --border: hsla(0, 0%, 100%, 0.08);
+      --border-bright: hsla(0, 0%, 100%, 0.15);
+      --shadow: 0 40px 100px hsla(0, 0%, 0%, 0.9);
+      --font-header: "Syncopate", sans-serif;
+      --font-mono: "Space Mono", monospace;
+      --radius: 28px;
     }
 
     * {
       box-sizing: border-box;
     }
 
+    html {
+      background: var(--bg);
+    }
+
     body {
       margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-      background: #0f0f0f;
+      font-family: var(--font-mono);
+      background:
+        radial-gradient(circle at 50% 50%, hsla(20, 100%, 50%, 0.03) 0%, transparent 70%),
+        linear-gradient(to bottom, var(--bg), #000);
       color: var(--text);
-      padding: 24px;
+      padding: 28px 24px 72px;
+      min-height: 100vh;
+      position: relative;
+      letter-spacing: -0.02em;
+      line-height: 1.6;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.95' numOctaves='1' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.18'/%3E%3C/svg%3E");
+      mix-blend-mode: overlay;
+      z-index: 0;
     }
 
     .shell {
-      max-width: 720px;
+      max-width: 1240px;
       margin: 0 auto;
       display: grid;
-      gap: 24px;
+      gap: 22px;
       padding-bottom: 60px;
+      position: relative;
+      z-index: 1;
     }
 
     .card {
-      background: rgba(4, 4, 4, 0.4);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
-      padding: 40px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.025));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 30px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
     }
 
     h1,
@@ -51,29 +83,37 @@
       margin: 0;
     }
 
-    .eyebrow {
-      color: var(--accent-soft);
+    h1,
+    h2 {
+      font-family: var(--font-header);
+      letter-spacing: 0.06em;
       text-transform: uppercase;
-      letter-spacing: 0.18em;
-      font-size: 0.72rem;
-      margin-bottom: 10px;
+    }
+
+    .eyebrow {
+      color: #ffb575;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      font-size: 0.7rem;
+      margin-bottom: 12px;
     }
 
     .hero {
       display: grid;
-      gap: 10px;
+      gap: 12px;
+      padding: 38px 34px;
     }
 
     .sub {
       color: var(--muted);
-      line-height: 1.5;
-      max-width: 60ch;
+      line-height: 1.65;
+      max-width: 52ch;
     }
 
     .grid {
       display: grid;
       gap: 16px;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     }
 
     .section-nav {
@@ -83,30 +123,34 @@
     }
 
     .section-chip {
-      padding: 10px 14px;
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      background: rgba(0, 0, 0, 0.3);
+      padding: 11px 16px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
       color: var(--text);
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
+      font-family: var(--font-mono);
     }
 
     .section-chip.active {
-      background: transparent;
+      background: rgba(246, 43, 10, 0.1);
       border-color: var(--accent);
       color: var(--text);
     }
 
     .metric {
-      font-size: 2rem;
+      font-family: var(--font-header);
+      font-size: 1.8rem;
       font-weight: 700;
-      margin-top: 6px;
+      margin-top: 8px;
     }
 
     .label {
       color: var(--muted);
-      font-size: 0.85rem;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
     }
 
     .row {
@@ -133,10 +177,10 @@
     }
 
     .helper-step {
-      padding: 14px 16px;
-      border-radius: 8px;
-      background: rgba(0, 0, 0, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
     }
 
     .helper-step strong {
@@ -149,12 +193,12 @@
     select {
       width: 100%;
       padding: 14px 16px;
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      background: rgba(0, 0, 0, 0.3);
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
       color: var(--text);
       font-family: inherit;
-      font-size: 1rem;
+      font-size: 0.98rem;
     }
 
     textarea {
@@ -164,35 +208,37 @@
 
     button {
       padding: 13px 20px;
-      border-radius: 8px;
+      border-radius: 18px;
       border: 1px solid transparent;
       background: var(--text);
       color: #000;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
       font-family: inherit;
-      transition: opacity 0.2s ease;
+      transition: opacity 0.2s ease, transform 0.2s ease;
     }
 
     button:hover {
       opacity: 0.9;
+      transform: translateY(-1px);
     }
 
     button.secondary {
-      background: transparent;
+      background: rgba(255, 255, 255, 0.04);
       color: var(--text);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      border: 1px solid var(--border);
       font-weight: 500;
     }
 
     button.secondary:hover {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-bright);
     }
 
     .status {
-      color: var(--accent-soft);
+      color: #ffb575;
       min-height: 20px;
+      padding: 0 8px;
     }
 
     .sessions {
@@ -204,10 +250,10 @@
       display: flex;
       justify-content: space-between;
       gap: 12px;
-      padding: 14px 16px;
-      border-radius: 8px;
-      background: rgba(0, 0, 0, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
     }
 
     .session span {
@@ -227,10 +273,10 @@
       grid-template-columns: 88px 1fr auto;
       gap: 16px;
       align-items: center;
-      padding: 14px 16px;
-      border-radius: 8px;
-      background: rgba(0, 0, 0, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
     }
 
     .proof img {
@@ -274,10 +320,10 @@
       display: flex;
       justify-content: space-between;
       gap: 12px;
-      padding: 14px 16px;
-      border-radius: 8px;
-      background: rgba(0, 0, 0, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
     }
 
     .list-item span {
@@ -288,10 +334,10 @@
     }
 
     .preview-box {
-      padding: 14px;
-      border-radius: 14px;
+      padding: 16px;
+      border-radius: 18px;
       background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border);
     }
 
     .template-grid {
@@ -307,8 +353,8 @@
 
     .template-chip {
       padding: 10px 14px;
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      border: 1px solid var(--border);
       background: rgba(255, 255, 255, 0.05);
       color: var(--text);
       font-weight: 600;
@@ -349,9 +395,40 @@
 
     .preview-checkpoint {
       padding: 14px 16px;
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(0, 0, 0, 0.2);
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .hero h1 {
+      max-width: 11ch;
+      font-size: clamp(1.9rem, 4vw, 3rem);
+      line-height: 1.1;
+    }
+
+    .metric-card {
+      padding: 18px 20px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .section-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .section-title {
+      display: grid;
+      gap: 6px;
+    }
+
+    .section-title h2 {
+      font-size: 1.2rem;
+      line-height: 1.15;
     }
 
     .preview-checkpoint strong,
@@ -371,8 +448,8 @@
       }
 
       .card {
-        border-radius: 12px;
-        padding: 24px;
+        border-radius: 22px;
+        padding: 22px;
       }
 
       .session {
@@ -389,6 +466,10 @@
 
       .list-item {
         flex-direction: column;
+      }
+
+      .hero {
+        padding: 28px 24px;
       }
     }
   </style>
@@ -414,8 +495,8 @@
     </section>
 
     <section class="card" id="adminPanel" style="display:none;">
-      <div class="row" style="justify-content:space-between;">
-        <div>
+      <div class="section-head">
+        <div class="section-title">
           <div class="eyebrow">Live state</div>
           <h2 id="adminEmail">Admin</h2>
         </div>
@@ -423,19 +504,19 @@
       </div>
 
       <div class="grid" id="overviewGrid">
-        <div>
+        <div class="metric-card">
           <div class="label">Website health</div>
           <div class="metric" id="healthMetric">--</div>
         </div>
-        <div>
+        <div class="metric-card">
           <div class="label">Riders with credits</div>
           <div class="metric" id="ridersMetric">0</div>
         </div>
-        <div>
+        <div class="metric-card">
           <div class="label">Paid credits live</div>
           <div class="metric" id="creditsMetric">0</div>
         </div>
-        <div>
+        <div class="metric-card">
           <div class="label">Alleycat runs</div>
           <div class="metric" id="runsMetric">0</div>
         </div>
@@ -447,6 +528,7 @@
         <button class="section-chip active" data-section="overview">Overview</button>
         <button class="section-chip" data-section="ops">Ops</button>
         <button class="section-chip" data-section="wall">Wall of Fame</button>
+        <button class="section-chip" data-section="requests">Requests</button>
         <button class="section-chip" data-section="city">City studio</button>
       </div>
     </section>
@@ -476,6 +558,14 @@
     <section class="card" id="proofsPanel" data-section="wall" style="display:none;">
       <div class="eyebrow">Wall of Fame</div>
       <div class="proofs" id="proofsList"></div>
+    </section>
+
+    <section class="card" id="requestsPanel" data-section="requests" style="display:none;">
+      <div class="eyebrow">City requests</div>
+      <div class="row" style="margin-bottom:14px;">
+        <button id="refreshRequests" class="secondary">Refresh requests</button>
+      </div>
+      <div class="sessions" id="requestsList"></div>
     </section>
 
     <section class="card" id="quarterPanel" data-section="overview" style="display:none;">
@@ -588,10 +678,12 @@
       const controlsPanel = document.getElementById('controlsPanel');
       const sessionsPanel = document.getElementById('sessionsPanel');
       const proofsPanel = document.getElementById('proofsPanel');
+      const requestsPanel = document.getElementById('requestsPanel');
       const quarterPanel = document.getElementById('quarterPanel');
       const cityStudioPanel = document.getElementById('cityStudioPanel');
       const sessionsList = document.getElementById('sessionsList');
       const proofsList = document.getElementById('proofsList');
+      const requestsList = document.getElementById('requestsList');
       const quarterLeaders = document.getElementById('quarterLeaders');
       const packsList = document.getElementById('packsList');
       const checkpointsList = document.getElementById('checkpointsList');
@@ -750,6 +842,48 @@
         } catch (error) {
           statusEl.textContent = error.message;
         }
+      };
+
+      const loadRequests = async () => {
+        requestsList.innerHTML = '';
+        const data = await post('/api/admin/city-requests', {});
+        if (!data.requests?.length) {
+          requestsList.innerHTML = '<div class="label">No city requests yet.</div>';
+          return;
+        }
+        data.requests.forEach((request) => {
+          const row = document.createElement('div');
+          row.className = 'session';
+          row.innerHTML = `
+            <div>
+              <strong>${request.requested_city || request.requested_location || 'Unknown spot'}</strong>
+              <span>${request.requested_location || 'No area'} · ${request.requester_email || 'Guest request'}</span>
+              <span>${request.note || 'No rider note'} </span>
+            </div>
+            <div class="proof-actions">
+              <button class="secondary" data-status="reviewing">Reviewing</button>
+              <button class="secondary" data-status="queued">Queue</button>
+              <button class="secondary" data-status="done">Done</button>
+            </div>
+          `;
+          row.querySelectorAll('button').forEach((button) => {
+            button.onclick = async () => {
+              statusEl.textContent = `Updating request ${request.id}...`;
+              try {
+                await post('/api/admin/city-requests', {
+                  action: 'update',
+                  request_id: request.id,
+                  status: button.dataset.status
+                });
+                statusEl.textContent = 'Request updated.';
+                await loadRequests();
+              } catch (error) {
+                statusEl.textContent = error.message;
+              }
+            };
+          });
+          requestsList.appendChild(row);
+        });
       };
 
       const loadCheckpoints = async (packId) => {
@@ -1022,6 +1156,7 @@
           } catch { }
           await paintOverview();
           await loadPacks();
+          await loadRequests();
           applySection(activeSection);
         } else {
           loginPanel.style.display = 'block';
@@ -1030,6 +1165,7 @@
           controlsPanel.style.display = 'none';
           sessionsPanel.style.display = 'none';
           proofsPanel.style.display = 'none';
+          requestsPanel.style.display = 'none';
           quarterPanel.style.display = 'none';
           cityStudioPanel.style.display = 'none';
           statusEl.textContent = 'Logged out.';
@@ -1117,6 +1253,9 @@
       };
       document.getElementById('previewManifest').onclick = async () => {
         try { await previewManifest(); statusEl.textContent = 'Preview ready.'; } catch (e) { statusEl.textContent = e.message; }
+      };
+      document.getElementById('refreshRequests').onclick = async () => {
+        try { await loadRequests(); statusEl.textContent = 'Requests reloaded.'; } catch (e) { statusEl.textContent = e.message; }
       };
 
       document.querySelectorAll('.section-chip').forEach((button) => {

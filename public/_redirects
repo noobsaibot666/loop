@@ -6,3 +6,5 @@
 /account/* / 200
 /wall / 200
 /wall/* / 200
+/leaderboard / 200
+/leaderboard/* / 200

@@ -727,7 +727,7 @@ p {
 /* --- MODULE CONTENT (Builder sections) --- */
 
 .module-content {
-  padding: 40px 10%;
+  padding: 18px 10% 40px;
   width: 100%;
 }
 
@@ -747,7 +747,7 @@ p {
 /* MODULAR GRID */
 .modular-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   border-top: 1px solid hsla(0, 0%, 100%, 0.1);
   border-bottom: 1px solid hsla(0, 0%, 100%, 0.1);
 }
@@ -787,7 +787,7 @@ p {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 40px 10%;
+  padding: 16px 10% 40px;
 }
 
 .split-content {
@@ -1368,6 +1368,14 @@ p {
   gap: 12px;
 }
 
+.field-inline-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .section-block {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   margin-top: 10px;
@@ -1427,6 +1435,7 @@ input[type="text"],
 input[type="email"],
 input[type="password"],
 input[type="number"],
+textarea,
 select {
   width: 100%;
   border-radius: 8px;
@@ -1439,9 +1448,15 @@ select {
 }
 
 input:focus,
+textarea:focus,
 select:focus {
   outline: none;
   border-color: rgba(246, 43, 10, 0.55);
+}
+
+textarea {
+  resize: vertical;
+  min-height: 110px;
 }
 
 .pill.active {
@@ -1972,7 +1987,10 @@ input[type="range"]::-webkit-slider-thumb {
   width: 100%;
   display: grid;
   gap: 24px;
-  padding: 0 10%;
+  padding: 28px 10%;
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .wall-grid {
@@ -2006,6 +2024,30 @@ input[type="range"]::-webkit-slider-thumb {
 .wall-meta {
   display: grid;
   gap: 8px;
+}
+
+.wall-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+}
+
+.wall-detail-grid div {
+  display: grid;
+  gap: 4px;
+}
+
+.wall-detail-grid span {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.wall-detail-grid strong {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-main);
 }
 
 .user-row {
@@ -2133,11 +2175,13 @@ input[type="range"]::-webkit-slider-thumb {
   max-width: 1200px;
   margin: 0 auto;
   padding: 40px 6%;
+  align-items: stretch;
 }
 
 .account-grid .form-card {
   max-width: none;
   width: 100%;
+  height: 100%;
 }
 
 .account-summary-card,
@@ -2169,6 +2213,21 @@ input[type="range"]::-webkit-slider-thumb {
 .account-note {
   color: var(--text-muted);
   line-height: 1.6;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+}
+
+.account-credit-grid {
+  gap: 18px 22px;
+}
+
+.account-credit-grid div {
+  padding: 0;
+  border: 0;
 }
 
 .badge-list {
@@ -2365,7 +2424,7 @@ input[type="range"]::-webkit-slider-thumb {
   }
 
   .module-content {
-    padding: 24px 6%;
+    padding: 12px 6% 24px;
   }
 
   .split-module {
@@ -2582,6 +2641,13 @@ input[type="range"]::-webkit-slider-thumb {
     padding: 0;
   }
 
+  .wall-section {
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    padding: 20px 0 0;
+    background: rgba(255, 255, 255, 0.02);
+  }
+
   .form-card,
   .user-card {
     padding: 20px;
@@ -2685,6 +2751,11 @@ input[type="range"]::-webkit-slider-thumb {
     column-gap: 10px;
   }
 
+  .wall-detail-grid,
+  .profile-grid {
+    grid-template-columns: 1fr;
+  }
+
   .wall-card {
     margin-bottom: 10px;
   }
@@ -2706,6 +2777,10 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 @media (max-width: 420px) {
+  .wall-grid {
+    column-count: 1;
+  }
+
   .mobile-nav-links,
   .mobile-nav-actions,
   .hero-actions,

@@ -43,28 +43,52 @@ export async function onRequest({ request, env }) {
   const checkpoints = manifest?.manifest?.checkpoints || [];
   const checkpoint = checkpoints.find((item) => item.id === checkpointId);
   if (!checkpoint) return json({ error: "checkpoint not part of manifest" }, { status: 400 });
+  const profileRows = await supabaseRequest(
+    env,
+    `user_profiles?user_id=eq.${encodeURIComponent(userId)}&select=rider_name,bike_name,bike_ratio`,
+    { method: "GET" }
+  ).catch(() => []);
+  const profile = profileRows?.[0] || null;
+  const riderName = profile?.rider_name?.trim() ? profile.rider_name.trim().slice(0, 40) : riderLabelFromEmail(authUser?.email || "");
 
-  const rows = await supabaseRequest(env, MESSENGER_TABLES.proofs, {
-    method: "POST",
-    headers: {
-      Prefer: "resolution=merge-duplicates,return=representation",
-    },
-    body: JSON.stringify({
-      user_id: userId,
-      run_id: runId,
-      manifest_id: run.manifest_id,
-      checkpoint_id: checkpointId,
-      checkpoint_name: checkpoint.name,
-      city_slug: manifest?.city_slug || manifest?.manifest?.city_slug || "",
-      city_name: manifest?.city_name || manifest?.manifest?.city || "",
-      rider_name: riderLabelFromEmail(authUser?.email || ""),
-      media_type: "image",
-      storage_path: storagePath,
-      public_url: publicUrl,
-      location_label: checkpoint.name,
-      is_public: isPublic !== false,
-    }),
-  });
+  const basePayload = {
+    user_id: userId,
+    run_id: runId,
+    manifest_id: run.manifest_id,
+    checkpoint_id: checkpointId,
+    checkpoint_name: checkpoint.name,
+    city_slug: manifest?.city_slug || manifest?.manifest?.city_slug || "",
+    city_name: manifest?.city_name || manifest?.manifest?.city || "",
+    rider_name: riderName,
+    media_type: "image",
+    storage_path: storagePath,
+    public_url: publicUrl,
+    location_label: checkpoint.name,
+    is_public: isPublic !== false,
+  };
+
+  let rows;
+  try {
+    rows = await supabaseRequest(env, MESSENGER_TABLES.proofs, {
+      method: "POST",
+      headers: {
+        Prefer: "resolution=merge-duplicates,return=representation",
+      },
+      body: JSON.stringify({
+        ...basePayload,
+        bike_name: profile?.bike_name || null,
+        bike_ratio: profile?.bike_ratio || null,
+      }),
+    });
+  } catch {
+    rows = await supabaseRequest(env, MESSENGER_TABLES.proofs, {
+      method: "POST",
+      headers: {
+        Prefer: "resolution=merge-duplicates,return=representation",
+      },
+      body: JSON.stringify(basePayload),
+    });
+  }
 
   const proof = rows?.[0] || null;
   const proofs = await getRunProofs(env, runId);

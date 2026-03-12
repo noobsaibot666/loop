@@ -541,6 +541,37 @@ app.post("/api/admin/proof-visibility", requireAdmin, async (req, res) => {
   });
 });
 
+app.post("/api/admin/city-requests", requireAdmin, async (req, res) => {
+  if (String(req.body?.action || "") === "update") {
+    const requestId = String(req.body?.request_id || "").trim();
+    const status = String(req.body?.status || "").trim() || "reviewing";
+    const adminNote = String(req.body?.admin_note || "").trim();
+    if (!requestId) return res.status(400).json({ error: "request_id required" });
+
+    const { data, error } = await supabase
+      .from("city_requests")
+      .update({
+        status,
+        admin_note: adminNote,
+        handled_at: status === "new" ? null : new Date().toISOString(),
+      })
+      .eq("id", requestId)
+      .select()
+      .limit(1);
+
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ ok: true, request: data?.[0] || null });
+  }
+
+  const { data, error } = await supabase
+    .from("city_requests")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ requests: data || [] });
+});
+
 app.post("/api/account/summary", async (req, res) => {
   const authUser = await getAuthUser(req);
   const user_id = authUser?.id || "";
@@ -548,6 +579,7 @@ app.post("/api/account/summary", async (req, res) => {
   const quarter = getQuarterWindow();
 
   const [
+    { data: profile, error: profileError },
     { data: purchases, error: purchasesError },
     { data: loopHistory, error: loopHistoryError },
     { data: manifests, error: manifestsError },
@@ -558,6 +590,12 @@ app.post("/api/account/summary", async (req, res) => {
     { data: quarterRuns, error: quarterRunsError },
   ] =
     await Promise.all([
+      supabase
+        .from("user_profiles")
+        .select("user_id, rider_name, home_location, bike_name, bike_ratio")
+        .eq("user_id", user_id)
+        .maybeSingle()
+        .catch(() => ({ data: null, error: null })),
       supabase
         .from("stripe_sessions")
         .select("session_id, amount_cents, credits_to_grant, status, created_at")
@@ -601,6 +639,7 @@ app.post("/api/account/summary", async (req, res) => {
     ]);
 
   const error =
+    profileError ||
     purchasesError ||
     loopHistoryError ||
     manifestsError ||
@@ -711,6 +750,13 @@ app.post("/api/account/summary", async (req, res) => {
   });
 
   return res.json({
+    profile: profile || {
+      user_id,
+      rider_name: "",
+      home_location: "",
+      bike_name: "",
+      bike_ratio: "",
+    },
     purchases: purchases || [],
     alleycat: {
       manifests: userManifests.length,
@@ -751,6 +797,41 @@ app.post("/api/account/summary", async (req, res) => {
       proofs: challengeProofNames,
     }),
   });
+});
+
+app.post("/api/account/profile", async (req, res) => {
+  const authUser = await getAuthUser(req);
+  const user_id = authUser?.id || "";
+  if (!user_id) return res.status(401).json({ error: "login required" });
+
+  const payload = {
+    user_id,
+    rider_name: String(req.body?.rider_name || "").trim().slice(0, 40),
+    home_location: String(req.body?.home_location || "").trim().slice(0, 120),
+    bike_name: String(req.body?.bike_name || "").trim().slice(0, 60),
+    bike_ratio: String(req.body?.bike_ratio || "").trim().slice(0, 40),
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data, error } = await supabase.from("user_profiles").upsert(payload, { onConflict: "user_id" }).select().limit(1);
+  if (error) {
+    if (String(error.message || "").toLowerCase().includes("user_profiles")) {
+      return res.status(500).json({ error: "Profile fields are not ready in Supabase yet. Apply user_profiles.sql first." });
+    }
+    return res.status(500).json({ error: error.message });
+  }
+  const { error: proofsError } = await supabase
+    .from("messenger_proof_posts")
+    .update({
+      rider_name: payload.rider_name || null,
+      bike_name: payload.bike_name || null,
+      bike_ratio: payload.bike_ratio || null,
+    })
+    .eq("user_id", user_id);
+  if (proofsError) {
+    return res.status(500).json({ error: proofsError.message });
+  }
+  return res.json({ ok: true, profile: data?.[0] || null });
 });
 
 app.post("/api/usage/consume", async (req, res) => {
@@ -1479,29 +1560,49 @@ app.post("/api/messenger/proof", async (req, res) => {
   const checkpoint = checkpoints.find((item) => item.id === checkpointId);
   if (!checkpoint) return res.status(400).json({ error: "checkpoint not part of manifest" });
 
-  const riderName = String(authUser?.email || "rider").split("@")[0].slice(0, 24) || "rider";
-  const { data: proofRows, error: proofError } = await supabase
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("rider_name, bike_name, bike_ratio")
+    .eq("user_id", user_id)
+    .maybeSingle()
+    .catch(() => ({ data: null }));
+  const riderName = profile?.rider_name?.trim()
+    ? profile.rider_name.trim().slice(0, 40)
+    : String(authUser?.email || "rider").split("@")[0].slice(0, 24) || "rider";
+  const basePayload = {
+    user_id,
+    run_id: runId,
+    manifest_id: run.manifest_id,
+    checkpoint_id: checkpointId,
+    checkpoint_name: checkpoint.name,
+    city_slug: manifest?.city_slug || manifest?.manifest?.city_slug || "",
+    city_name: manifest?.city_name || manifest?.manifest?.city || "",
+    rider_name: riderName,
+    media_type: "image",
+    storage_path: storagePath,
+    public_url: publicUrl,
+    location_label: checkpoint.name,
+    is_public: isPublic !== false,
+  };
+  let proofRows;
+  let proofError;
+  ({ data: proofRows, error: proofError } = await supabase
     .from("messenger_proof_posts")
     .upsert(
       {
-        user_id,
-        run_id: runId,
-        manifest_id: run.manifest_id,
-        checkpoint_id: checkpointId,
-        checkpoint_name: checkpoint.name,
-        city_slug: manifest?.city_slug || manifest?.manifest?.city_slug || "",
-        city_name: manifest?.city_name || manifest?.manifest?.city || "",
-        rider_name: riderName,
-        media_type: "image",
-        storage_path: storagePath,
-        public_url: publicUrl,
-        location_label: checkpoint.name,
-        is_public: isPublic !== false,
+        ...basePayload,
+        bike_name: profile?.bike_name || null,
+        bike_ratio: profile?.bike_ratio || null,
       },
       { onConflict: "run_id,checkpoint_id" }
     )
-    .select();
-
+    .select());
+  if (proofError) {
+    ({ data: proofRows, error: proofError } = await supabase
+      .from("messenger_proof_posts")
+      .upsert(basePayload, { onConflict: "run_id,checkpoint_id" })
+      .select());
+  }
   if (proofError) return res.status(500).json({ error: proofError.message });
 
   const { data: proofs, error: proofsError } = await supabase
@@ -1521,17 +1622,76 @@ app.post("/api/messenger/proof", async (req, res) => {
 
 app.get("/api/wall", async (req, res) => {
   const city = String(req.query.city || "").trim().toLowerCase();
-  let query = supabase
-    .from("messenger_proof_posts")
-    .select("id, rider_name, city_name, city_slug, checkpoint_name, location_label, public_url, created_at")
-    .eq("is_public", true)
-    .order("created_at", { ascending: false })
-    .limit(40);
-
-  if (city) query = query.eq("city_slug", city);
-  const { data, error } = await query;
+  const applyCity = (query) => (city ? query.eq("city_slug", city) : query);
+  let { data, error } = await applyCity(
+    supabase
+      .from("messenger_proof_posts")
+      .select("id, rider_name, city_name, city_slug, checkpoint_name, location_label, public_url, created_at, bike_name, bike_ratio")
+      .eq("is_public", true)
+      .order("created_at", { ascending: false })
+      .limit(40)
+  );
+  if (error) {
+    ({ data, error } = await applyCity(
+      supabase
+        .from("messenger_proof_posts")
+        .select("id, rider_name, city_name, city_slug, checkpoint_name, location_label, public_url, created_at")
+        .eq("is_public", true)
+        .order("created_at", { ascending: false })
+        .limit(40)
+    ));
+  }
   if (error) return res.status(500).json({ error: error.message });
   return res.json({ posts: data || [] });
+});
+
+app.get("/api/leaderboard", async (_req, res) => {
+  const quarter = getQuarterWindow();
+  const [proofsRes, runsRes] = await Promise.all([
+    supabase
+      .from("messenger_proof_posts")
+      .select("user_id,rider_name,city_name,created_at")
+      .eq("is_public", true)
+      .gte("created_at", quarter.start.toISOString())
+      .lt("created_at", quarter.end.toISOString()),
+    supabase
+      .from("messenger_runs")
+      .select("user_id,finished_at")
+      .eq("status", "finished")
+      .gte("finished_at", quarter.start.toISOString())
+      .lt("finished_at", quarter.end.toISOString()),
+  ]);
+  if (proofsRes.error) return res.status(500).json({ error: proofsRes.error.message });
+  if (runsRes.error) return res.status(500).json({ error: runsRes.error.message });
+  return res.json({
+    quarter: {
+      label: quarter.label,
+      leaders: buildQuarterLeaderboard({ proofs: proofsRes.data || [], finishedRuns: runsRes.data || [] }).slice(0, 25),
+    },
+  });
+});
+
+app.post("/api/city-request", async (req, res) => {
+  const requested_city = String(req.body?.city || "").trim();
+  const requested_location = String(req.body?.location || "").trim();
+  const note = String(req.body?.note || "").trim();
+  const requester_email = String(req.body?.email || "").trim();
+  if (!requested_city && !requested_location) {
+    return res.status(400).json({ error: "city or location required" });
+  }
+  const { data, error } = await supabase
+    .from("city_requests")
+    .insert({
+      requested_city,
+      requested_location,
+      note,
+      requester_email,
+      status: "new",
+    })
+    .select()
+    .limit(1);
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ ok: true, request: data?.[0] || null });
 });
 
 app.post("/api/messenger/share", async (req, res) => {

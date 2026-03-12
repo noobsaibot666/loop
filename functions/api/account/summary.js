@@ -7,7 +7,12 @@ export async function onRequest({ request, env }) {
   if (!user?.id) return json({ error: "login required" }, { status: 401 });
 
   const quarter = getQuarterWindow();
-  const [purchases, loopHistory, manifests, runs, challengeEntries, proofs, quarterProofs, quarterRuns] = await Promise.all([
+  const [profileRows, purchases, loopHistory, manifests, runs, challengeEntries, proofs, quarterProofs, quarterRuns] = await Promise.all([
+    supabaseRequest(
+      env,
+      `user_profiles?user_id=eq.${encodeURIComponent(user.id)}&select=user_id,rider_name,home_location,bike_name,bike_ratio`,
+      { method: "GET" }
+    ).catch(() => []),
     supabaseRequest(
       env,
       `stripe_sessions?user_id=eq.${encodeURIComponent(user.id)}&select=session_id,amount_cents,credits_to_grant,status,created_at&order=created_at.desc&limit=5`,
@@ -150,6 +155,13 @@ export async function onRequest({ request, env }) {
   const userQuarterRank = quarterLeaderboard.find((entry) => entry.user_id === user.id)?.rank || null;
 
   return json({
+    profile: profileRows?.[0] || {
+      user_id: user.id,
+      rider_name: "",
+      home_location: "",
+      bike_name: "",
+      bike_ratio: "",
+    },
     purchases: purchases || [],
     alleycat: {
       manifests: userManifests.length,
