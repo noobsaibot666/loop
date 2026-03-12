@@ -15,7 +15,7 @@ Related docs:
 - [x] Add public city demand summary API
 - [x] Surface city demand on Home
 - [x] Surface city demand inside Alleycat Mode
-- [ ] Keep request flow short and readable
+- [x] Keep request flow short and readable
 
 ## Admin release operations
 - [x] Add request queue summary to admin
@@ -30,9 +30,9 @@ Related docs:
 - [x] Show live publish blockers inside City Studio
 
 ## QA hardening
-- [ ] Re-test request submit flow on production
-- [ ] Re-test admin request review flow
-- [ ] Re-test public demand summary on live data
+- [x] Re-test request submit flow on production
+- [x] Re-test admin request review flow
+- [x] Re-test public demand summary on live data
 
 ## Deferred
 - [-] comments
