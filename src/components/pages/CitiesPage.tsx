@@ -35,15 +35,23 @@ export default function CitiesPage({
     .filter((lane) => lane.demand_count > 0)
     .sort((left, right) => right.demand_count - left.demand_count)[0];
 
+  const getLaneLine = (lane: CityLane) => {
+    if (lane.route_note) return lane.route_note;
+    if (lane.status === "requested") return "Riders are calling this lane up. Push it harder and move it into review.";
+    if (lane.status === "ready") return "Draft is tight enough to ship. One clean publish move and it goes live.";
+    if (lane.status === "review") return "The lane is rough-cut and waiting for a sharper review pass.";
+    return "Built to stay tight, local, and sharp.";
+  };
+
   return (
     <div className="sequential-layout sub-page">
       <section className="sub-page-header">
         <h1 className="sub-page-title">City Lanes</h1>
-        <p className="sub-page-description">Live packs, next-up demand, and the lanes getting built next.</p>
+        <p className="sub-page-description">See what is live, what is heating up, and where the next packs are landing.</p>
         <div className="surface-story-strip">
           <div className="mini-chip active">{liveCities.length} live</div>
           <div className="mini-chip">{nextCities.length} next up</div>
-          <div className="mini-chip">{hottestAsk ? `${hottestAsk.city_name} is hot` : "Demand is live"}</div>
+          <div className="mini-chip">{hottestAsk ? `${hottestAsk.city_name} is the hot ask` : "Demand is live"}</div>
         </div>
       </section>
 
@@ -60,7 +68,7 @@ export default function CitiesPage({
           <section className="builder-grid single reveals">
             <div className="glass-card form-card">
               <div className="form-title">Live now</div>
-              <div className="form-subtitle">These cities are up. Open Alleycat or branch into the wall and board.</div>
+              <div className="form-subtitle">These lanes are live right now. Pick a city and branch straight into the run, the wall, or the board.</div>
               {liveCities.length === 0 && (
                 <div className="empty-state">
                   <div className="empty-state-title">No live city lanes yet</div>
@@ -78,7 +86,7 @@ export default function CitiesPage({
                         </div>
                         <div className="mini-chip active">{lane.active_checkpoint_count} live spots</div>
                       </div>
-                      <p className="city-lane-copy">{lane.route_note || "Built to stay tight, local, and sharp."}</p>
+                      <p className="city-lane-copy">{getLaneLine(lane)}</p>
                       <div className="result-grid result-grid-three city-lane-stats">
                         <div>
                           <span>Districts</span>
@@ -98,10 +106,10 @@ export default function CitiesPage({
                           Open Alleycat
                         </button>
                         <button className="ghost-button small" type="button" onClick={() => onOpenWallCity(lane.city_name)}>
-                          Wall
+                          {lane.city_name} Wall
                         </button>
                         <button className="ghost-button small" type="button" onClick={() => onOpenLeaderboardCity(lane.city_name)}>
-                          Board
+                          {lane.city_name} Board
                         </button>
                       </div>
                     </div>
@@ -114,7 +122,7 @@ export default function CitiesPage({
           <section className="builder-grid single reveals">
             <div className="glass-card form-card">
               <div className="form-title">Next up</div>
-              <div className="form-subtitle">Demand, review, and ready lanes before they flip live.</div>
+              <div className="form-subtitle">Demand, review, and ready lanes before they flip live. This is the next release stack.</div>
               {nextCities.length === 0 && (
                 <div className="empty-state">
                   <div className="empty-state-title">No queued city lanes</div>
@@ -132,9 +140,7 @@ export default function CitiesPage({
                         </div>
                         <div className="mini-chip">{lane.demand_count} asks</div>
                       </div>
-                      <p className="city-lane-copy">
-                        {lane.route_note || "Riders are pushing this city into the queue. Add your ask to move it harder."}
-                      </p>
+                      <p className="city-lane-copy">{getLaneLine(lane)}</p>
                       <div className="result-grid result-grid-three city-lane-stats">
                         <div>
                           <span>Live spots</span>
@@ -153,6 +159,11 @@ export default function CitiesPage({
                         <button className="ghost-button small" type="button" onClick={() => onOpenCityRequest(lane.city_name)}>
                           Push this city
                         </button>
+                        {lane.status !== "requested" && (
+                          <button className="ghost-button small" type="button" onClick={() => onOpenLeaderboardCity(lane.city_name)}>
+                            Open city board
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}

@@ -20,7 +20,7 @@ Related docs:
 ## City-based discovery
 - [x] Add direct Alleycat jump from city cards
 - [x] Add wall/leaderboard city links from live lanes
-- [ ] Tighten city lane storytelling
+- [x] Tighten city lane storytelling
 
 ## Release visibility
 - [x] Show live cities separately from next-up lanes
