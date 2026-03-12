@@ -1475,6 +1475,17 @@ p {
   color: rgba(255, 255, 255, 0.9);
 }
 
+.chip-button {
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--text);
+}
+
+.chip-button:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.1);
+}
+
 input[type="text"],
 input[type="email"],
 input[type="password"],

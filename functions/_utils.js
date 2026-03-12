@@ -34,9 +34,16 @@ const supabaseRequest = async (env, path, options = {}) => {
   }
   const res = await fetch(`${url}/rest/v1/${path}`, { ...options, headers });
   const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
+  let data = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { raw: text };
+    }
+  }
   if (!res.ok) {
-    throw new Error(data?.message || res.statusText);
+    throw new Error(data?.message || data?.error || res.statusText || "Supabase request failed");
   }
   return data;
 };

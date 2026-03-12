@@ -1093,7 +1093,7 @@ export default function App() {
         note: cityRequestNote.trim(),
         email: user?.email || "",
       });
-      setCityRequestStatus("Request sent. We’ll check it and queue it for review.");
+      setCityRequestStatus("Request sent. It’s in the queue.");
       setCityRequestName("");
       setCityRequestLocation("");
       setCityRequestNote("");
@@ -1894,22 +1894,40 @@ export default function App() {
         <div className="modal-overlay" role="dialog" aria-modal="true">
           <div className="modal-card">
             <div className="modal-title">Request your city</div>
-            <div className="modal-subtitle">Don’t see your spot yet? Drop the city or riding area and we’ll queue it for review.</div>
+            <div className="modal-subtitle">City first. Area if it matters. We’ll line it up for review.</div>
+            {cityDemand && (
+              <div className="mini-chip-row compact">
+                <span className="mini-chip active">{cityDemand.open_requests} open</span>
+                <span className="mini-chip">{cityDemand.queued_requests} queued</span>
+                {cityDemand.top_cities.slice(0, 2).map((entry) => (
+                  <button
+                    key={entry.city}
+                    className="mini-chip chip-button"
+                    type="button"
+                    onClick={() => setCityRequestName(entry.city)}
+                  >
+                    {entry.city}
+                  </button>
+                ))}
+              </div>
+            )}
             <label className="field">
               <span>City</span>
-              <input value={cityRequestName} onChange={(event) => setCityRequestName(event.target.value)} placeholder="Berlin, Bogotá, NYC..." />
+              <input value={cityRequestName} onChange={(event) => setCityRequestName(event.target.value)} placeholder="Berlin, Bogotá, NYC..." autoFocus />
             </label>
+            <div className="field-row">
+              <label className="field">
+                <span>Area <small className="field-hint">optional</small></span>
+                <input value={cityRequestLocation} onChange={(event) => setCityRequestLocation(event.target.value)} placeholder="Kreuzberg, Bushwick, Roma Norte..." />
+              </label>
+            </div>
             <label className="field">
-              <span>Area</span>
-              <input value={cityRequestLocation} onChange={(event) => setCityRequestLocation(event.target.value)} placeholder="Kreuzberg, Bushwick, Roma Norte..." />
-            </label>
-            <label className="field">
-              <span>Why here?</span>
+              <span>Why here? <small className="field-hint">optional</small></span>
               <textarea
                 value={cityRequestNote}
                 onChange={(event) => setCityRequestNote(event.target.value)}
-                placeholder="Tell us what makes the scene worth building for."
-                rows={4}
+                placeholder="Fast note on the scene, blocks, or why it deserves a pack."
+                rows={3}
               />
             </label>
             {cityRequestStatus && <div className="status-message compact-status">{cityRequestStatus}</div>}
@@ -1918,7 +1936,7 @@ export default function App() {
                 Close
               </button>
               <button className="primary-button" type="button" onClick={handleSubmitCityRequest} disabled={isSendingCityRequest}>
-                {isSendingCityRequest ? "Sending..." : "Send request"}
+                {isSendingCityRequest ? "Sending..." : "Send"}
               </button>
             </div>
           </div>
