@@ -3128,10 +3128,42 @@ export default function App() {
             </div>
           )}
           {publicLeaderboard.length > 0 && (
+            <div className="result-grid result-grid-three leaderboard-summary-grid">
+              <div>
+                <span>Ranked riders</span>
+                <strong>{publicLeaderboard.length}</strong>
+              </div>
+              <div>
+                <span>Total proofs</span>
+                <strong>{publicLeaderboard.reduce((sum, entry) => sum + entry.public_proofs, 0)}</strong>
+              </div>
+              <div>
+                <span>Total finishes</span>
+                <strong>{publicLeaderboard.reduce((sum, entry) => sum + entry.finished_runs, 0)}</strong>
+              </div>
+            </div>
+          )}
+          {publicLeaderboard.length > 0 && (
             <div className="winner-callout">
               <span className="winner-label">Quarter leader</span>
               <strong>{publicLeaderboard[0].rider_name}</strong>
               <span>{publicLeaderboard[0].public_proofs} proofs · {publicLeaderboard[0].finished_runs} finishes</span>
+            </div>
+          )}
+          {publicLeaderboard.length > 1 && (
+            <div className="leaderboard-podium">
+              {publicLeaderboard.slice(0, 3).map((entry) => (
+                <button
+                  key={entry.user_id}
+                  type="button"
+                  className={`podium-card podium-${entry.rank}`}
+                  onClick={() => handleOpenRiderProfile(entry.user_id)}
+                >
+                  <span className="winner-label">Top {entry.rank}</span>
+                  <strong>{entry.rider_name}</strong>
+                  <span>{entry.public_proofs} proofs · {entry.finished_runs} finishes</span>
+                </button>
+              ))}
             </div>
           )}
           {publicLeaderboard.length > 0 && (

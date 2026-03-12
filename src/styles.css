@@ -1610,6 +1610,54 @@ input[type="range"]::-webkit-slider-thumb {
   color: var(--accent);
 }
 
+.leaderboard-public-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.leaderboard-summary-grid {
+  margin-top: 18px;
+}
+
+.leaderboard-podium {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.podium-card {
+  display: grid;
+  gap: 8px;
+  text-align: left;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-main);
+}
+
+.podium-card strong {
+  font-size: 1rem;
+}
+
+.podium-card span:last-child {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.podium-1 {
+  border-color: rgba(246, 43, 10, 0.24);
+  background: rgba(246, 43, 10, 0.08);
+}
+
+.podium-card:hover {
+  border-color: var(--accent);
+}
+
 .challenge-summary-head {
   display: flex;
   align-items: center;
@@ -2911,6 +2959,10 @@ input[type="range"]::-webkit-slider-thumb {
 
   .leaderboard-time {
     grid-column: 2;
+  }
+
+  .leaderboard-podium {
+    grid-template-columns: 1fr;
   }
 
   .share-strip,

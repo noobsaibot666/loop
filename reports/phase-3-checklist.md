@@ -27,11 +27,12 @@ Related docs:
 - [x] Add city filtering to Leaderboard
 - [x] Add quarter leader callout on the public Leaderboard
 - [x] Add top-3 winner visibility on the admin quarter board
-- [ ] Improve Leaderboard page hierarchy further
+- [x] Improve Leaderboard page hierarchy further
+- [ ] Review Leaderboard hierarchy on live data
   Next:
   - stronger grouped user summary
-  - cleaner spacing around the ranked list
-  - more useful context than just proofs/finishes
+  - real-world check on spacing and scan speed
+  - confirm the top cards feel useful, not noisy
 
 ## City content quality
 - [ ] Improve checkpoint library depth for Wave 1 cities

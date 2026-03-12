@@ -25,7 +25,10 @@ Scope:
 
 Status:
 - started
-- rider profile route and API implemented
+- public rider profile route and API implemented
+- Wall of Fame cards link into rider profiles
+- Leaderboard rows link into rider profiles
+- rider profile page renders public stats, bike setup, badges, and recent proof
 
 ### 2. Social surface polish
 Turn the read-only public surfaces into something more connected.
@@ -36,6 +39,14 @@ Scope:
 - city tags and top-city signals
 - quarter winners callout
 
+Status:
+- started
+- city filters are live on Wall of Fame
+- city filters are live on Leaderboard
+- quarter leader callout is live on the public Leaderboard
+- top-3 winner visibility is live on the admin quarter board
+- Leaderboard hierarchy now includes summary stats and a podium block
+
 ### 3. City content quality
 Make city packs feel more like real alleycats and less like generic route data.
 
@@ -44,6 +55,10 @@ Scope:
 - better district spread rules
 - stronger task tone review
 - admin preview improvements
+
+Status:
+- next in progress
+- current focus is admin pack visibility, preview clarity, and rider-facing manifest copy polish before the bigger city expansion pass
 
 ### 4. Rivalry and social history
 Make async competition feel more personal.
