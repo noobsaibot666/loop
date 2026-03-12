@@ -786,6 +786,80 @@ const cityDisplayNames = {
 
 const normalize = (value = "") => value.toLowerCase().replace(/[^a-z]/g, "");
 
+const titleCaseWords = (value = "") =>
+  String(value)
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+
+const inferTaskType = (checkpoint = {}) => {
+  const source = [
+    checkpoint.category,
+    checkpoint.vibe,
+    checkpoint.name,
+    checkpoint.hint,
+    checkpoint.id,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (/(bridge|river|canal|towpath|water|bay)/.test(source)) return "Waterline read";
+  if (/(station|arch|underpass|tracks|rail|yard)/.test(source)) return "Transit cut";
+  if (/(rise|climb|hill|run-up|runup|gate)/.test(source)) return "Leg check";
+  if (/(market|square|crossing|junction|ring|circle|scramble)/.test(source)) return "Flow read";
+  if (/(park|feld|open-space|open|courtyard|decks)/.test(source)) return "Space check";
+  if (/(line|backline|street-cut|cut|edge|split)/.test(source)) return "Line call";
+  if (checkpoint.category) return `${titleCaseWords(checkpoint.category)} read`;
+  return "Street read";
+};
+
+const inferPressureScore = ({ checkpoint = {}, difficulty = "medium", style = "local" }) => {
+  const base = difficulty === "hard" ? 4 : difficulty === "medium" ? 3 : 2;
+  const styleBoost = style === "chaotic" ? 1 : style === "fast" ? 0.5 : 0;
+  const source = [checkpoint.category, checkpoint.vibe, checkpoint.hint, checkpoint.name].filter(Boolean).join(" ").toLowerCase();
+  let contextBoost = 0;
+  if (/(junction|crossing|market|station|bridge|scramble|ring|circle)/.test(source)) contextBoost += 1;
+  if (/(quiet|reset|park|open|waterline|water)/.test(source)) contextBoost -= 0.5;
+  return Math.max(1, Math.min(5, Math.round(base + styleBoost + contextBoost)));
+};
+
+const pressureLabel = (score) => {
+  if (score >= 5) return "Hot";
+  if (score >= 4) return "High";
+  if (score >= 3) return "Medium";
+  return "Low";
+};
+
+const buildGhostLabel = ({ difficulty, style, checkpointCount, districtCount }) => {
+  const pressure = (difficulty === "hard" ? 2 : difficulty === "medium" ? 1 : 0) + (style === "chaotic" ? 2 : style === "fast" ? 1 : 0);
+  const spreadBoost = districtCount >= Math.max(4, checkpointCount - 1) ? 1 : 0;
+  const total = pressure + spreadBoost;
+  if (total >= 4) return "Heat check";
+  if (total >= 2) return "Hard chase";
+  return "Clean chase";
+};
+
+const buildTaskMixSummary = (checkpoints = []) => {
+  const counts = new Map();
+  for (const checkpoint of checkpoints) {
+    const key = checkpoint.task_type || "Street read";
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort((left, right) => right[1] - left[1])
+    .slice(0, 3)
+    .map(([label, count]) => `${label} x${count}`)
+    .join(" · ");
+};
+
+const buildReplayHook = ({ style, city }) => {
+  if (style === "chaotic") return `Same city, different noise. Run ${city} back and clean the line up.`;
+  if (style === "fast") return `Run ${city} back, tighten the exits, and shave the clock.`;
+  return `Take another swing through ${city} and find a cleaner second line.`;
+};
+
 export const getMessengerCityPack = (city = "") => {
   const normalized = normalize(city);
   if (!normalized) return null;
@@ -914,21 +988,29 @@ export const buildMessengerManifestFromPack = ({
 
   const ordered = pickCheckpointSet(candidatePool, Math.min(targetCount, candidatePool.length), seed);
 
-  const checkpoints = ordered.map((checkpoint, index) => ({
-    id: checkpoint.id,
-    order: index + 1,
-    name: checkpoint.name,
-    district: checkpoint.district || "",
-    lat: checkpoint.lat,
-    lng: checkpoint.lng,
-    hint: checkpoint.hint,
-    task:
-      checkpoint.tasks?.[styleKey] ||
-      checkpoint.task_local ||
-      checkpoint.task_fast ||
-      checkpoint.task_chaotic ||
-      "Read the street, clear the spot, and keep moving.",
-  }));
+  const checkpoints = ordered.map((checkpoint, index) => {
+    const taskType = inferTaskType(checkpoint);
+    const pressureScore = inferPressureScore({ checkpoint, difficulty: difficultyKey, style: styleKey });
+    return {
+      id: checkpoint.id,
+      order: index + 1,
+      name: checkpoint.name,
+      district: checkpoint.district || "",
+      lat: checkpoint.lat,
+      lng: checkpoint.lng,
+      hint: checkpoint.hint,
+      task:
+        checkpoint.tasks?.[styleKey] ||
+        checkpoint.task_local ||
+        checkpoint.task_fast ||
+        checkpoint.task_chaotic ||
+        "Read the street, clear the spot, and keep moving.",
+      task_type: taskType,
+      task_pressure: pressureLabel(pressureScore),
+      pressure_score: pressureScore,
+      score_points: 80 + pressureScore * 20,
+    };
+  });
 
   if (startPoint?.lat && startPoint?.lng && checkpoints.length) {
     maxDistanceKm = Math.max(
@@ -938,9 +1020,24 @@ export const buildMessengerManifestFromPack = ({
     );
   }
 
+  const districtCount = new Set(checkpoints.map((checkpoint) => checkpoint.district).filter(Boolean)).size;
   const title = `${pack.name} ${titleTokens[styleKey]} ${difficultyKey.charAt(0).toUpperCase()}${difficultyKey.slice(1)}`;
   const estimatedMinutes = Math.max(20, Math.round((config.estimatedMinutes / config.count) * checkpoints.length));
-  const ghostSeconds = Math.max(20 * 60, Math.round((config.ghostSeconds / config.count) * checkpoints.length));
+  const difficultyFactor = difficultyKey === "hard" ? 0.92 : difficultyKey === "medium" ? 0.97 : 1;
+  const styleFactor = styleKey === "chaotic" ? 0.95 : styleKey === "fast" ? 0.97 : 1;
+  const spreadFactor = districtCount >= Math.max(4, checkpoints.length - 1) ? 0.97 : 1;
+  const ghostSeconds = Math.max(
+    18 * 60,
+    Math.round((config.ghostSeconds / config.count) * checkpoints.length * difficultyFactor * styleFactor * spreadFactor)
+  );
+  const totalScore = checkpoints.reduce((sum, checkpoint) => sum + (checkpoint.score_points || 0), 0);
+  const taskMix = buildTaskMixSummary(checkpoints);
+  const ghostLabel = buildGhostLabel({
+    difficulty: difficultyKey,
+    style: styleKey,
+    checkpointCount: checkpoints.length,
+    districtCount,
+  });
 
   return {
     manifest: {
@@ -952,7 +1049,12 @@ export const buildMessengerManifestFromPack = ({
       manifest_title: title,
       estimated_minutes: estimatedMinutes,
       ghost_seconds: ghostSeconds,
+      ghost_label: ghostLabel,
       checkpoint_count: checkpoints.length,
+      district_count: districtCount,
+      total_score: totalScore,
+      task_mix: taskMix,
+      replay_hook: buildReplayHook({ style: styleKey, city: pack.name }),
       start_label: startLabel || "",
       range_km: resolvedRangeKm,
       effective_range_km: effectiveRangeKm,

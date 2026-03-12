@@ -30,10 +30,15 @@ type MessengerCheckpoint = {
   id: string;
   order: number;
   name: string;
+  district: string;
   lat: number;
   lng: number;
   hint: string;
   task: string;
+  task_type?: string;
+  task_pressure?: string;
+  pressure_score?: number;
+  score_points?: number;
 };
 type MessengerManifest = {
   id: string;
@@ -44,7 +49,12 @@ type MessengerManifest = {
   manifest_title: string;
   estimated_minutes: number;
   ghost_seconds: number;
+  ghost_label?: string;
   checkpoint_count: number;
+  district_count?: number;
+  total_score?: number;
+  task_mix?: string;
+  replay_hook?: string;
   start_label?: string;
   range_km?: number | null;
   effective_range_km?: number | null;
@@ -96,6 +106,8 @@ type AlleycatChallengeSummary = {
   winner_name: string | null;
   best_seconds: number | null;
   rivalry: string;
+  result_label?: string;
+  rematch_label?: string;
 };
 type AccountSummary = {
   profile: {
@@ -1005,6 +1017,28 @@ export default function App() {
     messengerManifest && messengerRun?.finishSeconds
       ? messengerRun.finishSeconds - messengerManifest.ghost_seconds
       : null;
+  const proofCount = messengerRun?.proofs?.length || 0;
+  const districtCoverage = useMemo(() => {
+    if (!messengerManifest) return 0;
+    return new Set(messengerManifest.checkpoints.map((checkpoint) => checkpoint.district).filter(Boolean)).size;
+  }, [messengerManifest]);
+  const runScore = useMemo(() => {
+    if (!messengerManifest) return 0;
+    const baseScore = messengerManifest.checkpoints.reduce((sum, checkpoint) => sum + (checkpoint.score_points || 0), 0);
+    const proofBonus = proofCount * 25;
+    const cleanSweepBonus = proofCount === messengerManifest.checkpoints.length && messengerManifest.checkpoints.length > 0 ? 60 : 0;
+    const ghostBonus =
+      ghostDelta === null ? 0 : ghostDelta <= 0 ? 120 : ghostDelta <= 60 ? 70 : ghostDelta <= 180 ? 30 : 0;
+    return baseScore + proofBonus + cleanSweepBonus + ghostBonus;
+  }, [messengerManifest, proofCount, ghostDelta]);
+  const runGrade = useMemo(() => {
+    if (ghostDelta === null) return "Open";
+    if (ghostDelta <= -60) return "Smoked the ghost";
+    if (ghostDelta <= 0) return "Beat the ghost";
+    if (ghostDelta <= 60) return "Close chase";
+    if (ghostDelta <= 180) return "Solid close";
+    return "Needs another swing";
+  }, [ghostDelta]);
   const challengeStatusLabel =
     challengeSummary?.status === "expired" ? "Expired" : challengeSummary?.status === "finished" ? "Finished" : "Open";
   const completedCount = messengerRun?.completedIds.length || 0;
@@ -1034,6 +1068,24 @@ export default function App() {
     if (delta < 0) return `You are ${formatDuration(Math.abs(delta))} up on ${fastestRival.rider_name}. Run it back and stretch the gap.`;
     return `${fastestRival.rider_name} has you by ${formatDuration(delta)}. Run it back and take it back.`;
   }, [challengeSummary?.winner_name, ownBoardEntry, fastestRival]);
+  const finishBridgeLabel = useMemo(() => {
+    if (!messengerManifest) return "";
+    return `${messengerManifest.city} · ${districtCoverage || messengerManifest.district_count || 0} districts · ${proofCount}/${messengerManifest.checkpoints.length} proofs`;
+  }, [messengerManifest, districtCoverage, proofCount]);
+  const finishStory = useMemo(() => {
+    if (!messengerManifest || !messengerRun?.finishedAt) return "";
+    const proofLine =
+      proofCount === messengerManifest.checkpoints.length
+        ? "Every stop is backed up."
+        : `${proofCount} of ${messengerManifest.checkpoints.length} stops are backed with proof.`;
+    const ghostLine =
+      ghostDelta === null
+        ? "The clock is still open."
+        : ghostDelta <= 0
+          ? `You put the ghost away by ${formatDuration(Math.abs(ghostDelta))}.`
+          : `The ghost stayed ahead by ${formatDuration(ghostDelta)}.`;
+    return `${proofLine} ${ghostLine}`;
+  }, [messengerManifest, messengerRun?.finishedAt, ghostDelta, proofCount]);
 
   const parseLatLng = (value: string) => {
     const match = value.match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
@@ -2920,7 +2972,7 @@ export default function App() {
                     </div>
                     <div className="manifest-metrics">
                       <div>
-                        <span>Ghost</span>
+                        <span>{messengerManifest.ghost_label || "Ghost"}</span>
                         <strong>{formatDuration(messengerManifest.ghost_seconds)}</strong>
                       </div>
                       <div>
@@ -2935,6 +2987,12 @@ export default function App() {
                       <span>Route line</span>
                       <strong>{messengerManifest.route_note}</strong>
                     </div>
+                    {messengerManifest.task_mix ? (
+                      <div className="manifest-note-card">
+                        <span>Task mix</span>
+                        <strong>{messengerManifest.task_mix}</strong>
+                      </div>
+                    ) : null}
                     {messengerManifest.range_km ? (
                       <div className="manifest-note-card">
                         <span>Spread lock</span>
@@ -2954,6 +3012,12 @@ export default function App() {
                       <span>Finish call</span>
                       <strong>{messengerManifest.finish_label}</strong>
                     </div>
+                    {messengerManifest.replay_hook ? (
+                      <div className="manifest-note-card">
+                        <span>Replay hook</span>
+                        <strong>{messengerManifest.replay_hook}</strong>
+                      </div>
+                    ) : null}
                   </div>
 
                   <div className="manifest-actions">
@@ -2971,6 +3035,11 @@ export default function App() {
                         <em>Same list. Head to head.</em>
                       </div>
                     )}
+                    <div className="run-progress">
+                      <span>Score line</span>
+                      <strong>{messengerManifest.total_score || 0} pts max</strong>
+                      <em>{districtCoverage || messengerManifest.district_count || 0} districts in play</em>
+                    </div>
                     {!messengerRun ? (
                       <div className="manifest-action-buttons">
                         <button className="primary-button" type="button" onClick={handleStartMessenger}>
@@ -3023,6 +3092,12 @@ export default function App() {
                             {done && <span className="checkpoint-done">✓ Clear</span>}
                           </div>
                           <div className="checkpoint-name">{checkpoint.name}</div>
+                          <div className="mini-chip-row compact checkpoint-chip-row">
+                            {checkpoint.task_type ? <div className="mini-chip">{checkpoint.task_type}</div> : null}
+                            {checkpoint.task_pressure ? <div className="mini-chip">{checkpoint.task_pressure} pressure</div> : null}
+                            {checkpoint.score_points ? <div className="mini-chip">{checkpoint.score_points} pts</div> : null}
+                            {checkpoint.district ? <div className="mini-chip">{checkpoint.district}</div> : null}
+                          </div>
                           <div className="checkpoint-task">{checkpoint.task}</div>
                           <div className="checkpoint-hint">{checkpoint.hint}</div>
                           <div className="checkpoint-actions">
@@ -3111,6 +3186,7 @@ export default function App() {
                   {messengerRun?.finishedAt && (
                     <div className="result-card">
                       <div className="result-title">Run closed</div>
+                      <div className="result-card-copy">{finishStory}</div>
                       <div className="result-grid result-grid-three">
                         <div>
                           <span>Your time</span>
@@ -3127,6 +3203,52 @@ export default function App() {
                               ? `${ghostDelta <= 0 ? "-" : "+"}${formatDuration(Math.abs(ghostDelta))}`
                               : "--:--"}
                           </strong>
+                        </div>
+                      </div>
+                      <div className="result-grid result-grid-three">
+                        <div>
+                          <span>Run grade</span>
+                          <strong>{runGrade}</strong>
+                        </div>
+                        <div>
+                          <span>Proofs</span>
+                          <strong>
+                            {proofCount}/{messengerManifest.checkpoints.length}
+                          </strong>
+                        </div>
+                        <div>
+                          <span>Score</span>
+                          <strong>{runScore}</strong>
+                        </div>
+                      </div>
+                      {messengerRun.proofs && messengerRun.proofs.length > 0 && (
+                        <div className="manifest-note-card">
+                          <span>Proof summary</span>
+                          <strong>
+                            {messengerRun.proofs
+                              .map((proof) => proof.checkpoint_name)
+                              .slice(0, 4)
+                              .join(" · ")}
+                            {messengerRun.proofs.length > 4 ? ` · +${messengerRun.proofs.length - 4} more` : ""}
+                          </strong>
+                        </div>
+                      )}
+                      <div className="challenge-rivalry-card result-bridge-card">
+                        <span>Run recap</span>
+                        <strong>{finishBridgeLabel}</strong>
+                        <em>{messengerManifest.replay_hook || "Run it back or push the cleanest proof to the wall."}</em>
+                        <div className="challenge-rivalry-actions">
+                          <button className="ghost-button small" type="button" onClick={() => handleOpenWallCity(messengerManifest.city)}>
+                            {messengerManifest.city} wall
+                          </button>
+                          <button className="ghost-button small" type="button" onClick={() => handleOpenLeaderboardCity(messengerManifest.city)}>
+                            {messengerManifest.city} board
+                          </button>
+                          {user?.id && (
+                            <button className="ghost-button small" type="button" onClick={() => handleOpenRiderProfile(user.id)}>
+                              Your rider page
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -3182,13 +3304,14 @@ export default function App() {
 
                           <div className="challenge-rivalry-card">
                             <span>Head to head</span>
+                            <em>{challengeSummary?.result_label || "Open board"}</em>
                             <strong>{rivalrySummary}</strong>
                             {ownBoardEntry?.best_seconds !== null && ownBoardEntry?.best_seconds !== undefined && (
                               <em>Your best: {formatDuration(ownBoardEntry.best_seconds)}</em>
                             )}
                             <div className="challenge-rivalry-actions">
                               <button className="ghost-button small" type="button" onClick={handleRematchChallenge}>
-                                Run it back
+                                {challengeSummary?.rematch_label || "Run it back"}
                               </button>
                             </div>
                           </div>

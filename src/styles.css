@@ -1580,6 +1580,16 @@ input[type="range"]::-webkit-slider-thumb {
   line-height: 1.55;
 }
 
+.result-card {
+  display: grid;
+  gap: 14px;
+}
+
+.result-card-copy {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
 .page-loader {
   margin: 3rem auto;
   text-align: center;
@@ -2129,6 +2139,15 @@ input[type="range"]::-webkit-slider-thumb {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.checkpoint-chip-row {
+  margin-top: -2px;
+  margin-bottom: 2px;
+}
+
+.result-bridge-card {
+  margin-top: 0;
 }
 
 .checkpoint-done,
