@@ -2297,6 +2297,38 @@ input[type="range"]::-webkit-slider-thumb {
   margin-top: -8px;
 }
 
+.rider-rival-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.rider-rival-card {
+  display: grid;
+  gap: 8px;
+  text-align: left;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-main);
+}
+
+.rider-rival-card strong {
+  font-size: 1rem;
+}
+
+.rider-rival-card em,
+.rider-rival-card span:last-child {
+  color: var(--text-muted);
+  font-style: normal;
+  font-size: 0.84rem;
+}
+
+.rider-rival-card:hover {
+  border-color: var(--accent);
+}
+
 .rider-proof-grid {
   column-count: 2;
 }
@@ -3078,6 +3110,10 @@ input[type="range"]::-webkit-slider-thumb {
 
   .rider-proof-grid {
     column-count: 1;
+  }
+
+  .rider-rival-grid {
+    grid-template-columns: 1fr;
   }
 
   .leaderboard-row {

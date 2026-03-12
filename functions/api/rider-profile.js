@@ -1,5 +1,6 @@
 import { json, supabaseRequest } from "../_utils.js";
 import { buildQuarterLeaderboard, deriveBadges, getQuarterWindow } from "../../shared/quarterly.js";
+import { buildSharedRiders } from "../../shared/account.js";
 
 const uniqueCount = (values = []) => new Set(values.filter(Boolean)).size;
 
@@ -70,6 +71,58 @@ export async function onRequest({ request, env }) {
 
   const riderName = profile?.rider_name || proofs[0]?.rider_name || "Rider";
 
+  const challengeEntries = await supabaseRequest(
+    env,
+    `messenger_challenge_entries?user_id=eq.${encodeURIComponent(userId)}&select=challenge_id,user_id,manifest_id,joined_at&order=joined_at.desc`,
+    { method: "GET" }
+  ).catch(() => []);
+
+  const challengeIds = [...new Set((challengeEntries || []).map((entry) => entry.challenge_id).filter(Boolean))];
+  const manifestIds = [...new Set((challengeEntries || []).map((entry) => entry.manifest_id).filter(Boolean))];
+
+  let allEntries = [];
+  let manifests = [];
+  let rivalProfiles = [];
+
+  if (challengeIds.length) {
+    allEntries = await supabaseRequest(
+      env,
+      `messenger_challenge_entries?challenge_id=in.(${challengeIds.map((id) => encodeURIComponent(id)).join(",")})&select=challenge_id,user_id,manifest_id,joined_at`,
+      { method: "GET" }
+    ).catch(() => []);
+  }
+
+  if (manifestIds.length) {
+    manifests = await supabaseRequest(
+      env,
+      `messenger_manifests?id=in.(${manifestIds.map((id) => encodeURIComponent(id)).join(",")})&select=id,city_name`,
+      { method: "GET" }
+    ).catch(() => []);
+  }
+
+  const rivalIds = [...new Set((allEntries || []).map((entry) => entry.user_id).filter((id) => id && id !== userId))];
+  if (rivalIds.length) {
+    rivalProfiles = await supabaseRequest(
+      env,
+      `user_profiles?user_id=in.(${rivalIds.map((id) => encodeURIComponent(id)).join(",")})&select=user_id,rider_name`,
+      { method: "GET" }
+    ).catch(() => []);
+  }
+
+  const sharedRiders = buildSharedRiders({
+    userId,
+    allEntries: allEntries || [],
+    challenges: [],
+    manifests: manifests || [],
+    proofs: [
+      ...proofs,
+      ...(rivalProfiles || []).map((profileRow) => ({
+        user_id: profileRow.user_id,
+        rider_name: profileRow.rider_name,
+      })),
+    ],
+  });
+
   return json({
     profile: {
       user_id: userId,
@@ -87,6 +140,8 @@ export async function onRequest({ request, env }) {
       quarter_rank: quarterEntry?.rank || null,
       quarter_public_proofs: quarterEntry?.public_proofs || 0,
       quarter_finishes: quarterEntry?.finished_runs || 0,
+      shared_challenges: challengeIds.length,
+      rivals: sharedRiders.length,
     },
     badges: deriveBadges({
       quarterStats: quarterEntry
@@ -101,5 +156,6 @@ export async function onRequest({ request, env }) {
       challenges: [],
     }),
     recent_proofs: proofs,
+    recent_rivals: sharedRiders.slice(0, 6),
   });
 }

@@ -21,6 +21,7 @@ Related docs:
   - stronger rider hero with featured latest wall hit
   - cleaner stat breakdown with city and quarter context
   - better proof/story feel at the top of the profile
+  - real rivalry context with shared-code rider circle
 
 ## Social surface polish
 - [x] Add city filtering to Wall of Fame

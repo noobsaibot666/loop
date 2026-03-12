@@ -28,7 +28,7 @@ Status:
 - public rider profile route and API implemented
 - Wall of Fame cards link into rider profiles
 - Leaderboard rows link into rider profiles
-- rider profile page renders public stats, bike setup, badges, and recent proof
+- rider profile page renders public stats, bike setup, badges, recent proof, and shared-code rider circle
 
 ### 2. Social surface polish
 Turn the read-only public surfaces into something more connected.

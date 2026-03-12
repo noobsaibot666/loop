@@ -215,6 +215,8 @@ type PublicRiderProfile = {
     quarter_rank: number | null;
     quarter_public_proofs: number;
     quarter_finishes: number;
+    shared_challenges: number;
+    rivals: number;
   };
   badges: {
     id: string;
@@ -222,6 +224,13 @@ type PublicRiderProfile = {
     description: string;
   }[];
   recent_proofs: WallPost[];
+  recent_rivals: {
+    user_id: string;
+    rider_name: string;
+    shared_challenges: number;
+    last_joined_at: string;
+    cities: string[];
+  }[];
 };
 
 const API_BASE = (() => {
@@ -3361,6 +3370,14 @@ export default function App() {
                   <span>Quarter proofs</span>
                   <strong>{publicRiderProfile.stats.quarter_public_proofs}</strong>
                 </div>
+                <div>
+                  <span>Shared codes</span>
+                  <strong>{publicRiderProfile.stats.shared_challenges}</strong>
+                </div>
+                <div>
+                  <span>Rivals met</span>
+                  <strong>{publicRiderProfile.stats.rivals}</strong>
+                </div>
               </div>
 
               {publicRiderProfile.badges?.length > 0 && (
@@ -3370,6 +3387,32 @@ export default function App() {
                       <strong>{badge.label}</strong>
                       <span>{badge.description}</span>
                     </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="rider-profile-proof-head">
+                <div className="form-title">Rider circle</div>
+                <div className="form-subtitle">Riders this profile has actually shared codes with.</div>
+              </div>
+              {!publicRiderProfile.recent_rivals?.length ? (
+                <div className="empty-state">
+                  <div className="empty-state-body">No shared challenge crew yet.</div>
+                </div>
+              ) : (
+                <div className="rider-rival-grid">
+                  {publicRiderProfile.recent_rivals.map((rival) => (
+                    <button
+                      key={rival.user_id}
+                      type="button"
+                      className="rider-rival-card"
+                      onClick={() => handleOpenRiderProfile(rival.user_id)}
+                    >
+                      <span className="winner-label">Shared codes</span>
+                      <strong>{rival.rider_name}</strong>
+                      <em>{rival.shared_challenges} runs together</em>
+                      <span>{rival.cities.join(" · ") || "No city tags yet"}</span>
+                    </button>
                   ))}
                 </div>
               )}
