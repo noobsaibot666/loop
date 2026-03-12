@@ -296,6 +296,14 @@ type CityLane = {
   last_requested_at: string | null;
 };
 
+type CityThumb = {
+  id: string;
+  city_name: string;
+  city_slug: string;
+  checkpoint_name: string;
+  public_url: string;
+};
+
 const API_BASE = (() => {
   const configured = import.meta.env.VITE_API_BASE || "";
   if (typeof window !== "undefined") {
@@ -435,6 +443,7 @@ export default function App() {
   const [cityDemand, setCityDemand] = useState<CityDemand | null>(null);
   const [isLoadingCityDemand, setIsLoadingCityDemand] = useState(false);
   const [cityLanes, setCityLanes] = useState<CityLane[]>([]);
+  const [cityThumbs, setCityThumbs] = useState<CityThumb[]>([]);
   const [isLoadingCityLanes, setIsLoadingCityLanes] = useState(false);
   const [showShareJoinModal, setShowShareJoinModal] = useState(false);
   const [cityRequestName, setCityRequestName] = useState("");
@@ -939,10 +948,16 @@ export default function App() {
     (async () => {
       try {
         const response = await fetch(`${API_BASE}/api/city-lanes`, { cache: "no-store" });
-        const data = (await response.json()) as { lanes?: CityLane[] };
-        if (!cancelled) setCityLanes(data.lanes || []);
+        const data = (await response.json()) as { lanes?: CityLane[]; thumbs?: CityThumb[] };
+        if (!cancelled) {
+          setCityLanes(data.lanes || []);
+          setCityThumbs(data.thumbs || []);
+        }
       } catch {
-        if (!cancelled) setCityLanes([]);
+        if (!cancelled) {
+          setCityLanes([]);
+          setCityThumbs([]);
+        }
       } finally {
         if (!cancelled) setIsLoadingCityLanes(false);
       }
@@ -3284,6 +3299,7 @@ export default function App() {
                 <Suspense fallback={<div className="status-message page-loader">Loading city lanes…</div>}>
                   <CitiesPage
                     cityLanes={cityLanes}
+                    cityThumbs={cityThumbs}
                     isLoadingCityLanes={isLoadingCityLanes}
                     onOpenMessengerCity={handleOpenMessengerCity}
                     onOpenWallCity={handleOpenWallCity}

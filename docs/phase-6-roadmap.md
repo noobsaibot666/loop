@@ -29,6 +29,7 @@ Scope:
 - city-level summaries
 - clearer live vs next-up separation
 - stronger movement between city surfaces
+- lightweight live city thumbs for faster discovery
 
 Status:
 - in progress

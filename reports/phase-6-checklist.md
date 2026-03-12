@@ -23,6 +23,7 @@ Related docs:
 - [x] Tighten city lane storytelling
 - [x] Add editorial lead-lane and hot-ask framing
 - [x] Add stronger city-specific jumps from `/cities`
+- [x] Add up to 20 live city thumbs
 
 ## Release visibility
 - [x] Show live cities separately from next-up lanes
