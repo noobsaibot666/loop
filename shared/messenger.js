@@ -265,12 +265,29 @@ const seededOrder = (items, seed) => {
   return copy;
 };
 
+export function distanceBetweenMeters(pointA, pointB) {
+  const toRad = (value) => (value * Math.PI) / 180;
+  const earthRadius = 6371000;
+  const latDiff = toRad(pointB.lat - pointA.lat);
+  const lngDiff = toRad(pointB.lng - pointA.lng);
+  const lat1 = toRad(pointA.lat);
+  const lat2 = toRad(pointB.lat);
+  const sinLat = Math.sin(latDiff / 2);
+  const sinLng = Math.sin(lngDiff / 2);
+  const a = sinLat * sinLat + Math.cos(lat1) * Math.cos(lat2) * sinLng * sinLng;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(earthRadius * c);
+}
+
 export const buildMessengerManifestFromPack = ({
   pack,
   checkpoints: sourceCheckpoints,
   difficulty = "medium",
   style = "local",
   seed = Date.now(),
+  startPoint = null,
+  startLabel = "",
+  rangeKm = null,
 }) => {
   if (!pack || !Array.isArray(sourceCheckpoints) || !sourceCheckpoints.length) {
     return { error: "City pack is empty." };
@@ -279,7 +296,28 @@ export const buildMessengerManifestFromPack = ({
   const difficultyKey = difficultyConfig[difficulty] ? difficulty : "medium";
   const styleKey = ["local", "fast", "chaotic"].includes(style) ? style : "local";
   const config = difficultyConfig[difficultyKey];
-  const ordered = seededOrder(sourceCheckpoints, seed).slice(0, Math.min(config.count, sourceCheckpoints.length));
+  const resolvedRangeKm = Number.isFinite(Number(rangeKm)) ? Math.max(2, Number(rangeKm)) : null;
+  let candidatePool = [...sourceCheckpoints];
+
+  if (startPoint?.lat && startPoint?.lng) {
+    const ranked = [...sourceCheckpoints]
+      .map((checkpoint) => ({
+        checkpoint,
+        distance: distanceBetweenMeters(startPoint, { lat: checkpoint.lat, lng: checkpoint.lng }),
+      }))
+      .sort((a, b) => a.distance - b.distance);
+
+    const inRange = resolvedRangeKm
+      ? ranked.filter((entry) => entry.distance <= resolvedRangeKm * 1000)
+      : ranked;
+
+    candidatePool =
+      inRange.length >= config.count
+        ? inRange.map((entry) => entry.checkpoint)
+        : ranked.map((entry) => entry.checkpoint);
+  }
+
+  const ordered = seededOrder(candidatePool, seed).slice(0, Math.min(config.count, candidatePool.length));
 
   const checkpoints = ordered.map((checkpoint, index) => ({
     id: checkpoint.id,
@@ -309,6 +347,8 @@ export const buildMessengerManifestFromPack = ({
       estimated_minutes: config.estimatedMinutes,
       ghost_seconds: config.ghostSeconds,
       checkpoint_count: checkpoints.length,
+      start_label: startLabel || "",
+      range_km: resolvedRangeKm,
       route_note:
         pack.route_note || "Any order. Pick your own line through the city and clear every checkpoint before the finish.",
       finish_label:
@@ -325,6 +365,9 @@ export const buildMessengerManifest = ({
   difficulty = "medium",
   style = "local",
   seed = Date.now(),
+  startPoint = null,
+  startLabel = "",
+  rangeKm = null,
 }) => {
   const pack = getMessengerCityPack(city);
   if (!pack) {
@@ -336,6 +379,9 @@ export const buildMessengerManifest = ({
     difficulty,
     style,
     seed,
+    startPoint,
+    startLabel,
+    rangeKm,
   });
 };
 
@@ -343,18 +389,4 @@ export const formatDurationLabel = (totalSeconds = 0) => {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-};
-
-export const distanceBetweenMeters = (pointA, pointB) => {
-  const toRad = (value) => (value * Math.PI) / 180;
-  const earthRadius = 6371000;
-  const latDiff = toRad(pointB.lat - pointA.lat);
-  const lngDiff = toRad(pointB.lng - pointA.lng);
-  const lat1 = toRad(pointA.lat);
-  const lat2 = toRad(pointB.lat);
-  const sinLat = Math.sin(latDiff / 2);
-  const sinLng = Math.sin(lngDiff / 2);
-  const a = sinLat * sinLat + Math.cos(lat1) * Math.cos(lat2) * sinLng * sinLng;
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return Math.round(earthRadius * c);
 };

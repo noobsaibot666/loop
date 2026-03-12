@@ -41,6 +41,8 @@ type MessengerManifest = {
   estimated_minutes: number;
   ghost_seconds: number;
   checkpoint_count: number;
+  start_label?: string;
+  range_km?: number | null;
   route_note: string;
   finish_label: string;
   safety_note: string;
@@ -327,8 +329,11 @@ export default function App() {
   const [step3Touched, setStep3Touched] = useState(false);
 
   const [messengerCity, setMessengerCity] = useState("");
+  const [messengerLocation, setMessengerLocation] = useState("");
   const [messengerDifficulty, setMessengerDifficulty] = useState("medium");
   const [messengerStyle, setMessengerStyle] = useState("local");
+  const [messengerRange, setMessengerRange] = useState(8);
+  const [messengerUnit, setMessengerUnit] = useState<"km" | "mi">("km");
   const [messengerManifest, setMessengerManifest] = useState<MessengerManifest | null>(null);
   const [messengerManifestId, setMessengerManifestId] = useState("");
   const [messengerStatus, setMessengerStatus] = useState("");
@@ -368,6 +373,23 @@ export default function App() {
       throw new Error(message);
     }
     return data;
+  };
+
+  const geocodeStartPoint = async (text: string) => {
+    const response = await postJSON<{ features?: Array<{ geometry?: { coordinates?: number[] }; properties?: { label?: string } }> }>(
+      "/api/geocode",
+      { text }
+    );
+    const hit = response.features?.[0];
+    const coordinates = hit?.geometry?.coordinates || [];
+    if (coordinates.length < 2) {
+      throw new Error("Couldn’t place that start spot. Try a clearer area or street name.");
+    }
+    return {
+      lng: Number(coordinates[0]),
+      lat: Number(coordinates[1]),
+      label: hit?.properties?.label || text,
+    };
   };
 
   useEffect(() => {
@@ -490,16 +512,22 @@ export default function App() {
       if (!raw) return;
       const saved = JSON.parse(raw) as {
         city?: string;
+        location?: string;
         difficulty?: string;
         style?: string;
+        range?: number;
+        unit?: "km" | "mi";
         manifestId?: string;
         manifest?: MessengerManifest | null;
         run?: MessengerRun | null;
         challenge?: AlleycatChallenge | null;
       };
       if (saved.city) setMessengerCity(saved.city);
+      if (saved.location) setMessengerLocation(saved.location);
       if (saved.difficulty) setMessengerDifficulty(saved.difficulty);
       if (saved.style) setMessengerStyle(saved.style);
+      if (typeof saved.range === "number") setMessengerRange(saved.range);
+      if (saved.unit === "km" || saved.unit === "mi") setMessengerUnit(saved.unit);
       if (saved.manifestId) setMessengerManifestId(saved.manifestId);
       if (saved.manifest) setMessengerManifest(saved.manifest);
       if (saved.run) setMessengerRun(saved.run);
@@ -518,8 +546,11 @@ export default function App() {
         ALLEYCAT_STORAGE_KEY,
         JSON.stringify({
           city: messengerCity,
+          location: messengerLocation,
           difficulty: messengerDifficulty,
           style: messengerStyle,
+          range: messengerRange,
+          unit: messengerUnit,
           manifestId: messengerManifestId,
           manifest: messengerManifest,
           run: messengerRun,
@@ -529,7 +560,7 @@ export default function App() {
     } catch {
       // Ignore storage failures.
     }
-  }, [messengerCity, messengerDifficulty, messengerStyle, messengerManifestId, messengerManifest, messengerRun, challenge]);
+  }, [messengerCity, messengerLocation, messengerDifficulty, messengerStyle, messengerRange, messengerUnit, messengerManifestId, messengerManifest, messengerRun, challenge]);
 
   useEffect(() => {
     if (!user?.id || !messengerRun?.runId) return;
@@ -943,6 +974,10 @@ export default function App() {
   const minDistance = unit === "km" ? 5 : 3;
   const maxDistance = unit === "km" ? 80 : 50;
   const rangePercent = ((distance - minDistance) / (maxDistance - minDistance)) * 100;
+  const messengerRangeLabel = Number(messengerRange.toFixed(1));
+  const messengerMinRange = messengerUnit === "km" ? 2 : 1;
+  const messengerMaxRange = messengerUnit === "km" ? 20 : 12;
+  const messengerRangePercent = ((messengerRange - messengerMinRange) / (messengerMaxRange - messengerMinRange)) * 100;
 
   const requireLogin = (message: string) => {
     openAuth("login", message);
@@ -1195,6 +1230,16 @@ export default function App() {
     setIsGeneratingMessenger(true);
     setMessengerStatus("");
     try {
+      let startPayload: Record<string, unknown> = {};
+      if (messengerLocation.trim()) {
+        const geocoded = await geocodeStartPoint(`${messengerLocation.trim()}, ${messengerCity.trim()}`);
+        startPayload = {
+          start_lat: geocoded.lat,
+          start_lng: geocoded.lng,
+          start_label: messengerLocation.trim(),
+        };
+      }
+      const rangeKm = messengerUnit === "km" ? messengerRange : messengerRange * 1.60934;
       const data = await postJSON<{
         manifest_id: string;
         manifest: MessengerManifest;
@@ -1205,6 +1250,8 @@ export default function App() {
         city: messengerCity,
         difficulty: messengerDifficulty,
         style: messengerStyle,
+        range_km: Number(rangeKm.toFixed(1)),
+        ...startPayload,
       });
       setMessengerManifestId(data.manifest_id);
       setMessengerManifest(data.manifest);
@@ -2142,6 +2189,16 @@ export default function App() {
                     </button>
                   ))}
                 </div>
+                <label className="field">
+                  <span>Start area</span>
+                  <input
+                    type="text"
+                    value={messengerLocation}
+                    onChange={(event) => setMessengerLocation(event.target.value)}
+                    placeholder="Kreuzberg, Soho, Shibuya..."
+                  />
+                  <span className="field-hint">Drop a neighborhood or street area so the list stays closer to your line.</span>
+                </label>
               </div>
 
               <div className="form-section section-block">
@@ -2149,6 +2206,54 @@ export default function App() {
                   <div className="section-block-title">Route settings</div>
                   <div className="section-block-copy">Set the pressure before you pull the list.</div>
                 </div>
+                <label className="field">
+                  <span>Spread</span>
+                  <div className="pill-group">
+                    <button
+                      type="button"
+                      className={`pill ${messengerUnit === "km" ? "active" : ""}`}
+                      onClick={() => {
+                        if (messengerUnit === "km") return;
+                        setMessengerUnit("km");
+                        setMessengerRange((current) => Number((current * 1.60934).toFixed(1)));
+                      }}
+                    >
+                      KM
+                    </button>
+                    <button
+                      type="button"
+                      className={`pill ${messengerUnit === "mi" ? "active" : ""}`}
+                      onClick={() => {
+                        if (messengerUnit === "mi") return;
+                        setMessengerUnit("mi");
+                        setMessengerRange((current) => Number((current / 1.60934).toFixed(1)));
+                      }}
+                    >
+                      MI
+                    </button>
+                  </div>
+                  <input
+                    type="range"
+                    min={messengerMinRange}
+                    max={messengerMaxRange}
+                    step="1"
+                    value={messengerRange}
+                    onChange={(event) => setMessengerRange(Number(event.target.value))}
+                    style={{ ["--range-progress" as string]: `${messengerRangePercent}%` }}
+                  />
+                  <div className="range-labels">
+                    <span>
+                      {messengerMinRange} {messengerUnit}
+                    </span>
+                    <strong>
+                      {messengerRangeLabel} {messengerUnit}
+                    </strong>
+                    <span>
+                      {messengerMaxRange} {messengerUnit}
+                    </span>
+                  </div>
+                </label>
+
                 <label className="field">
                   <span>Difficulty</span>
                   <div className="pill-group">
@@ -2235,6 +2340,7 @@ export default function App() {
                       <div className="manifest-subtitle">
                         {messengerManifest.city} · {messengerManifest.checkpoint_count} stops ·{" "}
                         {messengerManifest.estimated_minutes} min est.
+                        {messengerManifest.start_label ? ` · near ${messengerManifest.start_label}` : ""}
                       </div>
                     </div>
                     <div className="manifest-metrics">
@@ -2251,6 +2357,7 @@ export default function App() {
 
                   <div className="manifest-notes">
                     <div>{messengerManifest.route_note}</div>
+                    {messengerManifest.range_km ? <div>Spread locked to about {messengerManifest.range_km} km from your start area.</div> : null}
                     <div>{messengerManifest.finish_label}</div>
                   </div>
 

@@ -138,7 +138,7 @@ const getDbPackCheckpoints = async (packId, activeOnly = true) => {
   return data || [];
 };
 
-const buildManifestFromDatabasePack = ({ pack, checkpoints, difficulty, style, seed }) =>
+const buildManifestFromDatabasePack = ({ pack, checkpoints, difficulty, style, seed, startPoint, startLabel, rangeKm }) =>
   buildMessengerManifestFromPack({
     pack: {
       slug: pack.slug,
@@ -160,6 +160,9 @@ const buildManifestFromDatabasePack = ({ pack, checkpoints, difficulty, style, s
     difficulty,
     style,
     seed,
+    startPoint,
+    startLabel,
+    rangeKm,
   });
 
 const getActiveMessengerRun = async (manifest_id, user_id) => {
@@ -966,8 +969,12 @@ app.post("/api/messenger/generate", async (req, res) => {
   const user_id = authUser?.id || "";
   if (!user_id) return res.status(401).json({ error: "login required" });
 
-  const { city, difficulty, style } = req.body || {};
+  const { city, difficulty, style, start_lat, start_lng, start_label, range_km } = req.body || {};
   const seed = Math.floor(Math.random() * 100000);
+  const startPoint =
+    Number.isFinite(Number(start_lat)) && Number.isFinite(Number(start_lng))
+      ? { lat: Number(start_lat), lng: Number(start_lng) }
+      : null;
   const dbPack = await getDbCityPackByCity(city);
   const dbCheckpoints = dbPack ? await getDbPackCheckpoints(dbPack.id, true) : [];
   const built =
@@ -978,12 +985,18 @@ app.post("/api/messenger/generate", async (req, res) => {
           difficulty,
           style,
           seed,
+          startPoint,
+          startLabel: String(start_label || ""),
+          rangeKm: Number(range_km || 0) || null,
         })
       : buildMessengerManifest({
           city,
           difficulty,
           style,
           seed,
+          startPoint,
+          startLabel: String(start_label || ""),
+          rangeKm: Number(range_km || 0) || null,
         });
 
   if (built.error) return res.status(400).json({ error: built.error });

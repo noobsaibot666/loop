@@ -1370,22 +1370,24 @@ p {
 
 .section-block {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding-top: 22px;
-  gap: 18px;
+  margin-top: 10px;
+  padding-top: 28px;
+  gap: 22px;
 }
 
 .section-block:first-of-type {
   border-top: 0;
+  margin-top: 0;
   padding-top: 0;
 }
 
 .section-block.compact-block {
-  gap: 14px;
+  gap: 18px;
 }
 
 .section-block-head {
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 
 .section-block-title {

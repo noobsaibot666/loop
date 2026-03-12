@@ -1,6 +1,7 @@
 import { json, parseJSON, getAuthUser, supabaseRequest } from "../../_utils.js";
 import { deriveChallengeStatus } from "../../../shared/challenges.js";
 import {
+  consumeMessengerCredits,
   createChallengeCode,
   getManifest,
   getChallengeByCode,
@@ -58,6 +59,11 @@ export async function onRequest({ request, env }) {
 
     const sourceManifest = await getManifest(env, challenge.manifest_id);
     if (!sourceManifest) return json({ error: "source manifest missing" }, { status: 404 });
+
+    const creditResult = await consumeMessengerCredits(env, userId, 3, authUser?.email || "");
+    if (!creditResult.ok) {
+      return creditResult.response;
+    }
 
     const clonedManifestId = crypto.randomUUID();
     const rows = await supabaseRequest(env, MESSENGER_TABLES.manifests, {
