@@ -34,21 +34,11 @@ const getPackStatus = (pack, countData, districtCount) => {
   return "draft";
 };
 
-const fetchThumbs = async (env) => {
-  const base =
-    "messenger_proof_posts?is_public=eq.true&order=created_at.desc&limit=20&select=id,city_name,city_slug,checkpoint_name,public_url";
-
-  const withArchive = await supabaseRequest(env, `${base}&archived_at=is.null`, { method: "GET" }).catch(() => null);
-  if (Array.isArray(withArchive)) return withArchive;
-  return supabaseRequest(env, base, { method: "GET" }).catch(() => []);
-};
-
 export async function onRequest({ env }) {
-  const [packs, checkpoints, requests, thumbs] = await Promise.all([
+  const [packs, checkpoints, requests] = await Promise.all([
     supabaseRequest(env, "city_packs?order=name.asc&select=id,slug,name,route_note,finish_label,safety_note,is_active,created_at", { method: "GET" }).catch(() => []),
     supabaseRequest(env, "city_checkpoints?select=pack_id,id,is_active,district", { method: "GET" }).catch(() => []),
     supabaseRequest(env, "city_requests?select=requested_city,requested_location,status,created_at&order=created_at.desc&limit=300", { method: "GET" }).catch(() => []),
-    fetchThumbs(env),
   ]);
 
   const checkpointCounts = new Map();
@@ -130,14 +120,5 @@ export async function onRequest({ env }) {
     return left.city_name.localeCompare(right.city_name);
   });
 
-  return json({
-    lanes,
-    thumbs: (thumbs || []).filter((thumb) => thumb?.public_url).map((thumb) => ({
-      id: thumb.id,
-      city_name: thumb.city_name || "Unknown",
-      city_slug: thumb.city_slug || slugifyCity(thumb.city_name || ""),
-      checkpoint_name: thumb.checkpoint_name || "",
-      public_url: thumb.public_url,
-    })),
-  });
+  return json({ lanes });
 }

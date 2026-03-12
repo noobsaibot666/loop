@@ -12,17 +12,8 @@ type CityLane = {
   last_requested_at: string | null;
 };
 
-type CityThumb = {
-  id: string;
-  city_name: string;
-  city_slug: string;
-  checkpoint_name: string;
-  public_url: string;
-};
-
 type CitiesPageProps = {
   cityLanes: CityLane[];
-  cityThumbs: CityThumb[];
   isLoadingCityLanes: boolean;
   onOpenMessengerCity: (cityName?: string) => void;
   onOpenWallCity: (cityName?: string) => void;
@@ -32,7 +23,6 @@ type CitiesPageProps = {
 
 export default function CitiesPage({
   cityLanes,
-  cityThumbs,
   isLoadingCityLanes,
   onOpenMessengerCity,
   onOpenWallCity,
@@ -124,23 +114,6 @@ export default function CitiesPage({
                     </div>
                   </div>
                 )}
-              </div>
-            </section>
-          )}
-
-          {cityThumbs.length > 0 && (
-            <section className="builder-grid single reveals">
-              <div className="glass-card form-card">
-                <div className="form-title">City drops</div>
-                <div className="form-subtitle">Up to 20 fresh hits from the lanes. Tap a thumb and jump straight into that city wall.</div>
-                <div className="city-thumb-grid">
-                  {cityThumbs.map((thumb) => (
-                    <button key={thumb.id} type="button" className="city-thumb-tile" onClick={() => onOpenWallCity(thumb.city_name)}>
-                      <img src={thumb.public_url} alt={`${thumb.checkpoint_name} in ${thumb.city_name}`} loading="lazy" decoding="async" />
-                      <span>{thumb.city_name}</span>
-                    </button>
-                  ))}
-                </div>
               </div>
             </section>
           )}

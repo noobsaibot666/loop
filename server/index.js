@@ -2078,31 +2078,10 @@ app.get("/api/city-lanes", async (_req, res) => {
     return "draft";
   };
 
-  const fetchThumbs = async () => {
-    let query = supabase
-      .from("messenger_proof_posts")
-      .select("id,city_name,city_slug,checkpoint_name,public_url")
-      .eq("is_public", true)
-      .order("created_at", { ascending: false })
-      .limit(20);
-
-    let result = await query.is("archived_at", null);
-    if (result.error) {
-      result = await supabase
-        .from("messenger_proof_posts")
-        .select("id,city_name,city_slug,checkpoint_name,public_url")
-        .eq("is_public", true)
-        .order("created_at", { ascending: false })
-        .limit(20);
-    }
-    return result;
-  };
-
-  const [packsRes, checkpointsRes, requestsRes, thumbsRes] = await Promise.all([
+  const [packsRes, checkpointsRes, requestsRes] = await Promise.all([
     supabase.from("city_packs").select("id,slug,name,route_note,finish_label,safety_note,is_active,created_at").order("name", { ascending: true }),
     supabase.from("city_checkpoints").select("pack_id,id,is_active,district"),
     supabase.from("city_requests").select("requested_city,requested_location,status,created_at").order("created_at", { ascending: false }).limit(300),
-    fetchThumbs(),
   ]);
   if (packsRes.error) return res.status(500).json({ error: packsRes.error.message });
   if (checkpointsRes.error) return res.status(500).json({ error: checkpointsRes.error.message });
@@ -2187,15 +2166,7 @@ app.get("/api/city-lanes", async (_req, res) => {
     return left.city_name.localeCompare(right.city_name);
   });
 
-  const thumbs = (thumbsRes.data || []).filter((thumb) => thumb?.public_url).map((thumb) => ({
-    id: thumb.id,
-    city_name: thumb.city_name || "Unknown",
-    city_slug: thumb.city_slug || slugifyCity(thumb.city_name || ""),
-    checkpoint_name: thumb.checkpoint_name || "",
-    public_url: thumb.public_url,
-  }));
-
-  return res.json({ lanes, thumbs });
+  return res.json({ lanes });
 });
 
 app.post("/api/messenger/share", async (req, res) => {

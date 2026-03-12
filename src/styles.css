@@ -2375,39 +2375,6 @@ input[type="range"]::-webkit-slider-thumb {
   margin-bottom: 4px;
 }
 
-.city-thumb-grid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.city-thumb-tile {
-  display: grid;
-  gap: 8px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.city-thumb-tile img {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  object-fit: cover;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.city-thumb-tile span {
-  color: var(--text-soft);
-  font-size: 0.78rem;
-  line-height: 1.2;
-  overflow-wrap: anywhere;
-}
-
 .city-lane-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3430,11 +3397,6 @@ input[type="range"]::-webkit-slider-thumb {
     grid-template-columns: 1fr;
   }
 
-  .city-thumb-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 8px;
-  }
-
   .city-lane-card {
     gap: 14px;
     padding: 18px;
@@ -3554,7 +3516,4 @@ input[type="range"]::-webkit-slider-thumb {
     min-height: 0;
   }
 
-  .city-thumb-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
 }

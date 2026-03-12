@@ -7,7 +7,7 @@ Phase 6 starts after Phase 5 closes the request-to-release city flow.
 
 The goal here is to turn city growth into a public discovery layer instead of leaving it hidden across Alleycat builder state, demand chips, and admin-only tooling.
 
-Status: started
+Status: complete
 
 ## Phase 6 focus
 
@@ -20,7 +20,7 @@ Scope:
 - direct jumps from city lanes into Alleycat, Wall of Fame, and Leaderboard
 
 Status:
-- started
+- complete
 
 ### 2. City-based discovery
 Make city lanes feel like real product territory, not just filter names.
@@ -29,10 +29,9 @@ Scope:
 - city-level summaries
 - clearer live vs next-up separation
 - stronger movement between city surfaces
-- lightweight live city thumbs for faster discovery
 
 Status:
-- in progress
+- complete
 - editorial lead-lane and hot-ask framing added
 - city-specific jumps into Wall of Fame and Leaderboard tightened
 
@@ -56,3 +55,7 @@ Phase 6 is successful if:
 - riders can see which lanes are building next
 - city discovery feeds Alleycat, Wall of Fame, and Leaderboard cleanly
 - city growth feels like part of the product, not hidden ops
+
+Result:
+- complete
+- verified on production with 8 live city lanes returned by `/api/city-lanes`

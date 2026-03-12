@@ -15,7 +15,7 @@ Related docs:
 - [x] Add public city lanes API
 - [x] Add `/cities` page
 - [x] Add city navigation entry points
-- [ ] Verify city lanes on production
+- [x] Verify city lanes on production
 
 ## City-based discovery
 - [x] Add direct Alleycat jump from city cards
@@ -23,12 +23,11 @@ Related docs:
 - [x] Tighten city lane storytelling
 - [x] Add editorial lead-lane and hot-ask framing
 - [x] Add stronger city-specific jumps from `/cities`
-- [x] Add up to 20 live city thumbs
 
 ## Release visibility
 - [x] Show live cities separately from next-up lanes
 - [x] Reflect public demand in the city directory
-- [ ] Re-test live pack statuses against production data
+- [x] Re-test live pack statuses against production data
 
 ## Deferred
 - [-] comments
