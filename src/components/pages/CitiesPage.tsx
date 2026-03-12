@@ -40,9 +40,9 @@ export default function CitiesPage({
 
   const getLaneLine = (lane: CityLane) => {
     if (lane.route_note) return lane.route_note;
-    if (lane.status === "requested") return "Riders are calling this lane up. Push it harder and move it into review.";
+    if (lane.status === "requested") return "Riders are calling this lane up. Push it and move it into review.";
     if (lane.status === "ready") return "Draft is tight enough to ship. One clean publish move and it goes live.";
-    if (lane.status === "review") return "The lane is rough-cut and waiting for a sharper review pass.";
+    if (lane.status === "review") return "The lane is rough-cut and waiting on a sharper review pass.";
     return "Built to stay tight, local, and sharp.";
   };
 
@@ -85,10 +85,10 @@ export default function CitiesPage({
                         Ride {leadLane.city_name}
                       </button>
                       <button className="ghost-button small" type="button" onClick={() => onOpenWallCity(leadLane.city_name)}>
-                        {leadLane.city_name} wall
+                        Wall
                       </button>
                       <button className="ghost-button small" type="button" onClick={() => onOpenLeaderboardCity(leadLane.city_name)}>
-                        {leadLane.city_name} board
+                        Board
                       </button>
                     </div>
                   </div>
@@ -121,7 +121,7 @@ export default function CitiesPage({
           <section className="builder-grid single reveals">
             <div className="glass-card form-card">
               <div className="form-title">Live now</div>
-              <div className="form-subtitle">These lanes are live right now. Pick a city and branch straight into the run, the wall, or the board.</div>
+              <div className="form-subtitle">These lanes are up now. Pick a city and jump straight into the run, wall, or board.</div>
               {liveCities.length === 0 && (
                 <div className="empty-state">
                   <div className="empty-state-title">No live city lanes yet</div>
@@ -155,19 +155,19 @@ export default function CitiesPage({
                         </div>
                       </div>
                       <div className="mini-chip-row compact">
-                        <div className="mini-chip">{lane.city_name} run lane</div>
-                        <div className="mini-chip">{lane.city_name} wall lane</div>
-                        <div className="mini-chip">{lane.city_name} board lane</div>
+                        <div className="mini-chip">Run lane</div>
+                        <div className="mini-chip">Wall lane</div>
+                        <div className="mini-chip">Board lane</div>
                       </div>
                       <div className="city-lane-actions">
                         <button className="primary-button small" type="button" onClick={() => onOpenMessengerCity(lane.city_name)}>
-                          Open Alleycat
+                          Ride {lane.city_name}
                         </button>
                         <button className="ghost-button small" type="button" onClick={() => onOpenWallCity(lane.city_name)}>
-                          {lane.city_name} Wall
+                          Wall
                         </button>
                         <button className="ghost-button small" type="button" onClick={() => onOpenLeaderboardCity(lane.city_name)}>
-                          {lane.city_name} Board
+                          Board
                         </button>
                       </div>
                     </div>
@@ -215,15 +215,15 @@ export default function CitiesPage({
                       </div>
                       <div className="mini-chip-row compact">
                         <div className="mini-chip">{lane.status} lane</div>
-                        <div className="mini-chip">{lane.city_name} queue</div>
+                        <div className="mini-chip">Queue</div>
                       </div>
                       <div className="city-lane-actions">
                         <button className="ghost-button small" type="button" onClick={() => onOpenCityRequest(lane.city_name)}>
-                          Push this city
+                          Push {lane.city_name}
                         </button>
                         {lane.status !== "requested" && (
                           <button className="ghost-button small" type="button" onClick={() => onOpenLeaderboardCity(lane.city_name)}>
-                            Open city board
+                            Open board
                           </button>
                         )}
                       </div>
