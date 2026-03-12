@@ -35,12 +35,13 @@ Related docs:
   - confirm the top cards feel useful, not noisy
 
 ## City content quality
-- [ ] Improve checkpoint library depth for Wave 1 cities
+- [x] Improve checkpoint library depth for Wave 1 cities
 - [ ] Expand city support toward the planned 8-city set
 - [x] Improve district spread rules in generated manifests
 - [x] Improve rider-facing manifest copy and directions
 - [x] Improve admin preview clarity for city packs
 - [x] Highlight already-created cities more clearly in admin
+- [ ] Sync the richer Wave 1 checkpoint set into live Supabase
 - [ ] Review city studio flow on real admin use
   Focus:
   - pack cards must scan fast

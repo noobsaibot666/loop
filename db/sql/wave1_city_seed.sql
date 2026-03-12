@@ -184,6 +184,22 @@ values
     60,
     true
   ),
+  (
+    (select id from pack_refs where slug = 'berlin'),
+    'berlin-maybachufer',
+    'Maybachufer Canal Edge',
+    52.4963,
+    13.4249,
+    'Neukoelln',
+    'canal-edge',
+    'market-drag',
+    'Canal drag, market edges, and shortcuts that look cleaner than they are.',
+    'Clock the first corner that feels more neighborhood than spectacle.',
+    'Touch the waterline, read the clean exit, and get back into the blocks fast.',
+    'Give the canal one fake sponsor shout-out and leave before the joke lands.',
+    70,
+    true
+  ),
 
   (
     (select id from pack_refs where slug = 'london'),
@@ -281,6 +297,38 @@ values
     60,
     true
   ),
+  (
+    (select id from pack_refs where slug = 'london'),
+    'london-broadway-market',
+    'Broadway Market Cut',
+    51.5362,
+    -0.0614,
+    'Hackney',
+    'market-edge',
+    'crowd-pressure',
+    'Crowd edge, curb pressure, and a fast line if you keep your head up.',
+    'Clock one tiny sign this block would never make for tourists.',
+    'Hit the market edge, find the clean seam, and get gone before it clogs up.',
+    'Give the whole block a fake ten-point style score and leave before anyone asks why.',
+    70,
+    true
+  ),
+  (
+    (select id from pack_refs where slug = 'london'),
+    'london-elephant-cut',
+    'Elephant Arcade Edge',
+    51.4948,
+    -0.1009,
+    'Elephant and Castle',
+    'junction-edge',
+    'bad-geometry',
+    'Bad geometry, loud roads, and exits that reward nerve.',
+    'Clock which direction feels rougher than it looks and store that away.',
+    'Touch the edge, trust the cut, and keep your pace cleaner than the junction deserves.',
+    'Act like this mess was exactly what you came for, then disappear.',
+    80,
+    true
+  ),
 
   (
     (select id from pack_refs where slug = 'tokyo'),
@@ -376,6 +424,38 @@ values
     'Touch the deck zone, skip the view trap, and get moving again.',
     'Give the skyline a sarcastic compliment under your breath and disappear before it answers back.',
     60,
+    true
+  ),
+  (
+    (select id from pack_refs where slug = 'tokyo'),
+    'tokyo-koenji-north',
+    'Koenji North Cut',
+    35.7061,
+    139.6492,
+    'Suginami',
+    'street-cut',
+    'tight-local',
+    'Tight local seams, quick reads, and no reason to play tourist.',
+    'Clock the first storefront that feels like regulars would notice you noticing it.',
+    'Touch the cut, keep the cadence neat, and leave before the lane starts asking questions.',
+    'Give the block a fake alleycat sponsorship tag under your breath and move on.',
+    70,
+    true
+  ),
+  (
+    (select id from pack_refs where slug = 'tokyo'),
+    'tokyo-kiyosumi-bridge',
+    'Kiyosumi Bridge Run-Up',
+    35.6818,
+    139.7991,
+    'Koto',
+    'bridge-runup',
+    'river-pressure',
+    'River wind, clean lines, and one wrong choice away from a drag.',
+    'Clock how the river changes the feel of the block before you even hit it.',
+    'Touch the run-up, read the next move instantly, and keep the bridge from slowing the day down.',
+    'Throw one fake champion glare at the water and move before it gets theatrical.',
+    80,
     true
   )
 on conflict (slug) do update

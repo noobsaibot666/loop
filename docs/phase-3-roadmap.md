@@ -62,7 +62,8 @@ Status:
 - admin preview now breaks route line, spread lock, finish call, and safety frame into clear sections
 - rider-facing manifest copy now renders as labeled route / spread / finish blocks
 - generated manifests now prefer district spread when the pack has enough variety
-- next focus is deeper Wave 1 checkpoint density and better district spread before the bigger city expansion pass
+- Wave 1 fallback packs now have deeper spot coverage across Berlin, London, and Tokyo
+- next focus is syncing the richer Wave 1 checkpoint set into live Supabase and then expanding toward the planned 8-city set
 
 ### 4. Rivalry and social history
 Make async competition feel more personal.

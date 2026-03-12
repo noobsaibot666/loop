@@ -6,6 +6,7 @@ const checkpointsByCity = {
     {
       id: "berlin-alex-clock",
       name: "Alexanderplatz World Clock",
+      district: "Mitte",
       lat: 52.521918,
       lng: 13.413215,
       hint: "Meet the spinning time zones.",
@@ -18,6 +19,7 @@ const checkpointsByCity = {
     {
       id: "berlin-obernbaum",
       name: "Oberbaum Bridge",
+      district: "Friedrichshain-Kreuzberg",
       lat: 52.501775,
       lng: 13.446943,
       hint: "Brick towers, river wind, no straight answers.",
@@ -30,6 +32,7 @@ const checkpointsByCity = {
     {
       id: "berlin-tempelhof",
       name: "Tempelhofer Feld Gate",
+      district: "Tempelhof",
       lat: 52.473629,
       lng: 13.403419,
       hint: "Runway energy without the planes.",
@@ -42,6 +45,7 @@ const checkpointsByCity = {
     {
       id: "berlin-luftbruecke",
       name: "Platz der Luftbruecke Edge",
+      district: "Tempelhof",
       lat: 52.4849,
       lng: 13.3852,
       hint: "Big circle energy, quick exits, zero reason to drift.",
@@ -54,6 +58,7 @@ const checkpointsByCity = {
     {
       id: "berlin-victoriapark-rise",
       name: "Victoriapark Lower Rise",
+      district: "Kreuzberg",
       lat: 52.4885,
       lng: 13.3927,
       hint: "Short climb pressure and a clean exit if you read it right.",
@@ -66,6 +71,7 @@ const checkpointsByCity = {
     {
       id: "berlin-victory-column",
       name: "Victory Column",
+      district: "Tiergarten",
       lat: 52.514496,
       lng: 13.350118,
       hint: "Traffic circles and a gold figure above it all.",
@@ -78,6 +84,7 @@ const checkpointsByCity = {
     {
       id: "berlin-mauerpark",
       name: "Mauerpark Amphitheatre",
+      district: "Prenzlauer Berg",
       lat: 52.541541,
       lng: 13.402147,
       hint: "Concrete bowl, noise, and open edges.",
@@ -90,6 +97,7 @@ const checkpointsByCity = {
     {
       id: "berlin-tiergarten",
       name: "Tiergarten S-Bend",
+      district: "Tiergarten",
       lat: 52.51417,
       lng: 13.36652,
       hint: "A soft patch inside a hard city.",
@@ -102,6 +110,7 @@ const checkpointsByCity = {
     {
       id: "berlin-hansaviertel-cut",
       name: "Hansaviertel Cut",
+      district: "Hansaviertel",
       lat: 52.5189,
       lng: 13.3476,
       hint: "Quiet seam, fast exits, no reason to linger.",
@@ -111,11 +120,38 @@ const checkpointsByCity = {
         chaotic: "Act like this little pocket was your secret all along, then leave before it gets weird.",
       },
     },
+    {
+      id: "berlin-kotti",
+      name: "Kotti Ring Edge",
+      district: "Kreuzberg",
+      lat: 52.4996,
+      lng: 13.4186,
+      hint: "Too much movement, exactly the right amount of pressure.",
+      tasks: {
+        local: "Clock the sketchiest calm-looking corner and remember it for later.",
+        fast: "Touch the edge, pick the cleanest escape, and do not let the ring slow your thinking.",
+        chaotic: "Mutter a fake apology to the traffic, then cut out like you meant no harm.",
+      },
+    },
+    {
+      id: "berlin-maybachufer",
+      name: "Maybachufer Canal Edge",
+      district: "Neukoelln",
+      lat: 52.4963,
+      lng: 13.4249,
+      hint: "Canal drag, market edges, and shortcuts that look cleaner than they are.",
+      tasks: {
+        local: "Clock the first corner that feels more neighborhood than spectacle.",
+        fast: "Touch the waterline, read the clean exit, and get back into the blocks fast.",
+        chaotic: "Give the canal one fake sponsor shout-out and leave before the joke lands.",
+      },
+    },
   ],
   london: [
     {
       id: "london-somerset",
       name: "Somerset House Courtyard",
+      district: "Central London",
       lat: 51.511463,
       lng: -0.117422,
       hint: "Open stone and fast exits.",
@@ -128,6 +164,7 @@ const checkpointsByCity = {
     {
       id: "london-columbia-road",
       name: "Columbia Road",
+      district: "Bethnal Green",
       lat: 51.529274,
       lng: -0.071812,
       hint: "Tight streets with market energy.",
@@ -140,6 +177,7 @@ const checkpointsByCity = {
     {
       id: "london-waterloo",
       name: "Waterloo Station Arch",
+      district: "Waterloo",
       lat: 51.503334,
       lng: -0.113122,
       hint: "Crowd pressure and decision pressure.",
@@ -152,6 +190,7 @@ const checkpointsByCity = {
     {
       id: "london-regents",
       name: "Regent's Canal Towpath Entry",
+      district: "Islington",
       lat: 51.536578,
       lng: -0.103717,
       hint: "A hidden seam in the city.",
@@ -164,6 +203,7 @@ const checkpointsByCity = {
     {
       id: "london-greenwich",
       name: "Greenwich Foot Tunnel North Entrance",
+      district: "Greenwich",
       lat: 51.500732,
       lng: -0.008077,
       hint: "A route choice with history baked in.",
@@ -176,6 +216,7 @@ const checkpointsByCity = {
     {
       id: "london-soho",
       name: "Soho Seven Dials",
+      district: "Soho",
       lat: 51.513628,
       lng: -0.128111,
       hint: "Too many spokes, which is exactly the point.",
@@ -185,11 +226,38 @@ const checkpointsByCity = {
         chaotic: "Count the possible mistakes before choosing the fun one.",
       },
     },
+    {
+      id: "london-broadway-market",
+      name: "Broadway Market Cut",
+      district: "Hackney",
+      lat: 51.5362,
+      lng: -0.0614,
+      hint: "Crowd edge, curb pressure, and a fast line if you keep your head up.",
+      tasks: {
+        local: "Clock one tiny sign this block would never make for tourists.",
+        fast: "Hit the market edge, find the clean seam, and get gone before it clogs up.",
+        chaotic: "Give the whole block a fake ten-point style score and leave before anyone asks why.",
+      },
+    },
+    {
+      id: "london-elephant-cut",
+      name: "Elephant Arcade Edge",
+      district: "Elephant and Castle",
+      lat: 51.4948,
+      lng: -0.1009,
+      hint: "Bad geometry, loud roads, and exits that reward nerve.",
+      tasks: {
+        local: "Clock which direction feels rougher than it looks and store that away.",
+        fast: "Touch the edge, trust the cut, and keep your pace cleaner than the junction deserves.",
+        chaotic: "Act like this mess was exactly what you came for, then disappear.",
+      },
+    },
   ],
   tokyo: [
     {
       id: "tokyo-shibuya-scramble",
       name: "Shibuya Scramble Edge",
+      district: "Shibuya",
       lat: 35.6595,
       lng: 139.7005,
       hint: "Too many flows, too many faces, no sympathy.",
@@ -202,6 +270,7 @@ const checkpointsByCity = {
     {
       id: "tokyo-yoyogi-entry",
       name: "Yoyogi Park South Gate",
+      district: "Shibuya",
       lat: 35.6673,
       lng: 139.6949,
       hint: "Open calm with city noise still hanging around it.",
@@ -214,6 +283,7 @@ const checkpointsByCity = {
     {
       id: "tokyo-nakameguro-tracks",
       name: "Nakameguro Under Tracks",
+      district: "Meguro",
       lat: 35.6442,
       lng: 139.6986,
       hint: "Tight lanes, side-glances, and no wasted motion.",
@@ -226,6 +296,7 @@ const checkpointsByCity = {
     {
       id: "tokyo-akihabara-udx",
       name: "Akihabara UDX Edge",
+      district: "Chiyoda",
       lat: 35.7006,
       lng: 139.772,
       hint: "Neon pressure, layered traffic, zero softness.",
@@ -238,6 +309,7 @@ const checkpointsByCity = {
     {
       id: "tokyo-ryogoku-river",
       name: "Ryogoku River Walk Drop",
+      district: "Sumida",
       lat: 35.6962,
       lng: 139.7934,
       hint: "Waterline reset, but never fully relaxed.",
@@ -250,6 +322,7 @@ const checkpointsByCity = {
     {
       id: "tokyo-odaiba-decks",
       name: "Odaiba Decks Cut",
+      district: "Odaiba",
       lat: 35.6275,
       lng: 139.7753,
       hint: "Wide views, awkward edges, too much temptation to coast.",
@@ -257,6 +330,32 @@ const checkpointsByCity = {
         local: "Find the least postcard-worthy angle and trust it more than the obvious one.",
         fast: "Touch the deck zone, skip the view trap, and get moving again.",
         chaotic: "Give the skyline a sarcastic compliment under your breath and disappear before it answers back.",
+      },
+    },
+    {
+      id: "tokyo-koenji-north",
+      name: "Koenji North Cut",
+      district: "Suginami",
+      lat: 35.7061,
+      lng: 139.6492,
+      hint: "Tight local seams, quick reads, and no reason to play tourist.",
+      tasks: {
+        local: "Clock the first storefront that feels like regulars would notice you noticing it.",
+        fast: "Touch the cut, keep the cadence neat, and leave before the lane starts asking questions.",
+        chaotic: "Give the block a fake alleycat sponsorship tag under your breath and move on.",
+      },
+    },
+    {
+      id: "tokyo-kiyosumi-bridge",
+      name: "Kiyosumi Bridge Run-Up",
+      district: "Koto",
+      lat: 35.6818,
+      lng: 139.7991,
+      hint: "River wind, clean lines, and one wrong choice away from a drag.",
+      tasks: {
+        local: "Clock how the river changes the feel of the block before you even hit it.",
+        fast: "Touch the run-up, read the next move instantly, and keep the bridge from slowing the day down.",
+        chaotic: "Throw one fake champion glare at the water and move before it gets theatrical.",
       },
     },
   ],
