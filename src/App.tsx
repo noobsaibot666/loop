@@ -244,13 +244,30 @@ type PublicRiderProfile = {
   }[];
   city_breakdown: {
     city_name: string;
+    city_slug: string;
     proof_count: number;
   }[];
   city_clusters: {
     city_name: string;
+    city_slug: string;
     proof_count: number;
     posts: WallPost[];
   }[];
+  city_context: {
+    city_name: string;
+    city_slug: string;
+    quarter_label: string;
+    rank: number | null;
+    proof_count: number;
+    finish_count: number;
+    leaders: {
+      user_id: string;
+      rider_name: string;
+      rank: number;
+      public_proofs: number;
+      finished_runs: number;
+    }[];
+  } | null;
 };
 
 const API_BASE = (() => {
@@ -3566,6 +3583,55 @@ export default function App() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                </>
+              )}
+
+              {publicRiderProfile.city_context && (
+                <>
+                  <div className="rider-profile-proof-head">
+                    <div className="form-title">City standing</div>
+                    <div className="form-subtitle">How this rider sits inside their strongest city lane this quarter.</div>
+                  </div>
+                  <div className="rider-city-standing-card">
+                    <div className="result-grid result-grid-three">
+                      <div>
+                        <span>Lane</span>
+                        <strong>{publicRiderProfile.city_context.city_name}</strong>
+                      </div>
+                      <div>
+                        <span>Quarter rank</span>
+                        <strong>{publicRiderProfile.city_context.rank ? `#${publicRiderProfile.city_context.rank}` : "--"}</strong>
+                      </div>
+                      <div>
+                        <span>Posted / closed</span>
+                        <strong>{publicRiderProfile.city_context.proof_count} / {publicRiderProfile.city_context.finish_count}</strong>
+                      </div>
+                    </div>
+                    {!!publicRiderProfile.city_context.leaders?.length && (
+                      <div className="rider-city-leaders">
+                        {publicRiderProfile.city_context.leaders.map((entry) => (
+                          <button
+                            key={entry.user_id}
+                            type="button"
+                            className="rider-city-leader"
+                            onClick={() => handleOpenRiderProfile(entry.user_id)}
+                          >
+                            <span className="winner-label">Top {entry.rank}</span>
+                            <strong>{entry.rider_name}</strong>
+                            <span>{entry.public_proofs} proofs · {entry.finished_runs} finishes</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <div className="rider-city-actions">
+                      <button className="ghost-button small" type="button" onClick={() => handleOpenWallCity(publicRiderProfile.city_context?.city_name)}>
+                        Open city wall
+                      </button>
+                      <button className="ghost-button small" type="button" onClick={() => handleOpenLeaderboardCity(publicRiderProfile.city_context?.city_name)}>
+                        Open city board
+                      </button>
+                    </div>
                   </div>
                 </>
               )}

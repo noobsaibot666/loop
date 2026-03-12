@@ -45,7 +45,7 @@ export async function onRequest({ request, env }) {
       env,
       `messenger_proof_posts?is_public=eq.true&created_at=gte.${encodeURIComponent(quarter.start.toISOString())}&created_at=lt.${encodeURIComponent(
         quarter.end.toISOString()
-      )}&select=user_id,rider_name,city_name,created_at`,
+      )}&select=user_id,rider_name,city_name,city_slug,created_at`,
       { method: "GET" }
     ).catch(() => []),
     supabaseRequest(
@@ -64,16 +64,27 @@ export async function onRequest({ request, env }) {
   const quarterEntry = quarterBoard.find((entry) => entry.user_id === userId) || null;
   const proofsByCity = new Map();
   for (const proof of proofs) {
-    const key = proof.city_name || "Unknown city";
-    proofsByCity.set(key, (proofsByCity.get(key) || 0) + 1);
+    const key = proof.city_slug || proof.city_name || "unknown";
+    const current = proofsByCity.get(key) || {
+      city_name: proof.city_name || "Unknown city",
+      city_slug: proof.city_slug || "",
+      proof_count: 0,
+    };
+    current.proof_count += 1;
+    current.city_name = current.city_name || proof.city_name || "Unknown city";
+    current.city_slug = current.city_slug || proof.city_slug || "";
+    proofsByCity.set(key, current);
   }
-  const topCity = [...proofsByCity.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "";
-  const cityBreakdown = [...proofsByCity.entries()]
-    .sort((a, b) => b[1] - a[1])
+  const topCityEntry = [...proofsByCity.values()].sort((a, b) => b.proof_count - a.proof_count)[0] || null;
+  const topCity = topCityEntry?.city_name || "";
+  const topCitySlug = topCityEntry?.city_slug || "";
+  const cityBreakdown = [...proofsByCity.values()]
+    .sort((a, b) => b.proof_count - a.proof_count)
     .slice(0, 6)
-    .map(([city_name, proof_count]) => ({
-      city_name,
-      proof_count,
+    .map((entry) => ({
+      city_name: entry.city_name,
+      city_slug: entry.city_slug,
+      proof_count: entry.proof_count,
     }));
   const uniqueProofDays = [...new Set(proofs.map((proof) => toDayStamp(proof.created_at)))].sort((a, b) => b - a);
   let proofStreakDays = 0;
@@ -172,9 +183,48 @@ export async function onRequest({ request, env }) {
   });
   const cityClusters = cityBreakdown.slice(0, 3).map((city) => ({
     city_name: city.city_name,
+    city_slug: city.city_slug,
     proof_count: city.proof_count,
-    posts: proofs.filter((proof) => proof.city_name === city.city_name).slice(0, 3),
+    posts: proofs.filter((proof) => (proof.city_slug || proof.city_name) === (city.city_slug || city.city_name)).slice(0, 3),
   }));
+
+  let cityContext = null;
+  if (topCitySlug) {
+    const cityQuarterProofs = (quarterProofs || []).filter((proof) => (proof.city_slug || "").trim().toLowerCase() === topCitySlug);
+    let cityQuarterRuns = [];
+    const cityQuarterManifests = await supabaseRequest(
+      env,
+      `messenger_manifests?city_slug=eq.${encodeURIComponent(topCitySlug)}&select=id`,
+      { method: "GET" }
+    ).catch(() => []);
+    const cityManifestIds = (cityQuarterManifests || []).map((item) => item.id).filter(Boolean);
+    if (cityManifestIds.length) {
+      cityQuarterRuns = await supabaseRequest(
+        env,
+        `messenger_runs?status=eq.finished&finished_at=gte.${encodeURIComponent(quarter.start.toISOString())}&finished_at=lt.${encodeURIComponent(
+          quarter.end.toISOString()
+        )}&manifest_id=in.(${cityManifestIds.map((id) => encodeURIComponent(id)).join(",")})&select=user_id,finished_at`,
+        { method: "GET" }
+      ).catch(() => []);
+    }
+    const cityBoard = buildQuarterLeaderboard({ proofs: cityQuarterProofs, finishedRuns: cityQuarterRuns || [] });
+    const cityEntry = cityBoard.find((entry) => entry.user_id === userId) || null;
+    cityContext = {
+      city_name: topCityEntry.city_name,
+      city_slug: topCitySlug,
+      quarter_label: quarter.label,
+      rank: cityEntry?.rank || null,
+      proof_count: cityEntry?.public_proofs || 0,
+      finish_count: cityEntry?.finished_runs || 0,
+      leaders: cityBoard.slice(0, 3).map((entry) => ({
+        user_id: entry.user_id,
+        rider_name: entry.rider_name,
+        rank: entry.rank,
+        public_proofs: entry.public_proofs,
+        finished_runs: entry.finished_runs,
+      })),
+    };
+  }
 
   return json({
     profile: {
@@ -215,5 +265,6 @@ export async function onRequest({ request, env }) {
     recent_runs: recentRuns,
     city_breakdown: cityBreakdown,
     city_clusters: cityClusters,
+    city_context: cityContext,
   });
 }
