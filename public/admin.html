@@ -472,6 +472,13 @@
       color: #ffb575;
     }
 
+    .mini-chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+
     .preview-box {
       padding: 16px;
       border-radius: 18px;
@@ -764,6 +771,7 @@
       <div class="row" style="margin-bottom:14px;">
         <button id="refreshRequests" class="secondary">Refresh requests</button>
       </div>
+      <div class="mini-chip-row" id="requestsSummary"></div>
       <div class="sessions" id="requestsList"></div>
     </section>
 
@@ -906,6 +914,7 @@
       const proofsList = document.getElementById('proofsList');
       const refreshProofsButton = document.getElementById('refreshProofs');
       const requestsList = document.getElementById('requestsList');
+      const requestsSummary = document.getElementById('requestsSummary');
       const quarterLeaders = document.getElementById('quarterLeaders');
       const quarterTop3 = document.getElementById('quarterTop3');
       const packsList = document.getElementById('packsList');
@@ -1262,11 +1271,29 @@
 
       const loadRequests = async () => {
         requestsList.innerHTML = '';
+        requestsSummary.innerHTML = '';
         const data = await post('/api/admin/city-requests', {});
         if (!data.requests?.length) {
+          requestsSummary.innerHTML = '<span class="mini-chip">0 total</span><span class="mini-chip">0 open</span>';
           requestsList.innerHTML = '<div class="label">No city requests yet.</div>';
           return;
         }
+        const total = data.requests.length;
+        const open = data.requests.filter((request) => request.status !== 'done').length;
+        const queued = data.requests.filter((request) => request.status === 'queued').length;
+        const topCounts = data.requests.reduce((map, request) => {
+          const key = (request.requested_city || request.requested_location || '').trim();
+          if (!key) return map;
+          map.set(key, (map.get(key) || 0) + 1);
+          return map;
+        }, new Map());
+        const topCity = Array.from(topCounts.entries()).sort((a, b) => b[1] - a[1])[0];
+        requestsSummary.innerHTML = `
+          <span class="mini-chip active">${total} total</span>
+          <span class="mini-chip">${open} open</span>
+          <span class="mini-chip">${queued} queued</span>
+          ${topCity ? `<span class="mini-chip">Top ask: ${topCity[0]} · ${topCity[1]}</span>` : ''}
+        `;
         data.requests.forEach((request) => {
           const row = document.createElement('div');
           row.className = 'session';

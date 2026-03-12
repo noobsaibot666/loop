@@ -272,6 +272,15 @@ type PublicRiderProfile = {
     }[];
   } | null;
 };
+type CityDemand = {
+  total_requests: number;
+  open_requests: number;
+  queued_requests: number;
+  top_cities: {
+    city: string;
+    count: number;
+  }[];
+};
 
 const API_BASE = (() => {
   const configured = import.meta.env.VITE_API_BASE || "";
@@ -409,6 +418,8 @@ export default function App() {
   const [publicRiderProfile, setPublicRiderProfile] = useState<PublicRiderProfile | null>(null);
   const [isLoadingPublicRiderProfile, setIsLoadingPublicRiderProfile] = useState(false);
   const [showCityRequest, setShowCityRequest] = useState(false);
+  const [cityDemand, setCityDemand] = useState<CityDemand | null>(null);
+  const [isLoadingCityDemand, setIsLoadingCityDemand] = useState(false);
   const [showShareJoinModal, setShowShareJoinModal] = useState(false);
   const [cityRequestName, setCityRequestName] = useState("");
   const [cityRequestLocation, setCityRequestLocation] = useState("");
@@ -886,6 +897,26 @@ export default function App() {
   }, [pageView]);
 
   useEffect(() => {
+    if (!["home", "messenger"].includes(pageView)) return;
+    let cancelled = false;
+    setIsLoadingCityDemand(true);
+    (async () => {
+      try {
+        const response = await fetch(`${API_BASE}/api/city-demand`, { cache: "no-store" });
+        const data = (await response.json()) as CityDemand;
+        if (!cancelled) setCityDemand(data);
+      } catch {
+        if (!cancelled) setCityDemand(null);
+      } finally {
+        if (!cancelled) setIsLoadingCityDemand(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pageView]);
+
+  useEffect(() => {
     if (!loopPoint || loopPoint.length < 3) {
       setSuggestions([]);
       return;
@@ -1066,6 +1097,11 @@ export default function App() {
       setCityRequestName("");
       setCityRequestLocation("");
       setCityRequestNote("");
+      const response = await fetch(`${API_BASE}/api/city-demand`, { cache: "no-store" }).catch(() => null);
+      if (response?.ok) {
+        const data = (await response.json()) as CityDemand;
+        setCityDemand(data);
+      }
     } catch (error) {
       setCityRequestStatus(error instanceof Error ? error.message : "Could not send the request.");
     } finally {
@@ -1778,6 +1814,12 @@ export default function App() {
           <div className="cell-eyebrow">Missing your city?</div>
           <h3 className="cell-title">Request a city</h3>
           <p className="cell-body">Tell us where you ride and we’ll put it in the queue.</p>
+          {cityDemand && (
+            <div className="mini-chip-row compact">
+              <span className="mini-chip active">{cityDemand.open_requests} open</span>
+              <span className="mini-chip">{cityDemand.top_cities[0]?.city || "Queue live"}</span>
+            </div>
+          )}
           <button className="ghost-button small" onClick={() => setShowCityRequest(true)}>Send request</button>
         </div>
       </section>
@@ -2585,6 +2627,15 @@ export default function App() {
                   <div className="form-subtitle">
                     Pull the list, set the heat, run your own line.
                   </div>
+                  {cityDemand && (
+                    <div className="mini-chip-row">
+                      <span className="mini-chip active">{cityDemand.open_requests} city asks live</span>
+                      <span className="mini-chip">{cityDemand.queued_requests} queued</span>
+                      {cityDemand.top_cities[0] && (
+                        <span className="mini-chip">Top ask: {cityDemand.top_cities[0].city}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="loops-left">
                   <span className="loops-left-line">{hasUnlimitedCredits ? "Credits Unlimited" : `Credits ${messengerCreditsOnly}`}</span>
@@ -2608,7 +2659,7 @@ export default function App() {
                   <div className="field-inline-actions">
                     <span className="field-hint">Start local and keep the spread tight.</span>
                     <button className="ghost-button small" type="button" onClick={() => setShowCityRequest(true)}>
-                      Don’t see your city?
+                      {isLoadingCityDemand ? "Checking city queue..." : "Don’t see your city?"}
                     </button>
                   </div>
                 </label>

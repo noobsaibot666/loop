@@ -1883,6 +1883,53 @@ app.post("/api/city-request", async (req, res) => {
   return res.json({ ok: true, request: data?.[0] || null });
 });
 
+app.get("/api/city-demand", async (_req, res) => {
+  const { data, error } = await supabase
+    .from("city_requests")
+    .select("requested_city,requested_location,status,created_at")
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error) return res.status(500).json({ error: error.message });
+
+  const normalizeCityKey = (value = "") =>
+    String(value)
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .replace(/[^\p{L}\p{N}\s-]/gu, "");
+  const titleCaseCity = (value = "") =>
+    String(value)
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ");
+
+  const counts = new Map();
+  let open_requests = 0;
+  let queued_requests = 0;
+  for (const row of data || []) {
+    const cityKey = normalizeCityKey(row.requested_city || row.requested_location || "");
+    if (!cityKey) continue;
+    const current = counts.get(cityKey) || { city: titleCaseCity(cityKey), count: 0 };
+    current.count += 1;
+    counts.set(cityKey, current);
+    if (row.status !== "done") open_requests += 1;
+    if (row.status === "queued") queued_requests += 1;
+  }
+
+  const top_cities = [...counts.values()]
+    .sort((a, b) => b.count - a.count || a.city.localeCompare(b.city))
+    .slice(0, 5);
+
+  return res.json({
+    total_requests: (data || []).length,
+    open_requests,
+    queued_requests,
+    top_cities,
+  });
+});
+
 app.post("/api/messenger/share", async (req, res) => {
   const authUser = await getAuthUser(req);
   const user_id = authUser?.id || "";

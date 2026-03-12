@@ -7,6 +7,10 @@ Related planning docs:
 - [phase-2-gate-checklist.md](/Users/alan/_localDEV/Loop/reports/phase-2-gate-checklist.md)
 - [phase-3-roadmap.md](/Users/alan/_localDEV/Loop/docs/phase-3-roadmap.md)
 - [phase-3-checklist.md](/Users/alan/_localDEV/Loop/reports/phase-3-checklist.md)
+- [phase-4-roadmap.md](/Users/alan/_localDEV/Loop/docs/phase-4-roadmap.md)
+- [phase-4-checklist.md](/Users/alan/_localDEV/Loop/reports/phase-4-checklist.md)
+- [phase-5-roadmap.md](/Users/alan/_localDEV/Loop/docs/phase-5-roadmap.md)
+- [phase-5-checklist.md](/Users/alan/_localDEV/Loop/reports/phase-5-checklist.md)
 
 ## Product shape
 Gimme The Loop V1 has two product surfaces:
