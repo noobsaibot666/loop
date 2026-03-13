@@ -838,6 +838,7 @@
             <div class="template-note">City shells</div>
             <div class="template-row">
               <button class="template-chip" data-pack-template="berlin">Berlin shell</button>
+              <button class="template-chip" data-pack-template="newyork">New York shell</button>
               <button class="template-chip" data-pack-template="london">London shell</button>
               <button class="template-chip" data-pack-template="tokyo">Tokyo shell</button>
               <button class="template-chip" data-pack-template="mexicocity">Mexico City shell</button>
@@ -987,6 +988,13 @@
       const checkpointWeightEl = document.getElementById('checkpointWeight');
       const checkpointActiveEl = document.getElementById('checkpointActive');
       const packTemplates = {
+        newyork: {
+          slug: 'newyork',
+          name: 'New York',
+          route_note: 'Bridge weight, bad angles, fast cuts, and no reason to ride polite if the line is there.',
+          finish_label: 'Sheet clear, clock buried, city still talking back.',
+          safety_note: 'Ride inside local laws, stay sharp around traffic, and keep every task grounded in the real street.'
+        },
         berlin: {
           slug: 'berlin',
           name: 'Berlin',

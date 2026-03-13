@@ -21,6 +21,8 @@ Related planning docs:
 - [release-smoke-checklist.md](/Users/alan/_localDEV/Loop/reports/release-smoke-checklist.md)
 - [new-york-coverage-roadmap.md](/Users/alan/_localDEV/Loop/docs/new-york-coverage-roadmap.md)
 - [new-york-coverage-checklist.md](/Users/alan/_localDEV/Loop/reports/new-york-coverage-checklist.md)
+- [san-francisco-coverage-roadmap.md](/Users/alan/_localDEV/Loop/docs/san-francisco-coverage-roadmap.md)
+- [san-francisco-coverage-checklist.md](/Users/alan/_localDEV/Loop/reports/san-francisco-coverage-checklist.md)
 
 ## Product shape
 Gimme The Loop V1 has two product surfaces:
@@ -59,7 +61,7 @@ Gimme The Loop V1 has two product surfaces:
 ## Alleycat Mode capabilities
 - Dedicated `/messenger` page with separate communication and layout
 - Premium manifest generation
-- Supported city packs in V1: `Berlin`, `London`, `Tokyo`
+- Supported city packs in V1: `New York`, `Berlin`, `London`, `Tokyo`, `Mexico City`, `Bogota`, `Warsaw`, `Barcelona`, `Sao Paulo`
 - Difficulty levels: `Easy`, `Medium`, `Hard`
 - Street tones: `Local`, `Fast`, `Chaotic`
 - Curated checkpoint list with task prompt and hint

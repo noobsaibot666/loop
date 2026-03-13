@@ -325,7 +325,7 @@ const supabase = supabaseUrl && supabaseAnon ? createClient(supabaseUrl, supabas
 const LOOP_FREE_LIMIT = 3;
 const MESSENGER_CREDIT_COST = 3;
 const ALLEYCAT_STORAGE_KEY = "loop_alleycat_state";
-const ALLEYCAT_CITY_PRESETS = ["Berlin", "London", "Tokyo", "Mexico City", "Bogota", "Warsaw", "Barcelona", "Sao Paulo"];
+const ALLEYCAT_CITY_PRESETS = ["New York", "Berlin", "London", "Tokyo", "Mexico City", "Bogota", "Warsaw", "Barcelona", "Sao Paulo"];
 const PROOF_BUCKET = "alleycat-proofs";
 const toCitySlug = (value = "") => value.trim().toLowerCase().replace(/\s+/g, "");
 const getCityLabel = (value = "") => ALLEYCAT_CITY_PRESETS.find((city) => toCitySlug(city) === toCitySlug(value)) || value;
