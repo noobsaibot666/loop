@@ -83,3 +83,4 @@ Phase 7 is successful if:
 Result:
 - complete
 - validated locally through build, syntax checks, and sample manifest generation across multiple live cities
+- validated on live production across home, cities, wall, leaderboard, and rider pages

@@ -33,6 +33,11 @@ Related docs:
 - [x] Add stronger checkpoint proof summary
 - [x] Bridge finished runs into Wall of Fame and rider pages
 
+## Live QA closeout
+- [x] Run live QA pass on public production surfaces
+- [x] Verify mobile scan on Wall of Fame, Leaderboard, and rider profile
+- [x] Verify city filters and rider links on live production
+
 ## Deferred
 - [-] comments
 - [-] likes
