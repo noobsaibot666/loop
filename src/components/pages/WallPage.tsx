@@ -46,7 +46,7 @@ export default function WallPage({
     <div className="sequential-layout sub-page">
       <section className="sub-page-header">
         <h1 className="sub-page-title">Wall of Fame</h1>
-        <p className="sub-page-description">Proof hits from real runs. Names, cities, no fluff.</p>
+        <p className="sub-page-description">Real hits. Real names. Real cities.</p>
         <div className="section-jump-strip">
           <a className="mini-chip active" href="#wall-filter">Filter</a>
           <a className="mini-chip" href="#wall-story">Story</a>
@@ -131,8 +131,8 @@ export default function WallPage({
           <div className="builder-grid single">
             <div className="glass-card form-card">
               <div className="empty-state">
-                <div className="empty-state-title">Wall of Fame is quiet right now</div>
-                <div className="empty-state-body">Once riders post proof, it lands here.</div>
+                <div className="empty-state-title">Nothing up yet</div>
+                <div className="empty-state-body">Post proof and it lands here.</div>
               </div>
             </div>
           </div>

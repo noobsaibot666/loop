@@ -3,11 +3,9 @@ import homeHeroImage from "../images/hero1.jpg";
 
 type HeroProps = {
     onOpenAlleycat: () => void;
-    onOpenLoop: () => void;
-    onOpenCities: () => void;
 };
 
-const Hero: React.FC<HeroProps> = ({ onOpenAlleycat, onOpenLoop, onOpenCities }) => {
+const Hero: React.FC<HeroProps> = ({ onOpenAlleycat }) => {
     return (
         <section className="hero-hub novasite-layout">
             <div className="hero-bg-visual">
@@ -22,17 +20,11 @@ const Hero: React.FC<HeroProps> = ({ onOpenAlleycat, onOpenLoop, onOpenCities })
                         Alleycat runs the app.
                     </h1>
                     <p className="hero-subheader-left">
-                        Pick the city, pull the list, and cut your own line through it. Loop is still there when you just want the quick route.
+                        Pick a city. Pull a list. Run your line.
                     </p>
                     <div className="hero-actions">
                         <button className="primary-button" type="button" onClick={onOpenAlleycat}>
                             Open Alleycat
-                        </button>
-                        <button className="ghost-button" type="button" onClick={onOpenLoop}>
-                            Open Loop
-                        </button>
-                        <button className="ghost-button" type="button" onClick={onOpenCities}>
-                            See cities
                         </button>
                     </div>
                     <div className="hero-metadata">
@@ -42,7 +34,7 @@ const Hero: React.FC<HeroProps> = ({ onOpenAlleycat, onOpenLoop, onOpenCities })
                         </div>
                         <div>
                             <div className="metric">1</div>
-                            <div className="metric-label">Wall hit to beat</div>
+                            <div className="metric-label">Wall hit live</div>
                         </div>
                         <div>
                             <div className="metric">Fast</div>

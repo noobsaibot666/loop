@@ -96,7 +96,7 @@ export default function RiderProfilePage({
     <div className="sequential-layout sub-page">
       <section className="sub-page-header">
         <h1 className="sub-page-title">{publicRiderProfile?.profile?.rider_name || "Rider profile"}</h1>
-        <p className="sub-page-description">Public proof, quarter heat, and bike setup from the wall.</p>
+        <p className="sub-page-description">Public proof, quarter heat, bike setup.</p>
         {publicRiderProfile && (
           <div className="section-jump-strip">
             <a className="mini-chip active" href="#rider-stats">Stats</a>
@@ -222,7 +222,7 @@ export default function RiderProfilePage({
                 <>
                   <div className="rider-profile-proof-head" id="rider-cities">
                     <div className="form-title">City lanes</div>
-                    <div className="form-subtitle">Follow the cities this rider actually leaves marks in.</div>
+                    <div className="form-subtitle">Cities this rider keeps hitting.</div>
                   </div>
                   <div className="rider-city-grid">
                     {publicRiderProfile.city_breakdown.map((city) => (
@@ -247,7 +247,7 @@ export default function RiderProfilePage({
                 <>
                   <div className="rider-profile-proof-head">
                     <div className="form-title">Proof clusters</div>
-                    <div className="form-subtitle">City pockets where this rider keeps showing up.</div>
+                    <div className="form-subtitle">Where they keep showing up.</div>
                   </div>
                   <div className="rider-cluster-grid">
                     {publicRiderProfile.city_clusters.map((cluster) => (
@@ -276,7 +276,7 @@ export default function RiderProfilePage({
                 <>
                   <div className="rider-profile-proof-head" id="rider-standing">
                     <div className="form-title">City standing</div>
-                    <div className="form-subtitle">How this rider sits inside their strongest city lane this quarter.</div>
+                    <div className="form-subtitle">How they sit in their main city lane.</div>
                   </div>
                   <div className="rider-city-standing-card">
                     <div className="result-grid result-grid-three">
@@ -334,7 +334,7 @@ export default function RiderProfilePage({
 
               <div className="rider-profile-proof-head" id="rider-ledger">
                 <div className="form-title">Run ledger</div>
-                <div className="form-subtitle">Closed manifests and how they landed against the ghost.</div>
+                <div className="form-subtitle">Closed runs and ghost splits.</div>
               </div>
               {!publicRiderProfile.recent_runs?.length ? (
                 <div className="empty-state">
@@ -363,7 +363,7 @@ export default function RiderProfilePage({
 
               <div className="rider-profile-proof-head">
                 <div className="form-title">Rider circle</div>
-                <div className="form-subtitle">Riders this profile has actually shared codes with.</div>
+                <div className="form-subtitle">Riders they actually shared codes with.</div>
               </div>
               {!publicRiderProfile.recent_rivals?.length ? (
                 <div className="empty-state">
@@ -389,7 +389,7 @@ export default function RiderProfilePage({
 
               <div className="rider-profile-proof-head" id="rider-proof">
                 <div className="form-title">Recent proof</div>
-                <div className="form-subtitle">The latest public hits from this rider.</div>
+                <div className="form-subtitle">Latest public hits.</div>
               </div>
               {!publicRiderProfile.recent_proofs?.length ? (
                 <div className="empty-state">

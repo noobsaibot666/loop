@@ -33,7 +33,7 @@ export default function LeaderboardPage({
     <div className="sequential-layout sub-page">
       <section className="sub-page-header">
         <h1 className="sub-page-title">Leaderboard</h1>
-        <p className="sub-page-description">Quarter heat only. Proof first, finishes second.</p>
+        <p className="sub-page-description">Quarter heat. Proof first.</p>
         <div className="section-jump-strip">
           <a className="mini-chip active" href="#leaderboard-filter">Filter</a>
           <a className="mini-chip" href="#leaderboard-podium">Top</a>
@@ -51,7 +51,7 @@ export default function LeaderboardPage({
           <div className="leaderboard-public-head" id="leaderboard-filter">
             <div>
               <div className="form-title">{publicQuarterLabel || "Current quarter"}</div>
-              <div className="form-subtitle">Filter by city or keep it wide open.</div>
+              <div className="form-subtitle">Pick a city or keep it wide.</div>
             </div>
             <div className="pill-group">
               <button type="button" className={`pill ${selectedLeaderboardCity === "" ? "active" : ""}`} onClick={() => setSelectedLeaderboardCity("")}>All cities</button>

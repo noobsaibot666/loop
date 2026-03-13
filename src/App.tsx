@@ -465,6 +465,8 @@ export default function App() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [messengerLocationSuggestions, setMessengerLocationSuggestions] = useState<Suggestion[]>([]);
+  const [isSuggestingMessengerLocation, setIsSuggestingMessengerLocation] = useState(false);
   const [lastRouteUrl, setLastRouteUrl] = useState("");
   const [step1Touched, setStep1Touched] = useState(false);
   const [step2Touched, setStep2Touched] = useState(false);
@@ -999,6 +1001,35 @@ export default function App() {
     };
   }, [loopPoint, selectedCoords]);
 
+  useEffect(() => {
+    if (!messengerLocation || messengerLocation.length < 3) {
+      setMessengerLocationSuggestions([]);
+      return;
+    }
+    let active = true;
+    setIsSuggestingMessengerLocation(true);
+    const timer = setTimeout(async () => {
+      try {
+        const geo = await postJSON<any>("/api/geocode", { text: `${messengerLocation}${messengerCity ? `, ${messengerCity}` : ""}` });
+        const results =
+          geo?.features?.slice(0, 5).map((feature: any) => ({
+            label: feature?.properties?.label || feature?.properties?.name || "Unknown",
+            lat: feature.geometry.coordinates[1],
+            lng: feature.geometry.coordinates[0],
+          })) || [];
+        if (active) setMessengerLocationSuggestions(results);
+      } catch {
+        if (active) setMessengerLocationSuggestions([]);
+      } finally {
+        if (active) setIsSuggestingMessengerLocation(false);
+      }
+    }, 300);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [messengerLocation, messengerCity]);
+
   const step1Done = step1Touched && loopPoint.trim().length > 3;
   const step2Done = step2Touched;
   const step3Done = step3Touched;
@@ -1421,6 +1452,7 @@ export default function App() {
   const messengerMinRange = messengerUnit === "km" ? 1 : 1;
   const messengerMaxRange = messengerUnit === "km" ? 20 : 12;
   const messengerRangePercent = ((messengerRange - messengerMinRange) / (messengerMaxRange - messengerMinRange)) * 100;
+  const messengerRangeAccent = `hsl(${Math.max(0, 18 - messengerRangePercent * 0.18)} 100% 50%)`;
 
   const requireLogin = (message: string) => {
     openAuth("login", message);
@@ -1988,40 +2020,42 @@ export default function App() {
     <div className="sequential-layout">
       <Hero
         onOpenAlleycat={() => handleNavigate("messenger")}
-        onOpenLoop={() => handleNavigate("loop")}
-        onOpenCities={() => handleNavigate("cities")}
       />
 
       <section className="modular-grid reveals">
         <div className="modular-cell modular-cell-featured">
           <div className="cell-eyebrow">Main move</div>
           <h3 className="cell-title">Alleycat Mode</h3>
-          <p className="cell-body">Checkpoint pressure, proof, and your own route call. This is the thing.</p>
+          <p className="cell-body">Pull the list. Run your line. Post the hit.</p>
           <button className="primary-button small" onClick={() => handleNavigate('messenger')}>Open Alleycat</button>
         </div>
         <div className="modular-cell">
           <div className="cell-eyebrow">Quick way out</div>
           <h3 className="cell-title">Loop</h3>
-          <p className="cell-body">Drop a point and get a clean way back fast.</p>
+          <p className="cell-body">Drop a point. Get back clean.</p>
           <button className="ghost-button small" onClick={() => handleNavigate('loop')}>Open Loop</button>
         </div>
-        <div className="modular-cell">
-          <div className="cell-eyebrow">Proof lane</div>
-          <h3 className="cell-title">Wall of Fame</h3>
-          <p className="cell-body">See who posted, where they hit, and what bike they did it on.</p>
-          <button className="ghost-button small" onClick={() => handleNavigate('wall')}>Open Wall</button>
-        </div>
-        <div className="modular-cell">
-          <div className="cell-eyebrow">See the spread</div>
-          <h3 className="cell-title">City Lanes</h3>
-          <p className="cell-body">Live cities up now, next asks, and the lanes warming up.</p>
-          {cityDemand && (
-            <div className="mini-chip-row compact">
-              <span className="mini-chip active">{cityDemand.open_requests} open</span>
-              <span className="mini-chip">{cityDemand.top_cities[0]?.city || "Demand live"}</span>
+      </section>
+
+      <section className="builder-grid single reveals">
+        <div className="glass-card form-card home-request-card">
+          <div className="form-header">
+            <div>
+              <div className="form-title">Need your city?</div>
+              <div className="form-subtitle">Request it and we line it up.</div>
             </div>
-          )}
-          <button className="ghost-button small" onClick={() => handleNavigate('cities')}>Open Cities</button>
+            {cityDemand && (
+              <div className="mini-chip-row compact">
+                <span className="mini-chip active">{cityDemand.open_requests} open</span>
+                <span className="mini-chip">{cityDemand.top_cities[0]?.city || "Queue live"}</span>
+              </div>
+            )}
+          </div>
+          <div className="form-actions">
+            <button className="ghost-button" type="button" onClick={() => setShowCityRequest(true)}>
+              Request a city
+            </button>
+          </div>
         </div>
       </section>
 
@@ -2033,9 +2067,9 @@ export default function App() {
     <>
       {showLogin && (
         <div className="modal-overlay" role="dialog" aria-modal="true">
-          <div className="modal-card">
-            <div className="modal-title">{authMode === "signup" ? "Create account" : "Sign in"}</div>
-            <div className="modal-subtitle">Quick in, quick out. Email and password.</div>
+            <div className="modal-card">
+              <div className="modal-title">{authMode === "signup" ? "Create account" : "Sign in"}</div>
+            <div className="modal-subtitle">Email in. Ride out.</div>
             <div className="auth-mode-switch">
               <button
                 className={`pill ${authMode === "login" ? "active" : ""}`}
@@ -2100,7 +2134,7 @@ export default function App() {
         <div className="modal-overlay" role="dialog" aria-modal="true">
           <div className="modal-card">
             <div className="modal-title">Request your city</div>
-            <div className="modal-subtitle">City first. Area if it matters. We’ll line it up for review.</div>
+            <div className="modal-subtitle">Drop the city. We handle the rest.</div>
             {cityDemand && (
               <div className="mini-chip-row compact">
                 <span className="mini-chip active">{cityDemand.open_requests} open</span>
@@ -2158,7 +2192,7 @@ export default function App() {
         <div className="modal-overlay" role="dialog" aria-modal="true">
           <div className="modal-card">
             <div className="modal-title">Have a code?</div>
-            <div className="modal-subtitle">Drop the code, pull the same list, and pay your own credits to join.</div>
+            <div className="modal-subtitle">Drop the code. Pull the same list.</div>
             <label className="field">
               <span>Share code</span>
               <input
@@ -2191,7 +2225,7 @@ export default function App() {
           <div className="modal-card">
             <div className="modal-title">Add credits</div>
             <div className="modal-subtitle">
-              Top up and keep it moving.
+              Load up and keep moving.
             </div>
             <label className="field">
               <span>Amount (USD)</span>
@@ -2245,14 +2279,14 @@ export default function App() {
     <div className="sequential-layout sub-page">
       <section className="sub-page-header">
         <h1 className="sub-page-title">Account</h1>
-        <p className="sub-page-description">{user ? `${accountGreeting} Credits, bike setup, and your ride recap.` : "Your login, credits, and ride recap."}</p>
+        <p className="sub-page-description">{user ? `${accountGreeting} Credits, bike, and run recap.` : "Login, credits, and run recap."}</p>
       </section>
 
       {!user && (
         <div className="builder-grid single">
           <div className="glass-card form-card account-guest-card">
             <div className="form-title">Sign in to open your dashboard</div>
-            <div className="form-subtitle">One rider, one account, all your runs.</div>
+            <div className="form-subtitle">One rider. One account. All your runs.</div>
             {authMessage && <div className="status-message compact-status">{authMessage}</div>}
             <div className="form-actions centered-actions">
               <button className="primary-button" type="button" onClick={() => openAuth("login")}>
@@ -2270,7 +2304,7 @@ export default function App() {
         <div className="builder-grid account-grid">
           <div className="glass-card form-card account-summary-card" id="account-profile">
             <div className="form-title">Profile & Security</div>
-            <div className="form-subtitle">Set your rider tag and bike details once.</div>
+            <div className="form-subtitle">Set your rider tag once.</div>
             <div className="section-jump-strip">
               <a className="mini-chip active" href="#account-profile">Setup</a>
               <a className="mini-chip" href="#account-credits">Credits</a>
@@ -2365,7 +2399,7 @@ export default function App() {
 
           <div className="glass-card form-card account-credits-card" id="account-credits">
             <div className="form-title">Credits</div>
-            <div className="form-subtitle">See what is left and load more.</div>
+            <div className="form-subtitle">See what is left. Load more.</div>
 
             <div className="result-grid result-grid-two account-credit-grid">
               <div>
@@ -2395,7 +2429,7 @@ export default function App() {
 
           <div className="glass-card form-card account-stats-card" id="account-activity">
             <div className="form-title">V1 activity</div>
-            <div className="form-subtitle">Your numbers. Clean and simple.</div>
+            <div className="form-subtitle">Your numbers. No fluff.</div>
             <div className="result-grid result-grid-two">
               <div>
                 <span>Manifests</span>
@@ -2431,7 +2465,7 @@ export default function App() {
 
           <div className="glass-card form-card account-quarter-card">
             <div className="form-title">Quarter board</div>
-            <div className="form-subtitle">{accountSummary?.quarter?.label || "Current quarter"} scores proof first, finishes second.</div>
+            <div className="form-subtitle">{accountSummary?.quarter?.label || "Current quarter"} runs proof first.</div>
             <div className="result-grid result-grid-three">
               <div>
                 <span>Rank</span>
@@ -2486,7 +2520,7 @@ export default function App() {
 
           <div className="glass-card form-card account-purchases-card">
             <div className="form-title">Recent purchases</div>
-            <div className="form-subtitle">Money in, credits up.</div>
+            <div className="form-subtitle">Money in. Credits up.</div>
             {!accountSummary?.purchases?.length && (
               <div className="empty-state">
                 <div className="empty-state-body">No credit purchases yet.</div>
@@ -2513,7 +2547,7 @@ export default function App() {
 
           <div className="glass-card form-card account-history-card" id="account-history">
             <div className="form-title">Loop history</div>
-            <div className="form-subtitle">Your last routes, one tap away.</div>
+            <div className="form-subtitle">Last routes, one tap away.</div>
             {!accountSummary?.loop_history?.length ? (
               <div className="empty-state">
                 <div className="empty-state-body">No loop history yet. Build one from the home page and it lands here.</div>
@@ -2543,7 +2577,7 @@ export default function App() {
 
           <div className="glass-card form-card account-history-card">
             <div className="form-title">Alleycat runs</div>
-            <div className="form-subtitle">Your Alleycat runs, times, and proof count.</div>
+            <div className="form-subtitle">Runs, times, and proof count.</div>
             {!accountSummary?.alleycat_history?.length ? (
               <div className="empty-state">
                 <div className="empty-state-body">No Alleycat history yet.</div>
@@ -2575,7 +2609,7 @@ export default function App() {
 
           <div className="glass-card form-card account-history-card">
             <div className="form-title">Challenge log</div>
-            <div className="form-subtitle">Shared codes, race state, and who pulled up.</div>
+            <div className="form-subtitle">Shared codes and who pulled up.</div>
             {!accountSummary?.challenge_history?.length ? (
               <div className="empty-state">
                 <div className="empty-state-body">No shared challenge history yet.</div>
@@ -2603,7 +2637,7 @@ export default function App() {
 
           <div className="glass-card form-card account-history-card" id="account-crew">
             <div className="form-title">Riders you raced with</div>
-            <div className="form-subtitle">Only riders you have actually raced with.</div>
+            <div className="form-subtitle">Real shared runs only.</div>
             {!accountSummary?.shared_riders?.length ? (
               <div className="empty-state">
                 <div className="empty-state-body">No shared rider links yet.</div>
@@ -2643,11 +2677,11 @@ export default function App() {
         </div>
       </section>
 
-      <section className="modular-grid reveals">
+      <section className="modular-grid flow-grid reveals">
         {loopSteps.map((step, index) => (
           <div key={step.number} className="module-card">
             <div className="module-header">
-              <span className="module-index">0{step.number}</span>
+              <span className="module-index">{step.number}</span>
               <h3 className="module-title">{step.title}</h3>
             </div>
             <p className="module-body">{step.body}</p>
@@ -2852,17 +2886,17 @@ export default function App() {
     <div className="sequential-layout sub-page">
       <section className="sub-page-header alleycat-page-header">
         <h1 className="sub-page-title">Alleycat</h1>
-        <p className="sub-page-description">Pick the city. Read the list. Run your own line.</p>
+        <p className="sub-page-description">Can you survive an alleycat? Build your own and call the crew in.</p>
         <div className="sub-page-image-shell alleycat-image-shell">
-          <img src={alleycatImage} alt="Rider moving through an alleycat checkpoint run" />
+          <img src={alleycatImage} alt="Alleycat rider cutting through city traffic" />
         </div>
       </section>
 
-      <section className="modular-grid reveals">
+      <section className="modular-grid flow-grid reveals">
         {messengerFlow.map((step, index) => (
           <div key={step.number} className="module-card">
             <div className="module-header">
-              <span className="module-index">0{step.number}</span>
+              <span className="module-index">{step.number}</span>
               <h3 className="module-title">{step.title}</h3>
             </div>
             <p className="module-body">{step.body}</p>
@@ -2877,10 +2911,10 @@ export default function App() {
               <div className="form-header">
                 <div>
                   <div className="form-title premium-title">
-                    Alleycat builder
+                    Manifest Killer
                   </div>
                   <div className="form-subtitle">
-                    Pull the list, set the heat, run your own line.
+                    Pull the sheet and smoke the line.
                   </div>
                   {cityDemand && (
                     <div className="mini-chip-row">
@@ -2898,62 +2932,63 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="form-section section-block">
-                <div className="section-block-head">
-                  <div className="section-block-title">City Pull</div>
-                  <div className="section-block-copy">Choose the pack and lock the area you want to hit.</div>
-                </div>
+              <div className="form-section section-block section-block-clean">
                 <label className="field">
-                  <span>City or start area</span>
-                  <input
-                    type="text"
+                  <span>City</span>
+                  <select
                     value={messengerCity}
                     onChange={(event) => setMessengerCity(event.target.value)}
-                    placeholder="Berlin, London, or Tokyo"
-                    autoComplete="address-level2"
-                    enterKeyHint="next"
-                  />
+                  >
+                    <option value="">Choose a city</option>
+                    {ALLEYCAT_CITY_PRESETS.map((city) => (
+                      <option key={city} value={city}>
+                        {city}
+                      </option>
+                    ))}
+                  </select>
                   <div className="field-inline-actions">
-                    <span className="field-hint">Start local and keep the spread tight.</span>
-                    <button className="ghost-button small" type="button" onClick={() => setShowCityRequest(true)}>
+                    <button className="text-link-button" type="button" onClick={() => setShowCityRequest(true)}>
                       {isLoadingCityDemand ? "Checking city queue..." : "Don’t see your city?"}
                     </button>
                   </div>
                 </label>
-                <div className="pill-group city-preset-group">
-                  {ALLEYCAT_CITY_PRESETS.map((city) => (
-                    <button
-                      key={city}
-                      type="button"
-                      className={`pill ${toCitySlug(messengerCity) === toCitySlug(city) ? "active" : ""}`}
-                      onClick={() => setMessengerCity(city)}
-                    >
-                      {city}
-                    </button>
-                  ))}
-                </div>
                 <label className="field">
                   <span>Start area</span>
                   <input
                     type="text"
                     value={messengerLocation}
-                    onChange={(event) => setMessengerLocation(event.target.value)}
+                    onChange={(event) => {
+                      setMessengerLocation(event.target.value);
+                    }}
                     placeholder="Kreuzberg, Soho, Shibuya..."
                     autoComplete="street-address"
                     enterKeyHint="next"
                   />
-                  <span className="field-hint">Required. This center point keeps every task inside your chosen spread.</span>
+                  {isSuggestingMessengerLocation && <div className="field-hint">Searching…</div>}
+                  {messengerLocationSuggestions.length > 0 && (
+                    <div className="suggestions">
+                      {messengerLocationSuggestions.map((item) => (
+                        <button
+                          key={`${item.lat},${item.lng}`}
+                          type="button"
+                          className="suggestion-item"
+                          onClick={() => {
+                            setMessengerLocation(item.label);
+                            setMessengerLocationSuggestions([]);
+                          }}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </label>
               </div>
 
               <div className="form-section section-block">
-                <div className="section-block-head">
-                  <div className="section-block-title">Set The Heat</div>
-                  <div className="section-block-copy">Choose the spread, stop count, and how rough you want it.</div>
-                </div>
                 <label className="field">
-                  <span>Spread</span>
-                  <div className="pill-group">
+                  <span>Ride zone</span>
+                  <div className="pill-group range-unit-toggle">
                     <button
                       type="button"
                       className={`pill ${messengerUnit === "km" ? "active" : ""}`}
@@ -2984,22 +3019,25 @@ export default function App() {
                     step="1"
                     value={messengerRange}
                     onChange={(event) => setMessengerRange(Number(event.target.value))}
-                    style={{ ["--range-progress" as string]: `${messengerRangePercent}%` }}
+                    style={{
+                      ["--range-progress" as string]: `${messengerRangePercent}%`,
+                      ["--range-accent" as string]: messengerRangeAccent,
+                    }}
                   />
                   <div className="range-labels">
                     <span>
                       {messengerMinRange} {messengerUnit}
                     </span>
-                    <strong>
-                      {messengerRangeLabel} {messengerUnit}
-                    </strong>
+                    <div className="range-focus-card" style={{ ["--range-accent" as string]: messengerRangeAccent }}>
+                      <strong>{messengerRangeLabel} {messengerUnit}</strong>
+                    </div>
                     <span>
                       {messengerMaxRange} {messengerUnit}
                     </span>
                   </div>
                 </label>
 
-                <label className="field">
+                <label className="field difficulty-field">
                   <span>Difficulty</span>
                   <div className="pill-group">
                     {[
@@ -3010,7 +3048,7 @@ export default function App() {
                       <button
                         key={value}
                         type="button"
-                        className={`pill ${messengerDifficulty === value ? "active" : ""}`}
+                        className={`pill difficulty-pill difficulty-${value} ${messengerDifficulty === value ? "active" : ""}`}
                         onClick={() => setMessengerDifficulty(value)}
                       >
                         {label}
@@ -3020,8 +3058,8 @@ export default function App() {
                 </label>
 
                 <label className="field">
-                  <span>Checkpoint count</span>
-                  <div className="pill-group">
+                  <span>Checkpoints</span>
+                  <div className="pill-group checkpoint-count-grid">
                     {[1, 2, 3, 4, 5, 6].map((count) => (
                       <button
                         key={count}
@@ -3033,16 +3071,13 @@ export default function App() {
                       </button>
                     ))}
                   </div>
-                  <span className="field-hint">
-                    Test mode is open right now. At 1 km spread, the list caps at 2 checkpoints.
-                  </span>
                 </label>
 
                 <label className="field">
-                  <span>Street tone</span>
-                  <div className="pill-group">
+                  <span>How dare you ?</span>
+                  <div className="pill-group street-tone-group">
                     {[
-                      ["local", "Local"],
+                      ["local", "Lazy"],
                       ["fast", "Fast"],
                       ["chaotic", "Chaotic"],
                     ].map(([value, label]) => (
@@ -3061,15 +3096,10 @@ export default function App() {
 
               <div className="form-section section-block">
                 <div className="section-block-head">
-                  <div className="section-block-title">Run It</div>
-                  <div className="section-block-copy">Build the list, reset the run, or pass the code.</div>
                 </div>
                 <div className="form-actions">
-                  <button className="ghost-button" type="button" onClick={() => setShowShareJoinModal(true)}>
-                    Have a code ?
-                  </button>
                   <button
-                    className="primary-button premium-button"
+                    className="primary-button premium-button manifest-build-button"
                     type="button"
                     onClick={handleGenerateMessenger}
                     disabled={isGeneratingMessenger || !canBuildMessengerManifest}
@@ -3091,6 +3121,11 @@ export default function App() {
                       {isSharingManifest ? "Making code..." : "Make share code"}
                     </button>
                   )}
+                </div>
+                <div className="form-actions compact-actions">
+                  <button className="text-link-button" type="button" onClick={() => setShowShareJoinModal(true)}>
+                    Have a code?
+                  </button>
                 </div>
                 {renderStatusBanner(messengerStatus)}
               </div>
@@ -3610,12 +3645,8 @@ export default function App() {
             <div className="corner bottom-left"></div>
             <div className="corner bottom-right"></div>
           </div>
-
-          <div className="nav-left">
-            <div className="footer-title">LOOP_V1.0.4</div>
-          </div>
-
           <div className="footer-links">
+            <span className="footer-title">LOOP_V1.0.4</span>
             <a className="ghost-link" href="/leaderboard">Leaderboard</a>
             <a className="ghost-link" href="/cities">Cities</a>
             <a className="ghost-link" href="/privacy.html">Privacy</a>
