@@ -3,18 +3,36 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/favicon.png" />
     <title>Terms · GIVE ME THE LOOP</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zalando+Sans+Expanded:ital,wght@0,200..900;1,200..900&display=swap" />
     <style>
-      body { margin: 0; font-family: "Zalando Sans Expanded", sans-serif; background: #0b0b0b; color: #f2f2f2; padding: 48px; }
-      a { color: #5aa2ff; text-decoration: none; }
-      h1 { font-size: 2.2rem; margin-bottom: 16px; }
-      p { max-width: 720px; line-height: 1.6; color: #cfcfcf; }
+      :root { --bg:#0b0b0b; --panel:rgba(255,255,255,0.03); --border:rgba(255,255,255,0.1); --text:#f2f2f2; --muted:#9b9b9b; --accent:#ff5e14; }
+      * { box-sizing: border-box; }
+      body { margin:0; font-family:"Zalando Sans Expanded",sans-serif; background:var(--bg); color:var(--text); padding:24px; }
+      .wrap { max-width:760px; margin:0 auto; }
+      .back { display:inline-block; margin-bottom:24px; color:var(--muted); text-decoration:none; }
+      .card { border:1px solid var(--border); background:var(--panel); border-radius:24px; padding:28px; }
+      .eyebrow { color:var(--accent); font-size:.82rem; margin:0 0 16px; }
+      h1 { font-size:clamp(2rem,8vw,3rem); margin:0 0 16px; text-transform:uppercase; line-height:1.02; }
+      p, li { max-width:720px; line-height:1.6; color:var(--muted); }
+      ul { padding-left:18px; margin:18px 0 0; }
     </style>
   </head>
   <body>
-    <a href="/">← Back to loop</a>
-    <h1>Terms</h1>
-    <p>Use at your own risk. Always ride safe, follow local laws, and keep your head on a swivel.</p>
+    <div class="wrap">
+      <a class="back" href="/">← Back home</a>
+      <div class="card">
+        <p class="eyebrow">Terms</p>
+        <h1>Ride your own risk</h1>
+        <p>This app is a street tool, not a promise of safety. You are responsible for how you ride, where you ride, and what you post.</p>
+        <ul>
+          <li>Follow local laws.</li>
+          <li>Do not use the app to force unsafe moves.</li>
+          <li>Keep proof content clean enough to stay on the wall.</li>
+          <li>We can hide or remove content, reset runs, and close city packs when needed.</li>
+        </ul>
+      </div>
+    </div>
   </body>
 </html>

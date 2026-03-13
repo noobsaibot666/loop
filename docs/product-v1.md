@@ -27,29 +27,44 @@ Related planning docs:
 ## Product shape
 Gimme The Loop V1 has two product surfaces:
 
-1. `Loop`
-   - Main product on the home page
+1. `Home`
+   - Alleycat-first entry point
+   - Short hero and fast actions into `Alleycat Mode` or `Loop Mode`
+   - Mobile-first navigation with quick dock and lighter copy
+
+2. `Loop Mode`
+   - Dedicated `/loop` page
    - Fast loop generation from a chosen point
    - User sets distance, terrain, surface, and ride vibe
    - Output opens directly in Maps
 
-2. `Alleycat Mode`
+3. `Alleycat Mode`
    - Premium product on its own page
    - City-based manifest generation with curated checkpoints
    - Any-order completion
    - Solo time trial with ghost target
 
-3. `Account`
+4. `Account`
    - Dedicated `/account` page
    - Email/password auth
    - Credits, purchase history, and basic account controls
 
-4. `Wall`
+5. `Wall of Fame`
    - Dedicated `/wall` page
    - Public Alleycat proof feed
    - Rider photo proof cards with city and checkpoint context
 
-## Loop capabilities
+6. `Cities`
+   - Dedicated `/cities` page
+   - Public city lane discovery for live and next-up packs
+   - Links into filtered Wall and Leaderboard views
+
+7. `Leaderboard`
+   - Dedicated `/leaderboard` page
+   - Quarter-based public ranking surface
+   - Rider profile entry point
+
+## Loop Mode capabilities
 - Build a loop from one point
 - Switch between KM and miles
 - Tune terrain, surface, and vibe
@@ -63,7 +78,7 @@ Gimme The Loop V1 has two product surfaces:
 - Premium manifest generation
 - Supported city packs in V1: `New York`, `San Francisco`, `Berlin`, `London`, `Tokyo`, `Mexico City`, `Bogota`, `Warsaw`, `Barcelona`, `Sao Paulo`
 - Difficulty levels: `Easy`, `Medium`, `Hard`
-- Street tones: `Local`, `Fast`, `Chaotic`
+- Street tones: `Lazy`, `Fast`, `Chaotic`
 - Curated checkpoint list with task prompt and hint
 - Any-order checkpoint completion
 - Geofence-style check-in validation using rider location
@@ -79,6 +94,9 @@ Gimme The Loop V1 has two product surfaces:
 - Abandon active run
 - Restart the same manifest with a fresh clock
 - Clearer duplicate, distance, and location-permission feedback
+- Start-area and range-based manifest generation
+- Checkpoint count selection for testing and live tuning
+- New York and San Francisco flagship packs added to the live tester set
 
 ## Account and auth capabilities
 - Email/password sign in
@@ -94,6 +112,11 @@ Gimme The Loop V1 has two product surfaces:
 - Alleycat manifest/run history with best time and ghost delta
 - Shared challenge history
 - Riders-you-raced-with list limited to shared challenge links
+- Public rider profile fields for wall posts:
+  - rider name
+  - home location
+  - bike name
+  - bike ratio
 
 ## Admin capabilities
 - Minimal standalone `/admin.html` page
@@ -105,14 +128,27 @@ Gimme The Loop V1 has two product surfaces:
 - City studio for DB-backed city packs and checkpoints
 - AI-assisted checkpoint and pack drafting in the city studio
 - Preview manifest generation from admin-managed content
+- Release readiness and publish blockers in City Studio
+- Wall of Fame moderation with hide/show, delete, and month archive
 - Reset rider usage
 - Reset guest usage
 - Set rider credits
 - Admin bootstrap script: `npm run admin:create -- admin@email.com strong-password`
 
+## Public discovery capabilities
+- `Wall of Fame` with city filter modal and compact proof cards
+- `Leaderboard` with quarter leaderboard and city filter modal
+- Public rider profile pages with:
+  - recent proofs
+  - recent runs
+  - rider circle
+  - city lanes
+  - city standing
+- `Cities` page with live and next-up lane discovery
+
 ## How to use
-### Loop
-1. Open the home page.
+### Loop Mode
+1. Open `/loop`.
 2. Enter a loop point.
 3. Set distance and ride preferences.
 4. Generate the loop.
@@ -146,6 +182,16 @@ Gimme The Loop V1 has two product surfaces:
 2. Browse public Alleycat proof cards from riders.
 3. Use it as a read-only feed for checkpoint moments across supported cities.
 
+### Cities
+1. Open `/cities`.
+2. Check which city lanes are live.
+3. Jump into the city Wall, Board, or ride flow from there.
+
+### Leaderboard
+1. Open `/leaderboard`.
+2. Filter by city if needed.
+3. Open rider profiles from the public board.
+
 ### Admin
 1. Create or update an admin auth user with `npm run admin:create -- admin@email.com strong-password`.
 2. Add that email to `ADMIN_EMAILS` in the backend environment.
@@ -155,8 +201,8 @@ Gimme The Loop V1 has two product surfaces:
 6. Use AI draft buttons to generate copy suggestions, then review and save them manually.
 
 ## Mobile behavior
-- Home page keeps the loop builder immediately accessible.
-- Alleycat Mode stacks vertically on mobile.
+- Home is simplified for quick action and thumb-zone navigation.
+- Loop, Alleycat, Wall, Leaderboard, Cities, Rider, and Account are all optimized for vertical mobile scan.
 - The intended scroll sequence on mobile is:
   1. understand the product
   2. set the manifest inputs
@@ -186,8 +232,9 @@ Gimme The Loop V1 has two product surfaces:
 ## Final test checklist
 - Sign in and sign out on `/account`
 - Verify credits and purchases render correctly for a logged-in rider
-- Generate a Loop and confirm Maps output opens
+- Generate a Loop on `/loop` and confirm Maps output opens
 - Generate an Alleycat manifest and confirm credits are deducted once
 - Start a run, check in a checkpoint within range, and confirm progress updates
 - Create a share code, join it from a second account, and confirm the leaderboard updates
+- Open `/wall`, `/leaderboard`, `/cities`, and a rider page and confirm public discovery surfaces load cleanly
 - Open `/admin.html`, sign in as admin, and verify overview metrics, reset, and credit tools respond

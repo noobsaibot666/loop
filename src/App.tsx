@@ -110,6 +110,8 @@ type AlleycatChallengeSummary = {
   rematch_label?: string;
 };
 type AccountSummary = {
+  is_admin?: boolean;
+  unlimited_credits?: boolean;
   profile: {
     user_id: string;
     rider_name: string;
@@ -1036,6 +1038,7 @@ export default function App() {
   const allLoopDone = step1Done && step2Done && step3Done;
 
   const hasUnlimitedCredits = Boolean(usage?.unlimited_credits || usage?.is_admin);
+  const isAdminUser = Boolean(accountSummary?.is_admin || usage?.is_admin);
   const totalCredits = hasUnlimitedCredits ? 9999 : Math.max(0, (usage?.credits_remaining || 0) + (usage?.free_remaining || 0));
   const messengerCreditsOnly = hasUnlimitedCredits ? 9999 : Math.max(0, usage?.credits_remaining || 0);
   const riderHandle = (user?.email || "").split("@")[0] || "rider";
@@ -1083,15 +1086,6 @@ export default function App() {
   const boardLeader = leaderboard.find((entry) => entry.best_seconds !== null) || null;
   const ownBoardEntry = leaderboard.find((entry) => entry.user_id === user?.id) || null;
   const fastestRival = leaderboard.find((entry) => entry.user_id !== user?.id && entry.best_seconds !== null) || null;
-  const wallLeadCity = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const post of wallPosts) {
-      if (!post.city_name) continue;
-      counts.set(post.city_name, (counts.get(post.city_name) || 0) + 1);
-    }
-    return [...counts.entries()].sort((a, b) => b[1] - a[1])[0] || null;
-  }, [wallPosts]);
-  const wallFeaturedPost = wallPosts[0] || null;
   const rivalrySummary = useMemo(() => {
     if (!ownBoardEntry?.best_seconds) {
       if (challengeSummary?.winner_name) return `${challengeSummary.winner_name} is setting the pace. Jump in and make them sweat.`;
@@ -1871,7 +1865,7 @@ export default function App() {
           <div className="brand" onClick={() => handleNavigate('home')}>
             <div className="brand-mark" />
             <div className="brand-text">
-              <div className="brand-title">Gimme<br />the<br />Loop</div>
+              <div className="brand-title">GIMMETHELOOP</div>
             </div>
           </div>
           <nav className="header-nav">
@@ -1936,7 +1930,7 @@ export default function App() {
       <button className={`quickbar-link ${pageView === "home" ? "active" : ""}`} type="button" onClick={() => handleNavigate("home")}>
         <span>Home</span>
       </button>
-      <button className={`quickbar-link quickbar-primary ${pageView === "messenger" ? "active" : ""}`} type="button" onClick={() => handleNavigate("messenger")}>
+      <button className={`quickbar-link ${pageView === "messenger" ? "active" : ""}`} type="button" onClick={() => handleNavigate("messenger")}>
         <span>Alleycat</span>
       </button>
       <button className={`quickbar-link ${pageView === "loop" ? "active" : ""}`} type="button" onClick={() => handleNavigate("loop")}>
@@ -2018,48 +2012,22 @@ export default function App() {
 
   const renderHome = () => (
     <div className="sequential-layout">
-      <Hero
-        onOpenAlleycat={() => handleNavigate("messenger")}
-      />
+      <Hero />
 
       <section className="modular-grid reveals">
         <div className="modular-cell modular-cell-featured">
-          <div className="cell-eyebrow">Main move</div>
           <h3 className="cell-title">Alleycat Mode</h3>
-          <p className="cell-body">Pull the list. Run your line. Post the hit.</p>
-          <button className="primary-button small" onClick={() => handleNavigate('messenger')}>Open Alleycat</button>
+          <p className="cell-body">Pull the sheet, hit the spots, and let the city push back.</p>
+          <button className="primary-button primary-button-flat small home-card-button" onClick={() => handleNavigate('messenger')}>
+            Start challenge
+          </button>
         </div>
         <div className="modular-cell">
-          <div className="cell-eyebrow">Quick way out</div>
-          <h3 className="cell-title">Loop</h3>
+          <h3 className="cell-title">Loop Mode</h3>
           <p className="cell-body">Drop a point. Get back clean.</p>
-          <button className="ghost-button small" onClick={() => handleNavigate('loop')}>Open Loop</button>
+          <button className="ghost-button small home-card-button" onClick={() => handleNavigate('loop')}>Start looping</button>
         </div>
       </section>
-
-      <section className="builder-grid single reveals">
-        <div className="glass-card form-card home-request-card">
-          <div className="form-header">
-            <div>
-              <div className="form-title">Need your city?</div>
-              <div className="form-subtitle">Request it.</div>
-            </div>
-            {cityDemand && (
-              <div className="mini-chip-row compact">
-                <span className="mini-chip active">{cityDemand.open_requests} open</span>
-                <span className="mini-chip">{cityDemand.top_cities[0]?.city || "Queue live"}</span>
-              </div>
-            )}
-          </div>
-          <div className="form-actions">
-            <button className="ghost-button" type="button" onClick={() => setShowCityRequest(true)}>
-              Request a city
-            </button>
-          </div>
-        </div>
-      </section>
-
-
     </div>
   );
 
@@ -2670,7 +2638,7 @@ export default function App() {
   const renderLoop = () => (
     <div className="sequential-layout sub-page">
       <section className="sub-page-header loop-page-header">
-        <h1 className="sub-page-title">Loop Builder</h1>
+        <h1 className="sub-page-title">Lets Loop</h1>
         <p className="sub-page-description">Set the point. Ride out clean.</p>
         <div className="sub-page-image-shell loop-image-shell">
           <img src={heroImage} alt="Cyclist moving through a city loop" />
@@ -3587,8 +3555,6 @@ export default function App() {
                   getCityLabel={getCityLabel}
                   isLoadingWall={isLoadingWall}
                   wallPosts={wallPosts}
-                  wallFeaturedPost={wallFeaturedPost}
-                  wallLeadCity={wallLeadCity}
                   onOpenRiderProfile={handleOpenRiderProfile}
                   onOpenWallCity={handleOpenWallCity}
                   onOpenLeaderboardCity={handleOpenLeaderboardCity}
@@ -3660,14 +3626,16 @@ export default function App() {
             <div className="corner bottom-right"></div>
           </div>
           <div className="footer-links">
-            <span className="footer-title">LOOP_V1.0.4</span>
             <a className="ghost-link" href="/leaderboard">Leaderboard</a>
             <a className="ghost-link" href="/cities">Cities</a>
             <a className="ghost-link" href="/privacy.html">Privacy</a>
             <a className="ghost-link" href="/terms.html">Terms</a>
             <a className="ghost-link" href="/how.html">How</a>
-            <a className="ghost-link" href="https://buymeacoffee.com/js4mhwqrdjd">Coffee</a>
-            <a className="ghost-link admin-link" href="/admin.html">Admin</a>
+            <a className="ghost-link" href="/coffee.html">Coffee</a>
+            {isAdminUser && <a className="ghost-link admin-link" href="/admin.html">Admin</a>}
+          </div>
+          <div className="footer-meta">
+            <span className="footer-title">LOOP_V1.0.4</span>
           </div>
         </div>
       </footer>

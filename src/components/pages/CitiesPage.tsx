@@ -51,11 +51,6 @@ export default function CitiesPage({
       <section className="sub-page-header">
         <h1 className="sub-page-title">City Lanes</h1>
         <p className="sub-page-description">Live lanes. Next lanes.</p>
-        <div className="section-jump-strip">
-          <a className="mini-chip active" href="#cities-live">Live</a>
-          <a className="mini-chip" href="#cities-next">Next</a>
-          <a className="mini-chip" href="#cities-request">Request</a>
-        </div>
         <div className="surface-story-strip">
           <div className="mini-chip active">{liveCities.length} live</div>
           <div className="mini-chip">{nextCities.length} next up</div>
@@ -125,14 +120,9 @@ export default function CitiesPage({
 
           <section className="builder-grid single reveals" id="cities-live">
             <div className="glass-card form-card">
-            <div className="form-title">Live now</div>
+              <div className="form-title">Live now</div>
               <div className="form-subtitle">Pick a lane.</div>
-              {liveCities.length === 0 && (
-                <div className="empty-state">
-                  <div className="empty-state-title">No live lanes yet</div>
-                  <div className="empty-state-body">Request one and push it up.</div>
-                </div>
-              )}
+              {liveCities.length === 0 && <div className="empty-state" />}
               {liveCities.length > 0 && (
                 <div className="city-lane-grid">
                   {liveCities.map((lane) => (
@@ -184,14 +174,9 @@ export default function CitiesPage({
 
           <section className="builder-grid single reveals" id="cities-next">
             <div className="glass-card form-card">
-            <div className="form-title">Next up</div>
+              <div className="form-title">Next up</div>
               <div className="form-subtitle">Demand and drafts.</div>
-              {nextCities.length === 0 && (
-                <div className="empty-state">
-                  <div className="empty-state-title">No lanes queued</div>
-                  <div className="empty-state-body">New asks land here.</div>
-                </div>
-              )}
+              {nextCities.length === 0 && <div className="empty-state" />}
               {nextCities.length > 0 && (
                 <div className="city-lane-grid compact-grid">
                   {nextCities.map((lane) => (

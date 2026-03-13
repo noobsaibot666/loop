@@ -1,3 +1,6 @@
+import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
+
 type PublicLeaderboardEntry = {
   user_id: string;
   rider_name: string;
@@ -29,51 +32,47 @@ export default function LeaderboardPage({
   publicLeaderboard,
   onOpenRiderProfile,
 }: LeaderboardPageProps) {
+  const [showCityPicker, setShowCityPicker] = useState(false);
+  const cityGroups = useMemo(() => [
+    {
+      label: "Americas",
+      cities: cityPresets
+        .filter((city) => ["Bogota", "Mexico City", "New York", "San Francisco", "Sao Paulo"].includes(city))
+        .sort((a, b) => a.localeCompare(b)),
+      anchor: "leaderboard-city-group-americas",
+    },
+    {
+      label: "Europe",
+      cities: cityPresets
+        .filter((city) => ["Barcelona", "Berlin", "London", "Warsaw"].includes(city))
+        .sort((a, b) => a.localeCompare(b)),
+      anchor: "leaderboard-city-group-europe",
+    },
+    {
+      label: "Asia",
+      cities: cityPresets
+        .filter((city) => ["Tokyo"].includes(city))
+        .sort((a, b) => a.localeCompare(b)),
+      anchor: "leaderboard-city-group-asia",
+    },
+  ].filter((group) => group.cities.length > 0), [cityPresets]);
+
   return (
     <div className="sequential-layout sub-page">
       <section className="sub-page-header">
         <h1 className="sub-page-title">Leaderboard</h1>
-        <p className="sub-page-description">Quarter board. Proof first.</p>
-        <div className="section-jump-strip">
-          <a className="mini-chip active" href="#leaderboard-filter">Filter</a>
-          <a className="mini-chip" href="#leaderboard-podium">Top</a>
-          <a className="mini-chip" href="#leaderboard-list">Board</a>
-        </div>
-        <div className="surface-story-strip">
-          <div className="mini-chip active">{publicQuarterLabel || "Current quarter"}</div>
-          <div className="mini-chip">{selectedLeaderboardCity ? `${getCityLabel(selectedLeaderboardCity)} board` : "All cities board"}</div>
-          <div className="mini-chip">Proof leads, closes settle ties</div>
-        </div>
       </section>
 
       <section className="builder-grid single reveals">
         <div className="glass-card form-card">
           <div className="leaderboard-public-head" id="leaderboard-filter">
-            <div>
-              <div className="form-title">{publicQuarterLabel || "Current quarter"}</div>
-              <div className="form-subtitle">Pick a city.</div>
-            </div>
-            <div className="pill-group">
-              <button type="button" className={`pill ${selectedLeaderboardCity === "" ? "active" : ""}`} onClick={() => setSelectedLeaderboardCity("")}>All cities</button>
-              {cityPresets.map((city) => (
-                <button
-                  key={city}
-                  type="button"
-                  className={`pill ${selectedLeaderboardCity === toCitySlug(city) ? "active" : ""}`}
-                  onClick={() => setSelectedLeaderboardCity(toCitySlug(city))}
-                >
-                  {city}
-                </button>
-              ))}
-            </div>
+            <div className="form-title">{publicQuarterLabel || "Current quarter"}</div>
+            <button type="button" className="inline-link-button wall-filter-link" onClick={() => setShowCityPicker(true)}>
+              {selectedLeaderboardCity ? getCityLabel(selectedLeaderboardCity) : "All Cities"}
+            </button>
           </div>
           {isLoadingPublicLeaderboard && <div className="status-message">Loading leaderboard…</div>}
-          {!isLoadingPublicLeaderboard && publicLeaderboard.length === 0 && (
-            <div className="empty-state">
-              <div className="empty-state-title">No board yet</div>
-              <div className="empty-state-body">Post proof. Wake it up.</div>
-            </div>
-          )}
+          {!isLoadingPublicLeaderboard && publicLeaderboard.length === 0 && <div className="empty-state" />}
           {publicLeaderboard.length > 0 && (
             <div className="result-grid result-grid-three leaderboard-summary-grid">
               <div>
@@ -171,6 +170,62 @@ export default function LeaderboardPage({
           )}
         </div>
       </section>
+
+      {showCityPicker && createPortal(
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <div className="modal-card">
+            <div className="modal-header">
+              <div className="modal-title">Choose a city</div>
+              <button className="modal-close" type="button" aria-label="Close city picker" onClick={() => setShowCityPicker(false)}>
+                ×
+              </button>
+            </div>
+            <div className="modal-actions city-picker-nav">
+              {cityGroups.map((group) => (
+                <a key={group.anchor} className="inline-link-button city-picker-anchor" href={`#${group.anchor}`}>
+                  {group.label}
+                </a>
+              ))}
+            </div>
+            <div className="modal-actions city-picker-actions">
+              <button
+                className={`ghost-button ${selectedLeaderboardCity === "" ? "active-filter-button" : ""}`}
+                type="button"
+                onClick={() => {
+                  setSelectedLeaderboardCity("");
+                  setShowCityPicker(false);
+                }}
+              >
+                All
+              </button>
+              {cityGroups.map((group) => (
+                <div key={group.anchor} className="city-picker-group" id={group.anchor}>
+                  <div className="city-picker-group-title">{group.label}</div>
+                  <div className="city-picker-group-grid">
+                    {group.cities.map((city) => (
+                      <button
+                        key={city}
+                        className={`ghost-button ${selectedLeaderboardCity === toCitySlug(city) ? "active-filter-button" : ""}`}
+                        type="button"
+                        onClick={() => {
+                          setSelectedLeaderboardCity(toCitySlug(city));
+                          setShowCityPicker(false);
+                        }}
+                      >
+                        {city}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <button className="primary-button" type="button" onClick={() => setShowCityPicker(false)}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

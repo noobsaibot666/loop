@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
 type WallPost = {
@@ -23,8 +23,6 @@ type WallPageProps = {
   getCityLabel: (value?: string) => string;
   isLoadingWall: boolean;
   wallPosts: WallPost[];
-  wallFeaturedPost: WallPost | null;
-  wallLeadCity: [string, number] | null;
   onOpenRiderProfile: (userId?: string) => void;
   onOpenWallCity: (cityName?: string) => void;
   onOpenLeaderboardCity: (cityName?: string) => void;
@@ -39,14 +37,12 @@ export default function WallPage({
   getCityLabel,
   isLoadingWall,
   wallPosts,
-  wallFeaturedPost,
-  wallLeadCity,
   onOpenRiderProfile,
   onOpenWallCity,
   onOpenLeaderboardCity,
 }: WallPageProps) {
   const [showCityPicker, setShowCityPicker] = useState(false);
-  const cityGroups = [
+  const cityGroups = useMemo(() => [
     {
       label: "Americas",
       cities: cityPresets
@@ -68,7 +64,7 @@ export default function WallPage({
         .sort((a, b) => a.localeCompare(b)),
       anchor: "wall-city-group-asia",
     },
-  ].filter((group) => group.cities.length > 0);
+  ].filter((group) => group.cities.length > 0), [cityPresets]);
 
   return (
     <div className="sequential-layout sub-page">
@@ -82,56 +78,6 @@ export default function WallPage({
             {selectedWallCity ? getCityLabel(selectedWallCity) : "All Cities"}
           </button>
         </div>
-        {!isLoadingWall && wallPosts.length > 0 && (
-          <>
-            <div className="result-grid result-grid-three wall-story-grid">
-              <div>
-                <span>Posts up</span>
-                <strong>{wallPosts.length}</strong>
-              </div>
-              <div>
-                <span>Riders up</span>
-                <strong>{new Set(wallPosts.map((post) => post.user_id || post.rider_name)).size}</strong>
-              </div>
-              <div>
-                <span>Lane</span>
-                <strong>{selectedWallCity ? getCityLabel(selectedWallCity) : "All"}</strong>
-              </div>
-            </div>
-            <div className="wall-editorial-grid">
-              {wallFeaturedPost && (
-                <div className="wall-editorial-card wall-editorial-feature">
-                  <span className="winner-label">Latest drop</span>
-                  <strong>{wallFeaturedPost.rider_name} · {wallFeaturedPost.checkpoint_name}</strong>
-                  <span>{wallFeaturedPost.city_name} · {new Date(wallFeaturedPost.created_at).toLocaleDateString()}</span>
-                  <div className="wall-city-actions">
-                    <button className="ghost-button small" type="button" onClick={() => onOpenRiderProfile(wallFeaturedPost.user_id)}>
-                      Open rider
-                    </button>
-                    <button className="ghost-button small" type="button" onClick={() => onOpenWallCity(wallFeaturedPost.city_name)}>
-                      Wall
-                    </button>
-                  </div>
-                </div>
-              )}
-              {wallLeadCity && (
-                <div className="wall-editorial-card">
-                  <span className="winner-label">Spotlight</span>
-                  <strong>{wallLeadCity[0]}</strong>
-                  <span>{wallLeadCity[1]} live hits in this lane.</span>
-                  <div className="wall-city-actions">
-                    <button className="ghost-button small" type="button" onClick={() => onOpenWallCity(wallLeadCity[0])}>
-                      Wall
-                    </button>
-                    <button className="ghost-button small" type="button" onClick={() => onOpenLeaderboardCity(wallLeadCity[0])}>
-                      Board
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </>
-        )}
         {isLoadingWall && <div className="status-message">Loading Wall of Fame…</div>}
         {wallPosts.length > 0 && (
           <div className="wall-grid">
@@ -139,15 +85,19 @@ export default function WallPage({
               <div key={post.id} className="glass-card wall-card">
                 <img src={post.public_url} alt={`${post.checkpoint_name} by ${post.rider_name}`} className="wall-image" loading="lazy" decoding="async" />
                 <div className="wall-meta">
-                  <div className="checkpoint-meta">
-                    <span>Alleycat</span>
-                  </div>
-                  <div className="checkpoint-name">
-                    <button className="inline-link-button" type="button" onClick={() => onOpenRiderProfile(post.user_id)}>
-                      {post.rider_name}
-                    </button>
-                  </div>
                   <div className="wall-detail-grid">
+                    <div>
+                      <span>Type</span>
+                      <strong>Alleycat</strong>
+                    </div>
+                    <div>
+                      <span>Rider</span>
+                      <strong>
+                        <button className="inline-link-button checkpoint-name" type="button" onClick={() => onOpenRiderProfile(post.user_id)}>
+                          {post.rider_name}
+                        </button>
+                      </strong>
+                    </div>
                     <div>
                       <span>Location</span>
                       <strong>{post.location_label || post.city_name}</strong>
@@ -158,11 +108,11 @@ export default function WallPage({
                     </div>
                     <div>
                       <span>Bike</span>
-                      <strong>{post.bike_name || "Bike not set"}</strong>
+                      <strong>{post.bike_name || "Bike"}</strong>
                     </div>
                     <div>
                       <span>Ratio</span>
-                      <strong>{post.bike_ratio || "Ratio not set"}</strong>
+                      <strong>{post.bike_ratio || "Ratio"}</strong>
                     </div>
                   </div>
                   <div className="wall-city-actions">
