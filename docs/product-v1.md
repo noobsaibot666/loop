@@ -19,6 +19,8 @@ Related planning docs:
 - [phase-8-roadmap.md](/Users/alan/_localDEV/Loop/docs/phase-8-roadmap.md)
 - [phase-8-checklist.md](/Users/alan/_localDEV/Loop/reports/phase-8-checklist.md)
 - [release-smoke-checklist.md](/Users/alan/_localDEV/Loop/reports/release-smoke-checklist.md)
+- [new-york-coverage-roadmap.md](/Users/alan/_localDEV/Loop/docs/new-york-coverage-roadmap.md)
+- [new-york-coverage-checklist.md](/Users/alan/_localDEV/Loop/reports/new-york-coverage-checklist.md)
 
 ## Product shape
 Gimme The Loop V1 has two product surfaces:
