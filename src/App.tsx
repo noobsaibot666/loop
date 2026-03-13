@@ -350,16 +350,16 @@ const loopSteps = [
 
 const productHighlights = [
   {
+    title: "Alleycat Mode",
+    body: "City pack, ghost heat, proof, and your own line through town.",
+    action: "Open Alleycat",
+    page: "messenger" as PageView,
+  },
+  {
     title: "Loop",
     body: "Fast routes back. Point, build, move.",
     action: "Open Loop",
     page: "loop" as PageView,
-  },
-  {
-    title: "Alleycat Mode",
-    body: "Checkpoints, proof, ghost time, shared codes.",
-    action: "Open Alleycat",
-    page: "messenger" as PageView,
   },
 ];
 
@@ -1007,7 +1007,7 @@ export default function App() {
   const totalCredits = hasUnlimitedCredits ? 9999 : Math.max(0, (usage?.credits_remaining || 0) + (usage?.free_remaining || 0));
   const messengerCreditsOnly = hasUnlimitedCredits ? 9999 : Math.max(0, usage?.credits_remaining || 0);
   const riderHandle = (user?.email || "").split("@")[0] || "rider";
-  const accountGreeting = hasUnlimitedCredits ? `Hello admin ${riderHandle}.` : `Hello ${riderHandle}.`;
+  const accountGreeting = hasUnlimitedCredits ? `Yo admin ${riderHandle}.` : `Yo ${riderHandle}.`;
   const currentElapsed = useMemo(() => {
     if (!messengerRun) return 0;
     if (messengerRun.finishSeconds) return messengerRun.finishSeconds;
@@ -1881,6 +1881,30 @@ export default function App() {
     </header >
   );
 
+  const renderMobileDock = () => (
+    <nav className="mobile-quickbar" aria-label="Quick navigation">
+      <button className={`quickbar-link ${pageView === "home" ? "active" : ""}`} type="button" onClick={() => handleNavigate("home")}>
+        <span>Home</span>
+      </button>
+      <button className={`quickbar-link quickbar-primary ${pageView === "messenger" ? "active" : ""}`} type="button" onClick={() => handleNavigate("messenger")}>
+        <span>Alleycat</span>
+      </button>
+      <button className={`quickbar-link ${pageView === "loop" ? "active" : ""}`} type="button" onClick={() => handleNavigate("loop")}>
+        <span>Loop</span>
+      </button>
+      <button className={`quickbar-link ${pageView === "wall" ? "active" : ""}`} type="button" onClick={() => handleNavigate("wall")}>
+        <span>Wall</span>
+      </button>
+      <button
+        className={`quickbar-link ${pageView === "account" ? "active" : ""}`}
+        type="button"
+        onClick={() => (user ? handleNavigate("account") : openAuth("login"))}
+      >
+        <span>{user ? "Me" : "Log in"}</span>
+      </button>
+    </nav>
+  );
+
   const renderSectionHeader = (title: string, subtitle: string) => (
     <div className="technical-section-header">
       <div className="section-eyebrow">// {title}</div>
@@ -1890,31 +1914,35 @@ export default function App() {
 
   const renderHome = () => (
     <div className="sequential-layout">
-      <Hero />
+      <Hero
+        onOpenAlleycat={() => handleNavigate("messenger")}
+        onOpenLoop={() => handleNavigate("loop")}
+        onOpenCities={() => handleNavigate("cities")}
+      />
 
       <section className="modular-grid reveals">
-        <div className="modular-cell">
-          <div className="cell-eyebrow">Pick your move</div>
-          <h3 className="cell-title">Loop</h3>
-          <p className="cell-body">Drop a point. Get a clean way back.</p>
-          <button className="ghost-button small" onClick={() => handleNavigate('loop')}>Go Loop</button>
-        </div>
-        <div className="modular-cell">
-          <div className="cell-eyebrow">Pick your move</div>
+        <div className="modular-cell modular-cell-featured">
+          <div className="cell-eyebrow">Main move</div>
           <h3 className="cell-title">Alleycat Mode</h3>
-          <p className="cell-body">Checkpoints, proof, and your own line through town.</p>
-          <button className="ghost-button small" onClick={() => handleNavigate('messenger')}>Go Alleycat</button>
+          <p className="cell-body">Checkpoint pressure, proof, and your own route call. This is the thing.</p>
+          <button className="primary-button small" onClick={() => handleNavigate('messenger')}>Open Alleycat</button>
         </div>
         <div className="modular-cell">
-          <div className="cell-eyebrow">Pick your move</div>
+          <div className="cell-eyebrow">Quick way out</div>
+          <h3 className="cell-title">Loop</h3>
+          <p className="cell-body">Drop a point and get a clean way back fast.</p>
+          <button className="ghost-button small" onClick={() => handleNavigate('loop')}>Open Loop</button>
+        </div>
+        <div className="modular-cell">
+          <div className="cell-eyebrow">Proof lane</div>
           <h3 className="cell-title">Wall of Fame</h3>
-          <p className="cell-body">Proof hits, city tags, no soft stuff.</p>
-          <button className="ghost-button small" onClick={() => handleNavigate('wall')}>Go Wall of Fame</button>
+          <p className="cell-body">See who posted, where they hit, and what bike they did it on.</p>
+          <button className="ghost-button small" onClick={() => handleNavigate('wall')}>Open Wall</button>
         </div>
         <div className="modular-cell">
           <div className="cell-eyebrow">See the spread</div>
           <h3 className="cell-title">City Lanes</h3>
-          <p className="cell-body">Live cities, next-up asks, and the lanes building next.</p>
+          <p className="cell-body">Live cities up now, next asks, and the lanes warming up.</p>
           {cityDemand && (
             <div className="mini-chip-row compact">
               <span className="mini-chip active">{cityDemand.open_requests} open</span>
@@ -1961,6 +1989,9 @@ export default function App() {
                   onChange={(event) => setLoginEmail(event.target.value)}
                   placeholder="you@email.com"
                   autoFocus
+                  autoComplete="email"
+                  inputMode="email"
+                  enterKeyHint="next"
                 />
               </label>
               <label className="field">
@@ -1970,6 +2001,8 @@ export default function App() {
                   value={loginPassword}
                   onChange={(event) => setLoginPassword(event.target.value)}
                   placeholder="At least 6 characters"
+                  autoComplete={authMode === "signup" ? "new-password" : "current-password"}
+                  enterKeyHint="go"
                 />
               </label>
               {authMessage && <div className="status-message compact-status">{authMessage}</div>}
@@ -2014,23 +2047,28 @@ export default function App() {
             )}
             <label className="field">
               <span>City</span>
-              <input value={cityRequestName} onChange={(event) => setCityRequestName(event.target.value)} placeholder="Berlin, Bogotá, NYC..." autoFocus />
+              <input value={cityRequestName} onChange={(event) => setCityRequestName(event.target.value)} placeholder="Berlin, Bogotá, NYC..." autoFocus enterKeyHint="next" />
             </label>
-            <div className="field-row">
-              <label className="field">
-                <span>Area <small className="field-hint">optional</small></span>
-                <input value={cityRequestLocation} onChange={(event) => setCityRequestLocation(event.target.value)} placeholder="Kreuzberg, Bushwick, Roma Norte..." />
-              </label>
-            </div>
-            <label className="field">
-              <span>Why here? <small className="field-hint">optional</small></span>
-              <textarea
-                value={cityRequestNote}
-                onChange={(event) => setCityRequestNote(event.target.value)}
-                placeholder="Fast note on the scene, blocks, or why it deserves a pack."
-                rows={3}
-              />
-            </label>
+            <details className="field-disclosure">
+              <summary>More detail if it helps</summary>
+              <div className="field-disclosure-body">
+                <div className="field-row">
+                  <label className="field">
+                    <span>Area <small className="field-hint">optional</small></span>
+                    <input value={cityRequestLocation} onChange={(event) => setCityRequestLocation(event.target.value)} placeholder="Kreuzberg, Bushwick, Roma Norte..." enterKeyHint="next" />
+                  </label>
+                </div>
+                <label className="field">
+                  <span>Why here? <small className="field-hint">optional</small></span>
+                  <textarea
+                    value={cityRequestNote}
+                    onChange={(event) => setCityRequestNote(event.target.value)}
+                    placeholder="Quick note on the scene, blocks, or why it deserves a pack."
+                    rows={3}
+                  />
+                </label>
+              </div>
+            </details>
             {cityRequestStatus && <div className="status-message compact-status">{cityRequestStatus}</div>}
             <div className="modal-actions">
               <button className="ghost-button" type="button" onClick={() => setShowCityRequest(false)}>
@@ -2135,7 +2173,7 @@ export default function App() {
     <div className="sequential-layout sub-page">
       <section className="sub-page-header">
         <h1 className="sub-page-title">Account</h1>
-        <p className="sub-page-description">Your login, credits, and ride recap.</p>
+        <p className="sub-page-description">{user ? `${accountGreeting} Credits, bike setup, and your ride recap.` : "Your login, credits, and ride recap."}</p>
       </section>
 
       {!user && (
@@ -2176,6 +2214,8 @@ export default function App() {
                   value={accountRiderName}
                   onChange={(event) => setAccountRiderName(event.target.value)}
                   placeholder="Your name on the wall"
+                  autoComplete="nickname"
+                  enterKeyHint="next"
                 />
               </label>
               <label className="field">
@@ -2185,6 +2225,8 @@ export default function App() {
                   value={accountHomeLocation}
                   onChange={(event) => setAccountHomeLocation(event.target.value)}
                   placeholder="Berlin, Kreuzberg"
+                  autoComplete="address-level2"
+                  enterKeyHint="next"
                 />
               </label>
               <label className="field">
@@ -2194,6 +2236,7 @@ export default function App() {
                   value={accountBikeName}
                   onChange={(event) => setAccountBikeName(event.target.value)}
                   placeholder="Black track build"
+                  enterKeyHint="next"
                 />
               </label>
               <label className="field">
@@ -2203,6 +2246,10 @@ export default function App() {
                   value={accountBikeRatio}
                   onChange={(event) => setAccountBikeRatio(event.target.value)}
                   placeholder="49x17"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  enterKeyHint="done"
                 />
               </label>
             </div>
@@ -2220,6 +2267,8 @@ export default function App() {
                 value={accountPassword}
                 onChange={(event) => setAccountPassword(event.target.value)}
                 placeholder="New password"
+                autoComplete="new-password"
+                enterKeyHint="done"
               />
             </label>
             <div className="form-actions">
@@ -2774,6 +2823,8 @@ export default function App() {
                     value={messengerCity}
                     onChange={(event) => setMessengerCity(event.target.value)}
                     placeholder="Berlin, London, or Tokyo"
+                    autoComplete="address-level2"
+                    enterKeyHint="next"
                   />
                   <div className="field-inline-actions">
                     <span className="field-hint">Start local and keep the spread tight.</span>
@@ -2801,6 +2852,8 @@ export default function App() {
                     value={messengerLocation}
                     onChange={(event) => setMessengerLocation(event.target.value)}
                     placeholder="Kreuzberg, Soho, Shibuya..."
+                    autoComplete="street-address"
+                    enterKeyHint="next"
                   />
                   <span className="field-hint">Required. This is the center point for your task spread.</span>
                 </label>
@@ -3461,6 +3514,7 @@ export default function App() {
       <main key={pageView} className="page-stage page-stage-enter">
         {renderCurrentPage()}
       </main>
+      {renderMobileDock()}
       <footer className="site-footer">
         <div className="nav-container">
           <div className="nav-viewfinder">
