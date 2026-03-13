@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { createPortal } from "react-dom";
+
 type WallPost = {
   id: string;
   user_id?: string;
@@ -42,43 +45,46 @@ export default function WallPage({
   onOpenWallCity,
   onOpenLeaderboardCity,
 }: WallPageProps) {
+  const [showCityPicker, setShowCityPicker] = useState(false);
+  const cityGroups = [
+    {
+      label: "Americas",
+      cities: cityPresets
+        .filter((city) => ["Bogota", "Mexico City", "Sao Paulo"].includes(city))
+        .sort((a, b) => a.localeCompare(b)),
+      anchor: "wall-city-group-americas",
+    },
+    {
+      label: "Europe",
+      cities: cityPresets
+        .filter((city) => ["Barcelona", "Berlin", "London", "Warsaw"].includes(city))
+        .sort((a, b) => a.localeCompare(b)),
+      anchor: "wall-city-group-europe",
+    },
+    {
+      label: "Asia",
+      cities: cityPresets
+        .filter((city) => ["Tokyo"].includes(city))
+        .sort((a, b) => a.localeCompare(b)),
+      anchor: "wall-city-group-asia",
+    },
+  ].filter((group) => group.cities.length > 0);
+
   return (
     <div className="sequential-layout sub-page">
       <section className="sub-page-header">
         <h1 className="sub-page-title">Wall of Fame</h1>
-        <p className="sub-page-description">Proof hits by city.</p>
-        <div className="section-jump-strip">
-          <a className="mini-chip active" href="#wall-filter">Filter</a>
-          <a className="mini-chip" href="#wall-story">Story</a>
-          <a className="mini-chip" href="#wall-feed">Feed</a>
-        </div>
-        <div className="surface-story-strip">
-          <div className="mini-chip active">{publicQuarterLabel || "Current quarter"} live</div>
-          <div className="mini-chip">{selectedWallCity ? `${getCityLabel(selectedWallCity)} lane` : "All city lanes"}</div>
-          <div className="mini-chip">Latest first</div>
-        </div>
       </section>
 
       <section className="wall-section reveals" id="wall-feed">
         <div className="filter-strip" id="wall-filter">
-          <span className="filter-label">City</span>
-          <div className="pill-group">
-            <button type="button" className={`pill ${selectedWallCity === "" ? "active" : ""}`} onClick={() => setSelectedWallCity("")}>All cities</button>
-            {cityPresets.map((city) => (
-              <button
-                key={city}
-                type="button"
-                className={`pill ${selectedWallCity === toCitySlug(city) ? "active" : ""}`}
-                onClick={() => setSelectedWallCity(toCitySlug(city))}
-              >
-                {city}
-              </button>
-            ))}
-          </div>
+          <button type="button" className="inline-link-button wall-filter-link" onClick={() => setShowCityPicker(true)}>
+            {selectedWallCity ? getCityLabel(selectedWallCity) : "All Cities"}
+          </button>
         </div>
         {!isLoadingWall && wallPosts.length > 0 && (
           <>
-            <div className="result-grid result-grid-three wall-story-grid" id="wall-story">
+            <div className="result-grid result-grid-three wall-story-grid">
               <div>
                 <span>Posts up</span>
                 <strong>{wallPosts.length}</strong>
@@ -88,8 +94,8 @@ export default function WallPage({
                 <strong>{new Set(wallPosts.map((post) => post.user_id || post.rider_name)).size}</strong>
               </div>
               <div>
-                <span>City lane</span>
-                <strong>{selectedWallCity ? getCityLabel(selectedWallCity) : "All cities"}</strong>
+                <span>Lane</span>
+                <strong>{selectedWallCity ? getCityLabel(selectedWallCity) : "All"}</strong>
               </div>
             </div>
             <div className="wall-editorial-grid">
@@ -103,22 +109,22 @@ export default function WallPage({
                       Open rider
                     </button>
                     <button className="ghost-button small" type="button" onClick={() => onOpenWallCity(wallFeaturedPost.city_name)}>
-                      City lane
+                      Wall
                     </button>
                   </div>
                 </div>
               )}
               {wallLeadCity && (
                 <div className="wall-editorial-card">
-                  <span className="winner-label">City spotlight</span>
+                  <span className="winner-label">Spotlight</span>
                   <strong>{wallLeadCity[0]}</strong>
                   <span>{wallLeadCity[1]} live hits in this lane.</span>
                   <div className="wall-city-actions">
                     <button className="ghost-button small" type="button" onClick={() => onOpenWallCity(wallLeadCity[0])}>
-                      Open wall
+                      Wall
                     </button>
                     <button className="ghost-button small" type="button" onClick={() => onOpenLeaderboardCity(wallLeadCity[0])}>
-                      City board
+                      Board
                     </button>
                   </div>
                 </div>
@@ -127,16 +133,6 @@ export default function WallPage({
           </>
         )}
         {isLoadingWall && <div className="status-message">Loading Wall of Fame…</div>}
-        {!isLoadingWall && wallPosts.length === 0 && (
-          <div className="builder-grid single">
-            <div className="glass-card form-card">
-              <div className="empty-state">
-                <div className="empty-state-title">No hits yet</div>
-                <div className="empty-state-body">Post proof and it lands here.</div>
-              </div>
-            </div>
-          </div>
-        )}
         {wallPosts.length > 0 && (
           <div className="wall-grid">
             {wallPosts.map((post) => (
@@ -145,9 +141,6 @@ export default function WallPage({
                 <div className="wall-meta">
                   <div className="checkpoint-meta">
                     <span>Alleycat</span>
-                    <button className="inline-link-button checkpoint-inline-link" type="button" onClick={() => onOpenWallCity(post.city_name)}>
-                      {post.city_name}
-                    </button>
                   </div>
                   <div className="checkpoint-name">
                     <button className="inline-link-button" type="button" onClick={() => onOpenRiderProfile(post.user_id)}>
@@ -174,10 +167,10 @@ export default function WallPage({
                   </div>
                   <div className="wall-city-actions">
                     <button className="ghost-button small" type="button" onClick={() => onOpenWallCity(post.city_name)}>
-                      More from {post.city_name}
+                      Wall
                     </button>
                     <button className="ghost-button small" type="button" onClick={() => onOpenLeaderboardCity(post.city_name)}>
-                      City board
+                      Board
                     </button>
                   </div>
                 </div>
@@ -186,6 +179,62 @@ export default function WallPage({
           </div>
         )}
       </section>
+
+      {showCityPicker && createPortal(
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <div className="modal-card">
+            <div className="modal-header">
+              <div className="modal-title">Choose a city</div>
+              <button className="modal-close" type="button" aria-label="Close city picker" onClick={() => setShowCityPicker(false)}>
+                ×
+              </button>
+            </div>
+            <div className="modal-actions city-picker-nav">
+              {cityGroups.map((group) => (
+                <a key={group.anchor} className="inline-link-button city-picker-anchor" href={`#${group.anchor}`}>
+                  {group.label}
+                </a>
+              ))}
+            </div>
+            <div className="modal-actions city-picker-actions">
+              <button
+                className={`ghost-button ${selectedWallCity === "" ? "active-filter-button" : ""}`}
+                type="button"
+                onClick={() => {
+                  setSelectedWallCity("");
+                  setShowCityPicker(false);
+                }}
+              >
+                All
+              </button>
+              {cityGroups.map((group) => (
+                <div key={group.anchor} className="city-picker-group" id={group.anchor}>
+                  <div className="city-picker-group-title">{group.label}</div>
+                  <div className="city-picker-group-grid">
+                    {group.cities.map((city) => (
+                      <button
+                        key={city}
+                        className={`ghost-button ${selectedWallCity === toCitySlug(city) ? "active-filter-button" : ""}`}
+                        type="button"
+                        onClick={() => {
+                          setSelectedWallCity(toCitySlug(city));
+                          setShowCityPicker(false);
+                        }}
+                      >
+                        {city}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <button className="primary-button" type="button" onClick={() => setShowCityPicker(false)}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

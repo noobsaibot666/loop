@@ -495,6 +495,59 @@ p {
   max-width: 620px;
 }
 
+.city-picker-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  width: 100%;
+}
+
+.city-picker-nav {
+  justify-content: flex-start;
+  gap: 16px;
+}
+
+.city-picker-anchor {
+  font-size: 0.82rem;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.city-picker-group {
+  display: grid;
+  gap: 12px;
+}
+
+.city-picker-group-title {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.city-picker-group-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.active-filter-button {
+  color: var(--accent) !important;
+  border-color: rgba(255, 94, 20, 0.6) !important;
+  background: rgba(255, 94, 20, 0.12) !important;
+}
+
+.wall-filter-link {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 0.22em;
+  margin-left: auto;
+}
+
 .metric {
   font-family: var(--font-header);
   font-size: 2.5rem;
@@ -1583,6 +1636,51 @@ p {
   padding-top: 34px;
 }
 
+.loop-builder-section {
+  margin-top: 26px;
+  padding-top: 36px;
+}
+
+.loop-centered-pills {
+  justify-content: center;
+  margin-inline: auto;
+  width: fit-content;
+}
+
+.loop-terrain-field {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 28px;
+  padding-top: 28px;
+}
+
+.loop-surface-field {
+  margin-top: 24px;
+}
+
+.loop-surface-field .terrain-pill-grid {
+  grid-template-columns: repeat(3, minmax(0, 112px));
+}
+
+.loop-vibe-field {
+  margin-top: 28px;
+  padding-top: 6px;
+}
+
+.terrain-pill-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 132px));
+  justify-content: center;
+  justify-items: center;
+  gap: 10px;
+  margin-inline: auto;
+  width: fit-content;
+}
+
+.terrain-pill-grid .pill {
+  width: 100%;
+  justify-content: center;
+}
+
 input[type="text"],
 input[type="email"],
 input[type="password"],
@@ -1623,8 +1721,7 @@ input[type="range"] {
   height: 14px;
   border-radius: 999px;
   background: linear-gradient(90deg,
-      rgba(0, 0, 0, 0.16) 0%,
-      color-mix(in srgb, var(--range-accent, #f62b0a) 38%, transparent) 35%,
+      var(--range-accent, #f62b0a) 0%,
       var(--range-accent, #f62b0a) var(--range-progress),
       rgba(255, 255, 255, 0.12) var(--range-progress),
       rgba(255, 255, 255, 0.12) 100%);
@@ -2929,11 +3026,13 @@ input[type="range"]::-moz-range-thumb {
   place-items: center;
   padding: 24px;
   background: rgba(0, 0, 0, 0.58);
-  z-index: 20;
+  z-index: 2200;
 }
 
 .modal-card {
   width: min(440px, 100%);
+  max-height: min(78vh, 720px);
+  overflow: auto;
   border-radius: 28px;
   padding: 26px;
   background: rgba(14, 14, 14, 0.96);
@@ -2943,9 +3042,26 @@ input[type="range"]::-moz-range-thumb {
   gap: 16px;
 }
 
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 .modal-title {
   font-size: 1.2rem;
   font-weight: 600;
+}
+
+.modal-close {
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 1.75rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
 }
 
 .modal-subtitle {
@@ -3312,13 +3428,18 @@ input[type="range"]::-moz-range-thumb {
   }
 
   .brand-mark {
-    width: 36px;
-    height: 36px;
+    width: 48px;
+    height: 48px;
   }
 
   .brand-title {
-    font-size: 0.62rem;
-    line-height: 1.05;
+    font-size: 0.78rem;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .brand-title br {
+    display: none;
   }
 
   .mobile-nav-sheet {
@@ -3541,6 +3662,11 @@ input[type="range"]::-moz-range-thumb {
 
   .messenger-page-grid .form-card,
   .messenger-page-grid.single-card-layout .form-card {
+    width: min(88%, 560px);
+    margin-inline: auto;
+  }
+
+  #loop-builder .form-card {
     width: min(88%, 560px);
     margin-inline: auto;
   }
@@ -3883,6 +4009,10 @@ input[type="range"]::-moz-range-thumb {
 
   .messenger-page-grid .form-card,
   .messenger-page-grid.single-card-layout .form-card {
+    width: calc(100% - 28px);
+  }
+
+  #loop-builder .form-card {
     width: calc(100% - 28px);
   }
 

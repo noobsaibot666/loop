@@ -2692,11 +2692,11 @@ export default function App() {
       <section className="split-module reveals" id="loop-builder">
         <div className="module-content">
           <div className="glass-card form-card">
-            <div className="form-header">
-              <div>
-                <h2 className="form-title">Dial The Loop</h2>
-                <p className="form-subtitle">Set the point. Send the line.</p>
-              </div>
+              <div className="form-header">
+                <div>
+                  <h2 className="form-title">Dial The Loop</h2>
+                <p className="form-subtitle">Set the point and send it.</p>
+                </div>
               {usage && (
                 <div className="loops-left">
                   <span className="loops-left-line">{hasUnlimitedCredits ? "Unlimited" : `${totalCredits} credits`}</span>
@@ -2707,11 +2707,9 @@ export default function App() {
 
               <div className="form-section section-block">
                 <div className="section-block-head">
-                <div className="section-block-title">Anchor</div>
-                <div className="section-block-copy">The point you leave from and roll back into.</div>
               </div>
               <label className="field">
-                <span>Loop point</span>
+                <span>Loop starting point</span>
                 <input
                   type="text"
                   value={loopPoint}
@@ -2742,18 +2740,15 @@ export default function App() {
                     ))}
                   </div>
                 )}
-                <span className="field-hint">Choose where the ride should start and finish.</span>
               </label>
             </div>
 
-            <div className="form-section section-block">
+            <div className="form-section section-block loop-builder-section">
               <div className="section-block-head">
-                <div className="section-block-title">Ride Dial</div>
-                <div className="section-block-copy">Distance, surface, terrain, and the way it should hit.</div>
               </div>
               <label className="field">
                 <span>Distance</span>
-                <div className="unit-toggle">
+                <div className="unit-toggle loop-centered-pills">
                   <button
                     type="button"
                     className={`pill ${unit === "km" ? "active" : ""}`}
@@ -2784,53 +2779,74 @@ export default function App() {
                     setDistance(Number(event.target.value));
                     setStep2Touched(true);
                   }}
-                  style={{ ["--range-progress" as string]: `${rangePercent}%` }}
+                  style={{
+                    ["--range-progress" as string]: `${rangePercent}%`,
+                    ["--range-accent" as string]: "var(--accent)",
+                  }}
                 />
                 <div className="range-labels">
                   <span>
                     {minDistance} {unit}
                   </span>
+                  <div className="range-focus-card">
+                    <strong>{distanceLabel} {unit}</strong>
+                  </div>
                   <span>
-                    {distanceLabel} {unit}
+                    {maxDistance} {unit}
                   </span>
                 </div>
               </label>
 
-              <div className="field-row">
-                <label className="field">
-                  <span>Terrain</span>
-                  <select
-                    value={terrain}
-                    onChange={(event) => {
-                      setTerrain(event.target.value);
-                      setStep3Touched(true);
-                    }}
-                  >
-                    <option value="mix">Urban mix</option>
-                    <option value="road">Road fast</option>
-                    <option value="climb">Climb focused</option>
-                    <option value="coast">Coastal</option>
-                  </select>
-                </label>
-                <label className="field">
-                  <span>Surface</span>
-                  <select
-                    value={surface}
-                    onChange={(event) => {
-                      setSurface(event.target.value);
-                      setStep3Touched(true);
-                    }}
-                  >
-                    <option value="paved">Paved</option>
-                    <option value="mixed">Mixed</option>
-                    <option value="gravel">Gravel</option>
-                  </select>
-                </label>
-              </div>
+              <label className="field loop-terrain-field">
+                <span>Terrain</span>
+                <div className="pill-group terrain-pill-grid">
+                  {[
+                    ["mix", "Urban mix"],
+                    ["road", "Road fast"],
+                    ["climb", "Climb"],
+                    ["coast", "Water edge"],
+                  ].map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={`pill ${terrain === value ? "active" : ""}`}
+                      onClick={() => {
+                        setTerrain(value);
+                        setStep3Touched(true);
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </label>
 
-              <label className="field">
+              <label className="field loop-surface-field">
+                <span>Surface</span>
+                <div className="pill-group terrain-pill-grid">
+                  {[
+                    ["paved", "Paved"],
+                    ["mixed", "Mixed"],
+                    ["gravel", "Gravel"],
+                  ].map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={`pill ${surface === value ? "active" : ""}`}
+                      onClick={() => {
+                        setSurface(value);
+                        setStep3Touched(true);
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </label>
+
+              <label className="field loop-vibe-field">
                 <span>Ride vibe</span>
-                <div className="pill-group">
+                <div className="terrain-pill-grid">
                   {["Elegant", "Energy", "Scenic", "Climb"].map((option) => (
                     <button
                       key={option}
@@ -2848,14 +2864,12 @@ export default function App() {
               </label>
             </div>
 
-            <div className="form-section section-block">
+            <div className="form-section section-block loop-builder-section">
               <div className="section-block-head">
-                <div className="section-block-title">Send It</div>
-                <div className="section-block-copy">Build the route, then crack it open in Maps.</div>
               </div>
               <div className="form-actions">
                 <button
-                  className={`primary-button ${allLoopDone ? "ready" : ""}`}
+                  className={`primary-button manifest-build-button ${allLoopDone ? "ready" : ""}`}
                   onClick={handleGenerateLoop}
                   disabled={isGeneratingLoop || !allLoopDone}
                 >
