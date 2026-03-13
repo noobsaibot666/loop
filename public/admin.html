@@ -584,6 +584,16 @@
       color: #b8ffd5;
     }
 
+    .caution-note {
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 143, 92, 0.18);
+      background: rgba(255, 143, 92, 0.08);
+      color: #ffc8a3;
+      font-size: 0.82rem;
+      line-height: 1.5;
+    }
+
     .preview-districts {
       display: flex;
       flex-wrap: wrap;
@@ -914,6 +924,7 @@
         </div>
         <button id="refreshProofs" class="secondary">Refresh wall</button>
       </div>
+      <div class="caution-note">Delete is permanent. Archive only hides a month from the public wall and keeps it in admin.</div>
       <div class="proofs" id="proofsList"></div>
     </section>
 
@@ -1186,7 +1197,7 @@
       };
 
       const deleteProof = async (proofId) => {
-        const confirmed = window.confirm('Delete this Wall of Fame post?');
+        const confirmed = window.confirm('Delete this Wall of Fame post forever? This cannot be undone.');
         if (!confirmed) return;
         statusEl.textContent = 'Deleting proof...';
         try {
@@ -1201,7 +1212,7 @@
       };
 
       const archiveProofMonth = async (month) => {
-        const confirmed = window.confirm(`Archive all Wall of Fame posts from ${month}? This hides them from the public wall but keeps them in admin.`);
+        const confirmed = window.confirm(`Archive every Wall of Fame post from ${month}? This hides the month from the public wall but keeps it in admin.`);
         if (!confirmed) return;
         statusEl.textContent = `Archiving ${month}...`;
         try {
@@ -1243,7 +1254,7 @@
               </div>
               <div class="proof-actions">
                 <button class="secondary" data-archive-month="${month}" ${archivedCount === proofs.length ? 'disabled' : ''}>
-                  ${archivedCount === proofs.length ? 'Archived' : 'Archive month'}
+                  ${archivedCount === proofs.length ? 'Archived' : 'Archive month hide'}
                 </button>
               </div>
             </div>
@@ -1266,7 +1277,7 @@
                 ${proof.is_public ? 'Hide' : 'Show'}
               </button>
               <button class="secondary danger" data-proof-delete="${proof.id}">
-                Delete
+                Delete forever
               </button>
             </div>
           `;
@@ -1563,7 +1574,7 @@
               </div>
               <div class="proof-actions">
                 <button class="secondary" data-pack-load>Review</button>
-                ${pack.can_publish && !pack.is_active ? '<button class="secondary" data-pack-publish>Publish live</button>' : ''}
+                ${pack.can_publish && !pack.is_active ? '<button class="secondary danger" data-pack-publish>Publish live now</button>' : ''}
               </div>
             `;
           row.querySelector('[data-pack-load]').onclick = async () => {
@@ -1582,6 +1593,8 @@
           const publishButton = row.querySelector('[data-pack-publish]');
           if (publishButton) {
             publishButton.onclick = async () => {
+              const confirmed = window.confirm(`Publish ${pack.name} live now? This makes the lane available to riders.`);
+              if (!confirmed) return;
               currentPackMeta = { ...pack, is_active: true };
               packIdEl.value = pack.id || '';
               packSlugEl.value = pack.slug || '';

@@ -22,6 +22,8 @@ Scope:
 
 Status:
 - in progress
+- release smoke checklist added
+- destructive admin actions now carry clearer warnings
 - Phase 7 live QA pass is complete
 
 ### 2. Admin safety and moderation

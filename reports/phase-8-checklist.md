@@ -14,11 +14,11 @@ Related docs:
 ## Release hardening
 - [x] Run live QA pass across home, cities, wall, leaderboard, and public rider pages
 - [x] Confirm lazy public routes recover from loading fallback into live content
-- [ ] Add a repeatable release smoke checklist for public and admin flows
+- [x] Add a repeatable release smoke checklist for public and admin flows
 - [ ] Tighten loading and empty states where they still feel too generic
 
 ## Admin safety and moderation
-- [ ] Make destructive admin actions clearer before trigger
+- [x] Make destructive admin actions clearer before trigger
 - [ ] Tighten archive / hide / delete scan speed in the admin Wall of Fame flow
 - [ ] Re-test month archive flow on live data
 - [ ] Re-test pack publish flow on a reviewed draft
