@@ -51,6 +51,11 @@ export default function CitiesPage({
       <section className="sub-page-header">
         <h1 className="sub-page-title">City Lanes</h1>
         <p className="sub-page-description">See what is live, what is heating up, and where the next packs are landing.</p>
+        <div className="section-jump-strip">
+          <a className="mini-chip active" href="#cities-live">Live</a>
+          <a className="mini-chip" href="#cities-next">Next</a>
+          <a className="mini-chip" href="#cities-request">Request</a>
+        </div>
         <div className="surface-story-strip">
           <div className="mini-chip active">{liveCities.length} live</div>
           <div className="mini-chip">{nextCities.length} next up</div>
@@ -80,7 +85,7 @@ export default function CitiesPage({
                       <div className="mini-chip active">{leadLane.active_checkpoint_count} live spots</div>
                       <div className="mini-chip">{leadLane.district_count} districts</div>
                     </div>
-                    <div className="city-lane-actions">
+                    <div className="city-lane-actions" id="cities-request">
                       <button className="primary-button small" type="button" onClick={() => onOpenMessengerCity(leadLane.city_name)}>
                         Ride {leadLane.city_name}
                       </button>
@@ -118,7 +123,7 @@ export default function CitiesPage({
             </section>
           )}
 
-          <section className="builder-grid single reveals">
+          <section className="builder-grid single reveals" id="cities-live">
             <div className="glass-card form-card">
               <div className="form-title">Live now</div>
               <div className="form-subtitle">These lanes are up now. Pick a city and jump straight into the run, wall, or board.</div>
@@ -177,7 +182,7 @@ export default function CitiesPage({
             </div>
           </section>
 
-          <section className="builder-grid single reveals">
+          <section className="builder-grid single reveals" id="cities-next">
             <div className="glass-card form-card">
               <div className="form-title">Next up</div>
               <div className="form-subtitle">Demand, review, and ready lanes before they flip live. This is the next release stack.</div>

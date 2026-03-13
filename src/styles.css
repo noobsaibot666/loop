@@ -2400,6 +2400,51 @@ input[type="range"]::-webkit-slider-thumb {
   margin-top: 8px;
 }
 
+.section-jump-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 6px;
+}
+
+.section-jump-strip .mini-chip {
+  text-decoration: none;
+}
+
+.helper-note {
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  line-height: 1.55;
+  margin-top: -4px;
+}
+
+.purchase-list + .ghost-button.small,
+.history-list + .ghost-button.small {
+  margin-top: 6px;
+}
+
+#account-profile,
+#account-credits,
+#account-activity,
+#account-history,
+#account-crew,
+#rider-stats,
+#rider-cities,
+#rider-standing,
+#rider-ledger,
+#rider-proof,
+#wall-filter,
+#wall-story,
+#wall-feed,
+#leaderboard-filter,
+#leaderboard-podium,
+#leaderboard-list,
+#cities-live,
+#cities-next,
+#cities-request {
+  scroll-margin-top: 96px;
+}
+
 .mini-chip-row {
   display: flex;
   flex-wrap: wrap;
@@ -3455,6 +3500,41 @@ input[type="range"]::-webkit-slider-thumb {
   .history-actions {
     justify-items: start;
     text-align: left;
+  }
+
+  .filter-strip,
+  .leaderboard-public-head {
+    gap: 12px;
+  }
+
+  .pill-group {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .pill-group::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pill-group .pill {
+    white-space: nowrap;
+  }
+
+  .section-jump-strip {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .section-jump-strip::-webkit-scrollbar {
+    display: none;
+  }
+
+  .section-jump-strip .mini-chip {
+    white-space: nowrap;
   }
 
   .wall-grid {

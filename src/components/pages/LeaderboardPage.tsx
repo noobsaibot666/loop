@@ -34,6 +34,11 @@ export default function LeaderboardPage({
       <section className="sub-page-header">
         <h1 className="sub-page-title">Leaderboard</h1>
         <p className="sub-page-description">Quarter heat only. Proof first, finishes second.</p>
+        <div className="section-jump-strip">
+          <a className="mini-chip active" href="#leaderboard-filter">Filter</a>
+          <a className="mini-chip" href="#leaderboard-podium">Top</a>
+          <a className="mini-chip" href="#leaderboard-list">Board</a>
+        </div>
         <div className="surface-story-strip">
           <div className="mini-chip active">{publicQuarterLabel || "Current quarter"}</div>
           <div className="mini-chip">{selectedLeaderboardCity ? `${getCityLabel(selectedLeaderboardCity)} board` : "All cities board"}</div>
@@ -43,7 +48,7 @@ export default function LeaderboardPage({
 
       <section className="builder-grid single reveals">
         <div className="glass-card form-card">
-          <div className="leaderboard-public-head">
+          <div className="leaderboard-public-head" id="leaderboard-filter">
             <div>
               <div className="form-title">{publicQuarterLabel || "Current quarter"}</div>
               <div className="form-subtitle">Filter by city or keep it wide open.</div>
@@ -127,7 +132,7 @@ export default function LeaderboardPage({
             </div>
           )}
           {publicLeaderboard.length > 1 && (
-            <div className="leaderboard-podium">
+            <div className="leaderboard-podium" id="leaderboard-podium">
               {publicLeaderboard.slice(0, 3).map((entry) => (
                 <button
                   key={entry.user_id}
@@ -143,7 +148,7 @@ export default function LeaderboardPage({
             </div>
           )}
           {publicLeaderboard.length > 0 && (
-            <div className="leaderboard-list public-board">
+            <div className="leaderboard-list public-board" id="leaderboard-list">
               {publicLeaderboard.map((entry) => (
                 <div key={entry.user_id} className="leaderboard-row">
                   <div className="leaderboard-rank">#{entry.rank}</div>

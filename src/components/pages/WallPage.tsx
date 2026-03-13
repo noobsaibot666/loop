@@ -47,6 +47,11 @@ export default function WallPage({
       <section className="sub-page-header">
         <h1 className="sub-page-title">Wall of Fame</h1>
         <p className="sub-page-description">Proof hits from real runs. Names, cities, no fluff.</p>
+        <div className="section-jump-strip">
+          <a className="mini-chip active" href="#wall-filter">Filter</a>
+          <a className="mini-chip" href="#wall-story">Story</a>
+          <a className="mini-chip" href="#wall-feed">Feed</a>
+        </div>
         <div className="surface-story-strip">
           <div className="mini-chip active">{publicQuarterLabel || "Current quarter"} live</div>
           <div className="mini-chip">{selectedWallCity ? `${getCityLabel(selectedWallCity)} lane` : "All city lanes"}</div>
@@ -55,7 +60,7 @@ export default function WallPage({
       </section>
 
       <section className="wall-section reveals" id="wall-feed">
-        <div className="filter-strip">
+        <div className="filter-strip" id="wall-filter">
           <span className="filter-label">City filter</span>
           <div className="pill-group">
             <button type="button" className={`pill ${selectedWallCity === "" ? "active" : ""}`} onClick={() => setSelectedWallCity("")}>All cities</button>
@@ -73,7 +78,7 @@ export default function WallPage({
         </div>
         {!isLoadingWall && wallPosts.length > 0 && (
           <>
-            <div className="result-grid result-grid-three wall-story-grid">
+            <div className="result-grid result-grid-three wall-story-grid" id="wall-story">
               <div>
                 <span>Posts up</span>
                 <strong>{wallPosts.length}</strong>

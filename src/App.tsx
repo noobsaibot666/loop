@@ -497,6 +497,7 @@ export default function App() {
   const [proofFiles, setProofFiles] = useState<Record<string, File | null>>({});
   const [proofStatus, setProofStatus] = useState<Record<string, string>>({});
   const [isUploadingProof, setIsUploadingProof] = useState<Record<string, boolean>>({});
+  const [expandedPanels, setExpandedPanels] = useState<Record<string, boolean>>({});
   const geocodeCacheRef = useRef(new Map<string, { lat: number; lng: number; label: string }>());
   const messengerConfigRef = useRef("");
 
@@ -1008,6 +1009,9 @@ export default function App() {
   const messengerCreditsOnly = hasUnlimitedCredits ? 9999 : Math.max(0, usage?.credits_remaining || 0);
   const riderHandle = (user?.email || "").split("@")[0] || "rider";
   const accountGreeting = hasUnlimitedCredits ? `Yo admin ${riderHandle}.` : `Yo ${riderHandle}.`;
+  const canSubmitCityRequest = cityRequestName.trim().length > 1;
+  const canJoinShareCode = shareInput.trim().length > 2;
+  const canBuildMessengerManifest = messengerCity.trim().length > 1 && messengerLocation.trim().length > 1;
   const currentElapsed = useMemo(() => {
     if (!messengerRun) return 0;
     if (messengerRun.finishSeconds) return messengerRun.finishSeconds;
@@ -1202,7 +1206,7 @@ export default function App() {
         setCityDemand(data);
       }
     } catch (error) {
-      setCityRequestStatus(error instanceof Error ? error.message : "Could not send the request.");
+      setCityRequestStatus(getFriendlyMessage("city-request", error, "Could not send the request."));
     } finally {
       setIsSendingCityRequest(false);
     }
@@ -1322,7 +1326,7 @@ export default function App() {
         // Ignore clipboard failures.
       }
     } catch (error) {
-      setShareStatus(error instanceof Error ? error.message : "Could not create a share code.");
+      setShareStatus(getFriendlyMessage("share", error, "Could not create a share code."));
     } finally {
       setIsSharingManifest(false);
     }
@@ -1356,7 +1360,7 @@ export default function App() {
       setMessengerStatus("Shared manifest loaded. Start when you are ready.");
       setShowShareJoinModal(false);
     } catch (error) {
-      setShareStatus(error instanceof Error ? error.message : "Could not load that share code.");
+      setShareStatus(getFriendlyMessage("share", error, "Could not load that share code."));
     } finally {
       setIsLoadingSharedManifest(false);
     }
@@ -1433,9 +1437,23 @@ export default function App() {
   const handleLogout = async () => {
     if (!supabase) return;
     await supabase.auth.signOut();
+    setAccessToken("");
+    setUser(null);
     setAuthMessage("Logged out.");
     setUsage(null);
     setAccountSummary(null);
+    setMessengerManifest(null);
+    setMessengerManifestId("");
+    setMessengerRun(null);
+    setChallenge(null);
+    setChallengeSummary(null);
+    setLeaderboard([]);
+    setWallPosts([]);
+    try {
+      localStorage.removeItem(ALLEYCAT_STORAGE_KEY);
+    } catch {
+      // Ignore storage failures.
+    }
     setPageView("home");
     window.history.pushState({}, "", "/");
   };
@@ -1477,7 +1495,7 @@ export default function App() {
       setLoginPassword("");
       handleNavigate("account");
     } catch (error) {
-      setAuthMessage(error instanceof Error ? error.message : "Could not complete auth.");
+      setAuthMessage(getFriendlyMessage("auth", error, "Could not complete auth."));
     } finally {
       setAuthLoading(false);
     }
@@ -1496,7 +1514,7 @@ export default function App() {
       setAccountPassword("");
       setAccountStatus("Password updated.");
     } catch (error) {
-      setAccountStatus(error instanceof Error ? error.message : "Could not update password.");
+      setAccountStatus(getFriendlyMessage("account", error, "Could not update password."));
     } finally {
       setIsUpdatingPassword(false);
     }
@@ -1519,7 +1537,7 @@ export default function App() {
       setAccountSummary((current) => (current ? { ...current, profile: data.profile } : current));
       setAccountStatus("Profile saved. Wall posts updated too.");
     } catch (error) {
-      setAccountStatus(error instanceof Error ? error.message : "Could not save profile.");
+      setAccountStatus(getFriendlyMessage("account", error, "Could not save profile."));
     } finally {
       setIsSavingProfile(false);
     }
@@ -1539,7 +1557,7 @@ export default function App() {
       if (error) throw error;
       setAuthMessage("Password reset email sent.");
     } catch (error) {
-      setAuthMessage(error instanceof Error ? error.message : "Could not send reset email.");
+      setAuthMessage(getFriendlyMessage("auth", error, "Could not send reset email."));
     } finally {
       setIsSendingReset(false);
     }
@@ -1678,7 +1696,7 @@ export default function App() {
       }
       setStatusMessage("Loop built. Open it in Maps and ride your return.");
     } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : "Couldn’t build a loop. Try another point.");
+      setStatusMessage(getFriendlyMessage("loop", error, "Couldn’t build a loop. Try another point."));
     } finally {
       setIsGeneratingLoop(false);
     }
@@ -1736,7 +1754,7 @@ export default function App() {
           : current
       );
     } catch (error) {
-      setMessengerStatus(error instanceof Error ? error.message : "Couldn’t build the manifest.");
+      setMessengerStatus(getFriendlyMessage("messenger", error, "Couldn’t build the manifest."));
     } finally {
       setIsGeneratingMessenger(false);
     }
@@ -1758,7 +1776,7 @@ export default function App() {
       });
       setMessengerStatus(data.reused ? "Picked up your active run. Resume where you left it." : "Clock is live. Clear every checkpoint, then close the run.");
     } catch (error) {
-      setMessengerStatus(error instanceof Error ? error.message : "Couldn’t start the run.");
+      setMessengerStatus(getFriendlyMessage("messenger", error, "Couldn’t start the run."));
     }
   };
 
@@ -1780,7 +1798,7 @@ export default function App() {
           : "Checkpoint clear. Add proof or move to the next stop."
       );
     } catch (error) {
-      setMessengerStatus(error instanceof Error ? error.message : "Check-in failed.");
+      setMessengerStatus(getFriendlyMessage("messenger", error, "Check-in failed."));
     }
   };
 
@@ -1802,7 +1820,7 @@ export default function App() {
       );
       setMessengerStatus("Run closed. Stack your time against the ghost and go again if needed.");
     } catch (error) {
-      setMessengerStatus(error instanceof Error ? error.message : "Couldn’t finish the run.");
+      setMessengerStatus(getFriendlyMessage("messenger", error, "Couldn’t finish the run."));
     }
   };
 
@@ -1912,6 +1930,60 @@ export default function App() {
     </div>
   );
 
+  const renderStatusBanner = (message?: string, compact = false) =>
+    message ? (
+      <div className={`status-message ${compact ? "compact-status" : ""}`} role="status" aria-live="polite">
+        {message}
+      </div>
+    ) : null;
+
+  const getFriendlyMessage = (context: "auth" | "account" | "city-request" | "share" | "loop" | "messenger", error: unknown, fallback: string) => {
+    const raw = error instanceof Error ? error.message : fallback;
+    const message = raw.toLowerCase();
+
+    if (context === "auth") {
+      if (message.includes("invalid login credentials")) return "Email or password is off. Try that again.";
+      if (message.includes("user already registered")) return "That email already rides with us. Sign in instead.";
+      if (message.includes("password should be at least")) return "Password is too short. Make it at least 6 characters.";
+      if (message.includes("email not confirmed")) return "Check your inbox and confirm the email first.";
+    }
+
+    if (context === "city-request" && message.includes("city_requests")) {
+      return "City requests are not ready on this deploy yet. Try again in a minute.";
+    }
+
+    if (context === "share") {
+      if (message.includes("credits")) return "You need your own credits to join this shared run.";
+      if (message.includes("expired")) return "That code is dead. Ask for a fresh one.";
+      if (message.includes("closed")) return "That share code is already closed out.";
+    }
+
+    if (context === "messenger") {
+      if (message.includes("location")) return raw;
+      if (message.includes("within")) return raw;
+    }
+
+    return raw || fallback;
+  };
+
+  const getExpandedLimit = <T,>(items: T[] | undefined, key: string, baseLimit = 3) => {
+    if (!items?.length) return [];
+    return expandedPanels[key] ? items : items.slice(0, baseLimit);
+  };
+
+  const renderPanelToggle = (items: unknown[] | undefined, key: string, label = "Show all") => {
+    if (!items || items.length <= 3) return null;
+    return (
+      <button
+        className="ghost-button small"
+        type="button"
+        onClick={() => setExpandedPanels((current) => ({ ...current, [key]: !current[key] }))}
+      >
+        {expandedPanels[key] ? "Show less" : `${label} (${items.length})`}
+      </button>
+    );
+  };
+
   const renderHome = () => (
     <div className="sequential-layout">
       <Hero
@@ -2005,7 +2077,7 @@ export default function App() {
                   enterKeyHint="go"
                 />
               </label>
-              {authMessage && <div className="status-message compact-status">{authMessage}</div>}
+              {renderStatusBanner(authMessage, true)}
               <div className="modal-actions">
                 <button className="ghost-button" type="button" onClick={() => setShowLogin(false)}>
                   Cancel
@@ -2069,12 +2141,12 @@ export default function App() {
                 </label>
               </div>
             </details>
-            {cityRequestStatus && <div className="status-message compact-status">{cityRequestStatus}</div>}
+            {renderStatusBanner(cityRequestStatus, true)}
             <div className="modal-actions">
               <button className="ghost-button" type="button" onClick={() => setShowCityRequest(false)}>
                 Close
               </button>
-              <button className="primary-button" type="button" onClick={handleSubmitCityRequest} disabled={isSendingCityRequest}>
+              <button className="primary-button" type="button" onClick={handleSubmitCityRequest} disabled={isSendingCityRequest || !canSubmitCityRequest}>
                 {isSendingCityRequest ? "Sending..." : "Send"}
               </button>
             </div>
@@ -2096,7 +2168,7 @@ export default function App() {
                 placeholder="Enter code"
               />
             </label>
-            {shareStatus && <div className="status-message">{shareStatus}</div>}
+            {renderStatusBanner(shareStatus)}
             <div className="modal-actions">
               <button className="ghost-button" type="button" onClick={() => setShowShareJoinModal(false)}>
                 Close
@@ -2105,7 +2177,7 @@ export default function App() {
                 className="primary-button"
                 type="button"
                 onClick={handleLoadShareCode}
-                disabled={isLoadingSharedManifest || !shareInput.trim()}
+                disabled={isLoadingSharedManifest || !canJoinShareCode}
               >
                 {isLoadingSharedManifest ? "Loading..." : "Load manifest"}
               </button>
@@ -2196,11 +2268,18 @@ export default function App() {
 
       {user && (
         <div className="builder-grid account-grid">
-          <div className="glass-card form-card account-summary-card">
+          <div className="glass-card form-card account-summary-card" id="account-profile">
             <div className="form-title">Profile & Security</div>
             <div className="form-subtitle">Set your rider tag and bike details once.</div>
-            {authMessage && <div className="status-message compact-status">{authMessage}</div>}
-            {accountStatus && <div className="status-message compact-status">{accountStatus}</div>}
+            <div className="section-jump-strip">
+              <a className="mini-chip active" href="#account-profile">Setup</a>
+              <a className="mini-chip" href="#account-credits">Credits</a>
+              <a className="mini-chip" href="#account-activity">Stats</a>
+              <a className="mini-chip" href="#account-history">History</a>
+              <a className="mini-chip" href="#account-crew">Crew</a>
+            </div>
+            {renderStatusBanner(authMessage, true)}
+            {renderStatusBanner(accountStatus, true)}
             <div className="user-row">
               <div className="user-label">Email</div>
               <div className="user-value">{user.email || "No email"}</div>
@@ -2259,6 +2338,9 @@ export default function App() {
                 {isSavingProfile ? "Saving..." : "Save profile"}
               </button>
             </div>
+            <div className="helper-note">
+              Rider name, bike name, and ratio go public on your wall posts. Email and password stay private.
+            </div>
 
             <label className="field">
               <span>Change password</span>
@@ -2281,7 +2363,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="glass-card form-card account-credits-card">
+          <div className="glass-card form-card account-credits-card" id="account-credits">
             <div className="form-title">Credits</div>
             <div className="form-subtitle">See what is left and load more.</div>
 
@@ -2311,7 +2393,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="glass-card form-card account-stats-card">
+          <div className="glass-card form-card account-stats-card" id="account-activity">
             <div className="form-title">V1 activity</div>
             <div className="form-subtitle">Your numbers. Clean and simple.</div>
             <div className="result-grid result-grid-two">
@@ -2412,7 +2494,7 @@ export default function App() {
             )}
             {accountSummary?.purchases?.length ? (
               <div className="purchase-list">
-                {accountSummary.purchases.map((purchase) => (
+                {getExpandedLimit(accountSummary.purchases, "purchases").map((purchase) => (
                   <div key={purchase.session_id} className="purchase-row">
                     <div>
                       <strong>${(purchase.amount_cents / 100).toFixed(2)}</strong>
@@ -2426,9 +2508,10 @@ export default function App() {
                 ))}
               </div>
             ) : null}
+            {renderPanelToggle(accountSummary?.purchases, "purchases", "Show purchases")}
           </div>
 
-          <div className="glass-card form-card account-history-card">
+          <div className="glass-card form-card account-history-card" id="account-history">
             <div className="form-title">Loop history</div>
             <div className="form-subtitle">Your last routes, one tap away.</div>
             {!accountSummary?.loop_history?.length ? (
@@ -2437,7 +2520,7 @@ export default function App() {
               </div>
             ) : (
               <div className="history-list">
-                {accountSummary.loop_history.map((loop) => (
+                {getExpandedLimit(accountSummary.loop_history, "loop-history").map((loop) => (
                   <div key={loop.id} className="history-row">
                     <div>
                       <strong>{loop.loop_point}</strong>
@@ -2455,6 +2538,7 @@ export default function App() {
                 ))}
               </div>
             )}
+            {renderPanelToggle(accountSummary?.loop_history, "loop-history", "Show routes")}
           </div>
 
           <div className="glass-card form-card account-history-card">
@@ -2466,7 +2550,7 @@ export default function App() {
               </div>
             ) : (
               <div className="history-list">
-                {accountSummary.alleycat_history.map((item) => (
+                {getExpandedLimit(accountSummary.alleycat_history, "alleycat-history").map((item) => (
                   <div key={item.id} className="history-row">
                     <div>
                       <strong>{item.city_name || "City"} · {item.manifest_title}</strong>
@@ -2486,6 +2570,7 @@ export default function App() {
                 ))}
               </div>
             )}
+            {renderPanelToggle(accountSummary?.alleycat_history, "alleycat-history", "Show runs")}
           </div>
 
           <div className="glass-card form-card account-history-card">
@@ -2497,7 +2582,7 @@ export default function App() {
               </div>
             ) : (
               <div className="history-list">
-                {accountSummary.challenge_history.map((item) => (
+                {getExpandedLimit(accountSummary.challenge_history, "challenge-history").map((item) => (
                   <div key={item.challenge_id} className="history-row">
                     <div>
                       <strong>Code {item.code}</strong>
@@ -2513,9 +2598,10 @@ export default function App() {
                 ))}
               </div>
             )}
+            {renderPanelToggle(accountSummary?.challenge_history, "challenge-history", "Show codes")}
           </div>
 
-          <div className="glass-card form-card account-history-card">
+          <div className="glass-card form-card account-history-card" id="account-crew">
             <div className="form-title">Riders you raced with</div>
             <div className="form-subtitle">Only riders you have actually raced with.</div>
             {!accountSummary?.shared_riders?.length ? (
@@ -2524,7 +2610,7 @@ export default function App() {
               </div>
             ) : (
               <div className="history-list">
-                {accountSummary.shared_riders.map((rider) => (
+                {getExpandedLimit(accountSummary.shared_riders, "shared-riders").map((rider) => (
                   <div key={rider.user_id} className="history-row">
                     <div>
                       <strong>{rider.rider_name}</strong>
@@ -2540,6 +2626,7 @@ export default function App() {
                 ))}
               </div>
             )}
+            {renderPanelToggle(accountSummary?.shared_riders, "shared-riders", "Show crew")}
           </div>
         </div>
       )}
@@ -2855,7 +2942,7 @@ export default function App() {
                     autoComplete="street-address"
                     enterKeyHint="next"
                   />
-                  <span className="field-hint">Required. This is the center point for your task spread.</span>
+                  <span className="field-hint">Required. This center point keeps every task inside your chosen spread.</span>
                 </label>
               </div>
 
@@ -2985,7 +3072,7 @@ export default function App() {
                     className="primary-button premium-button"
                     type="button"
                     onClick={handleGenerateMessenger}
-                    disabled={isGeneratingMessenger || !messengerCity.trim() || !messengerLocation.trim()}
+                    disabled={isGeneratingMessenger || !canBuildMessengerManifest}
                   >
                     {isGeneratingMessenger ? "Building..." : "Build manifest"}
                   </button>
@@ -3005,7 +3092,7 @@ export default function App() {
                     </button>
                   )}
                 </div>
-                {messengerStatus && <div className="status-message">{messengerStatus}</div>}
+                {renderStatusBanner(messengerStatus)}
               </div>
             </div>
 
