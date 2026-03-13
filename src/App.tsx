@@ -2042,7 +2042,7 @@ export default function App() {
           <div className="form-header">
             <div>
               <div className="form-title">Need your city?</div>
-              <div className="form-subtitle">Request it and we line it up.</div>
+              <div className="form-subtitle">Request it.</div>
             </div>
             {cityDemand && (
               <div className="mini-chip-row compact">
@@ -2279,14 +2279,14 @@ export default function App() {
     <div className="sequential-layout sub-page">
       <section className="sub-page-header">
         <h1 className="sub-page-title">Account</h1>
-        <p className="sub-page-description">{user ? `${accountGreeting} Credits, bike, and run recap.` : "Login, credits, and run recap."}</p>
+        <p className="sub-page-description">{user ? `${accountGreeting} Credits, bike, runs.` : "Login, credits, runs."}</p>
       </section>
 
       {!user && (
         <div className="builder-grid single">
           <div className="glass-card form-card account-guest-card">
             <div className="form-title">Sign in to open your dashboard</div>
-            <div className="form-subtitle">One rider. One account. All your runs.</div>
+            <div className="form-subtitle">One account. All your runs.</div>
             {authMessage && <div className="status-message compact-status">{authMessage}</div>}
             <div className="form-actions centered-actions">
               <button className="primary-button" type="button" onClick={() => openAuth("login")}>
@@ -2304,7 +2304,7 @@ export default function App() {
         <div className="builder-grid account-grid">
           <div className="glass-card form-card account-summary-card" id="account-profile">
             <div className="form-title">Profile & Security</div>
-            <div className="form-subtitle">Set your rider tag once.</div>
+            <div className="form-subtitle">Set your tag.</div>
             <div className="section-jump-strip">
               <a className="mini-chip active" href="#account-profile">Setup</a>
               <a className="mini-chip" href="#account-credits">Credits</a>
@@ -2399,7 +2399,7 @@ export default function App() {
 
           <div className="glass-card form-card account-credits-card" id="account-credits">
             <div className="form-title">Credits</div>
-            <div className="form-subtitle">See what is left. Load more.</div>
+            <div className="form-subtitle">What is left.</div>
 
             <div className="result-grid result-grid-two account-credit-grid">
               <div>
@@ -2429,7 +2429,7 @@ export default function App() {
 
           <div className="glass-card form-card account-stats-card" id="account-activity">
             <div className="form-title">V1 activity</div>
-            <div className="form-subtitle">Your numbers. No fluff.</div>
+            <div className="form-subtitle">Your numbers.</div>
             <div className="result-grid result-grid-two">
               <div>
                 <span>Manifests</span>
@@ -2465,7 +2465,7 @@ export default function App() {
 
           <div className="glass-card form-card account-quarter-card">
             <div className="form-title">Quarter board</div>
-            <div className="form-subtitle">{accountSummary?.quarter?.label || "Current quarter"} runs proof first.</div>
+            <div className="form-subtitle">{accountSummary?.quarter?.label || "Current quarter"}. Proof first.</div>
             <div className="result-grid result-grid-three">
               <div>
                 <span>Rank</span>
@@ -2498,7 +2498,7 @@ export default function App() {
               </div>
             ) : (
               <div className="empty-state">
-                <div className="empty-state-body">Post proof and close runs to unlock badges.</div>
+                <div className="empty-state-body">Post proof and close runs for badges.</div>
               </div>
             )}
             {accountSummary?.quarter?.leaders?.length ? (
@@ -2520,7 +2520,7 @@ export default function App() {
 
           <div className="glass-card form-card account-purchases-card">
             <div className="form-title">Recent purchases</div>
-            <div className="form-subtitle">Money in. Credits up.</div>
+            <div className="form-subtitle">Money in.</div>
             {!accountSummary?.purchases?.length && (
               <div className="empty-state">
                 <div className="empty-state-body">No credit purchases yet.</div>
@@ -2547,10 +2547,10 @@ export default function App() {
 
           <div className="glass-card form-card account-history-card" id="account-history">
             <div className="form-title">Loop history</div>
-            <div className="form-subtitle">Last routes, one tap away.</div>
+            <div className="form-subtitle">Last routes.</div>
             {!accountSummary?.loop_history?.length ? (
               <div className="empty-state">
-                <div className="empty-state-body">No loop history yet. Build one from the home page and it lands here.</div>
+                <div className="empty-state-body">No loop history yet.</div>
               </div>
             ) : (
               <div className="history-list">
@@ -2577,7 +2577,7 @@ export default function App() {
 
           <div className="glass-card form-card account-history-card">
             <div className="form-title">Alleycat runs</div>
-            <div className="form-subtitle">Runs, times, and proof count.</div>
+            <div className="form-subtitle">Runs, times, proofs.</div>
             {!accountSummary?.alleycat_history?.length ? (
               <div className="empty-state">
                 <div className="empty-state-body">No Alleycat history yet.</div>
@@ -2609,7 +2609,7 @@ export default function App() {
 
           <div className="glass-card form-card account-history-card">
             <div className="form-title">Challenge log</div>
-            <div className="form-subtitle">Shared codes and who pulled up.</div>
+            <div className="form-subtitle">Codes and crew.</div>
             {!accountSummary?.challenge_history?.length ? (
               <div className="empty-state">
                 <div className="empty-state-body">No shared challenge history yet.</div>
@@ -2637,7 +2637,7 @@ export default function App() {
 
           <div className="glass-card form-card account-history-card" id="account-crew">
             <div className="form-title">Riders you raced with</div>
-            <div className="form-subtitle">Real shared runs only.</div>
+            <div className="form-subtitle">Shared runs only.</div>
             {!accountSummary?.shared_riders?.length ? (
               <div className="empty-state">
                 <div className="empty-state-body">No shared rider links yet.</div>
@@ -2671,7 +2671,7 @@ export default function App() {
     <div className="sequential-layout sub-page">
       <section className="sub-page-header loop-page-header">
         <h1 className="sub-page-title">Loop Builder</h1>
-        <p className="sub-page-description">Set the point, shape the ride, dip out fast.</p>
+        <p className="sub-page-description">Set the point. Ride out clean.</p>
         <div className="sub-page-image-shell loop-image-shell">
           <img src={heroImage} alt="Cyclist moving through a city loop" />
         </div>
@@ -2695,7 +2695,7 @@ export default function App() {
             <div className="form-header">
               <div>
                 <h2 className="form-title">Dial The Loop</h2>
-                <p className="form-subtitle">Set the point, tune the feel, send the line.</p>
+                <p className="form-subtitle">Set the point. Send the line.</p>
               </div>
               {usage && (
                 <div className="loops-left">

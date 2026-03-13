@@ -46,7 +46,7 @@ export default function WallPage({
     <div className="sequential-layout sub-page">
       <section className="sub-page-header">
         <h1 className="sub-page-title">Wall of Fame</h1>
-        <p className="sub-page-description">Real hits. Real names. Real cities.</p>
+        <p className="sub-page-description">Proof hits by city.</p>
         <div className="section-jump-strip">
           <a className="mini-chip active" href="#wall-filter">Filter</a>
           <a className="mini-chip" href="#wall-story">Story</a>
@@ -55,13 +55,13 @@ export default function WallPage({
         <div className="surface-story-strip">
           <div className="mini-chip active">{publicQuarterLabel || "Current quarter"} live</div>
           <div className="mini-chip">{selectedWallCity ? `${getCityLabel(selectedWallCity)} lane` : "All city lanes"}</div>
-          <div className="mini-chip">Fresh proof first</div>
+          <div className="mini-chip">Latest first</div>
         </div>
       </section>
 
       <section className="wall-section reveals" id="wall-feed">
         <div className="filter-strip" id="wall-filter">
-          <span className="filter-label">City filter</span>
+          <span className="filter-label">City</span>
           <div className="pill-group">
             <button type="button" className={`pill ${selectedWallCity === "" ? "active" : ""}`} onClick={() => setSelectedWallCity("")}>All cities</button>
             {cityPresets.map((city) => (
@@ -112,7 +112,7 @@ export default function WallPage({
                 <div className="wall-editorial-card">
                   <span className="winner-label">City spotlight</span>
                   <strong>{wallLeadCity[0]}</strong>
-                  <span>{wallLeadCity[1]} wall hits in this lane right now.</span>
+                  <span>{wallLeadCity[1]} live hits in this lane.</span>
                   <div className="wall-city-actions">
                     <button className="ghost-button small" type="button" onClick={() => onOpenWallCity(wallLeadCity[0])}>
                       Open wall
@@ -131,7 +131,7 @@ export default function WallPage({
           <div className="builder-grid single">
             <div className="glass-card form-card">
               <div className="empty-state">
-                <div className="empty-state-title">Nothing up yet</div>
+                <div className="empty-state-title">No hits yet</div>
                 <div className="empty-state-body">Post proof and it lands here.</div>
               </div>
             </div>

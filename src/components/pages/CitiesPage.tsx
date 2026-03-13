@@ -50,7 +50,7 @@ export default function CitiesPage({
     <div className="sequential-layout sub-page">
       <section className="sub-page-header">
         <h1 className="sub-page-title">City Lanes</h1>
-        <p className="sub-page-description">See what is live and what is next.</p>
+        <p className="sub-page-description">Live lanes. Next lanes.</p>
         <div className="section-jump-strip">
           <a className="mini-chip active" href="#cities-live">Live</a>
           <a className="mini-chip" href="#cities-next">Next</a>
@@ -126,11 +126,11 @@ export default function CitiesPage({
           <section className="builder-grid single reveals" id="cities-live">
             <div className="glass-card form-card">
             <div className="form-title">Live now</div>
-              <div className="form-subtitle">Pick a city and jump in.</div>
+              <div className="form-subtitle">Pick a lane.</div>
               {liveCities.length === 0 && (
                 <div className="empty-state">
-                  <div className="empty-state-title">No live city lanes yet</div>
-                  <div className="empty-state-body">Request one and push it into the queue.</div>
+                  <div className="empty-state-title">No live lanes yet</div>
+                  <div className="empty-state-body">Request one and push it up.</div>
                 </div>
               )}
               {liveCities.length > 0 && (
@@ -185,11 +185,11 @@ export default function CitiesPage({
           <section className="builder-grid single reveals" id="cities-next">
             <div className="glass-card form-card">
             <div className="form-title">Next up</div>
-              <div className="form-subtitle">Demand, review, and ready lanes.</div>
+              <div className="form-subtitle">Demand and drafts.</div>
               {nextCities.length === 0 && (
                 <div className="empty-state">
-                  <div className="empty-state-title">No queued city lanes</div>
-                  <div className="empty-state-body">When riders request new spots, they show up here.</div>
+                  <div className="empty-state-title">No lanes queued</div>
+                  <div className="empty-state-body">New asks land here.</div>
                 </div>
               )}
               {nextCities.length > 0 && (

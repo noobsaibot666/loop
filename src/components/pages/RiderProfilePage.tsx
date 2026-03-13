@@ -96,7 +96,7 @@ export default function RiderProfilePage({
     <div className="sequential-layout sub-page">
       <section className="sub-page-header">
         <h1 className="sub-page-title">{publicRiderProfile?.profile?.rider_name || "Rider profile"}</h1>
-        <p className="sub-page-description">Public proof, quarter heat, bike setup.</p>
+        <p className="sub-page-description">Proof, heat, bike.</p>
         {publicRiderProfile && (
           <div className="section-jump-strip">
             <a className="mini-chip active" href="#rider-stats">Stats</a>
@@ -114,7 +114,7 @@ export default function RiderProfilePage({
           {!isLoadingPublicRiderProfile && !publicRiderProfile && (
             <div className="empty-state">
               <div className="empty-state-title">Rider not found</div>
-              <div className="empty-state-body">That profile is not public yet or the link is stale.</div>
+              <div className="empty-state-body">Profile is private or the link is dead.</div>
             </div>
           )}
           {publicRiderProfile && (
@@ -222,7 +222,7 @@ export default function RiderProfilePage({
                 <>
                   <div className="rider-profile-proof-head" id="rider-cities">
                     <div className="form-title">City lanes</div>
-                    <div className="form-subtitle">Cities this rider keeps hitting.</div>
+                    <div className="form-subtitle">Where they hit.</div>
                   </div>
                   <div className="rider-city-grid">
                     {publicRiderProfile.city_breakdown.map((city) => (
@@ -247,7 +247,7 @@ export default function RiderProfilePage({
                 <>
                   <div className="rider-profile-proof-head">
                     <div className="form-title">Proof clusters</div>
-                    <div className="form-subtitle">Where they keep showing up.</div>
+                    <div className="form-subtitle">Where they post.</div>
                   </div>
                   <div className="rider-cluster-grid">
                     {publicRiderProfile.city_clusters.map((cluster) => (
@@ -276,7 +276,7 @@ export default function RiderProfilePage({
                 <>
                   <div className="rider-profile-proof-head" id="rider-standing">
                     <div className="form-title">City standing</div>
-                    <div className="form-subtitle">How they sit in their main city lane.</div>
+                    <div className="form-subtitle">How they stack.</div>
                   </div>
                   <div className="rider-city-standing-card">
                     <div className="result-grid result-grid-three">
@@ -334,11 +334,11 @@ export default function RiderProfilePage({
 
               <div className="rider-profile-proof-head" id="rider-ledger">
                 <div className="form-title">Run ledger</div>
-                <div className="form-subtitle">Closed runs and ghost splits.</div>
+                <div className="form-subtitle">Closed runs and ghost gaps.</div>
               </div>
               {!publicRiderProfile.recent_runs?.length ? (
                 <div className="empty-state">
-                  <div className="empty-state-body">No finished Alleycat runs yet.</div>
+                  <div className="empty-state-body">No finished runs yet.</div>
                 </div>
               ) : (
                 <div className="history-list rider-run-list">
@@ -363,11 +363,11 @@ export default function RiderProfilePage({
 
               <div className="rider-profile-proof-head">
                 <div className="form-title">Rider circle</div>
-                <div className="form-subtitle">Riders they actually shared codes with.</div>
+                <div className="form-subtitle">Shared codes only.</div>
               </div>
               {!publicRiderProfile.recent_rivals?.length ? (
                 <div className="empty-state">
-                  <div className="empty-state-body">No shared challenge crew yet.</div>
+                  <div className="empty-state-body">No shared crew yet.</div>
                 </div>
               ) : (
                 <div className="rider-rival-grid">
@@ -389,7 +389,7 @@ export default function RiderProfilePage({
 
               <div className="rider-profile-proof-head" id="rider-proof">
                 <div className="form-title">Recent proof</div>
-                <div className="form-subtitle">Latest public hits.</div>
+                <div className="form-subtitle">Latest hits.</div>
               </div>
               {!publicRiderProfile.recent_proofs?.length ? (
                 <div className="empty-state">

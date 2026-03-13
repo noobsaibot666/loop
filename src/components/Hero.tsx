@@ -20,7 +20,7 @@ const Hero: React.FC<HeroProps> = ({ onOpenAlleycat }) => {
                         Alleycat runs the app.
                     </h1>
                     <p className="hero-subheader-left">
-                        Pick a city. Pull a list. Run your line.
+                        Pick a city. Pull a list. Run it.
                     </p>
                     <div className="hero-actions">
                         <button className="primary-button" type="button" onClick={onOpenAlleycat}>
@@ -30,11 +30,11 @@ const Hero: React.FC<HeroProps> = ({ onOpenAlleycat }) => {
                     <div className="hero-metadata">
                         <div>
                             <div className="metric">8</div>
-                            <div className="metric-label">Live city lanes</div>
+                            <div className="metric-label">City lanes</div>
                         </div>
                         <div>
                             <div className="metric">1</div>
-                            <div className="metric-label">Wall hit live</div>
+                            <div className="metric-label">Wall hit</div>
                         </div>
                         <div>
                             <div className="metric">Fast</div>
