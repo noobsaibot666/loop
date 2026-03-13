@@ -3541,7 +3541,7 @@ input[type="range"]::-moz-range-thumb {
 
   .messenger-page-grid .form-card,
   .messenger-page-grid.single-card-layout .form-card {
-    width: min(84%, 540px);
+    width: min(88%, 560px);
     margin-inline: auto;
   }
 
@@ -3883,7 +3883,7 @@ input[type="range"]::-moz-range-thumb {
 
   .messenger-page-grid .form-card,
   .messenger-page-grid.single-card-layout .form-card {
-    width: calc(100% - 40px);
+    width: calc(100% - 28px);
   }
 
   .flow-grid {
