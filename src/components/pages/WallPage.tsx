@@ -50,7 +50,7 @@ export default function WallPage({
     {
       label: "Americas",
       cities: cityPresets
-        .filter((city) => ["Bogota", "Mexico City", "New York", "Sao Paulo"].includes(city))
+        .filter((city) => ["Bogota", "Mexico City", "New York", "San Francisco", "Sao Paulo"].includes(city))
         .sort((a, b) => a.localeCompare(b)),
       anchor: "wall-city-group-americas",
     },
