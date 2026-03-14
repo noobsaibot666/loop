@@ -223,18 +223,20 @@ Scope:
 Tighten the control layer now that public proof, city rollout, and tester traffic are broader.
 
 Status on 2026-03-14:
-- Planned
+- Implemented as a lean moderation pass
+- Wall moderation already supports hide, archive, and delete
+- Admin overview now includes an abuse watch surface for suspicious rider proof patterns
+- Action history is still deferred until there is a proper audit table
 
 Scope:
 - Add stronger proof moderation states:
   - live
   - hidden
-  - flagged
+  - archived
   - deleted
 - Add rider abuse review tools:
   - repeated proof spam visibility
   - suspicious upload patterns
-  - rider-level moderation notes
 - Add basic action history for admin moderation changes
 - Add clearer admin guardrails for destructive actions
 
@@ -245,7 +247,8 @@ Why this matters:
 Make release health, usage, and failure patterns visible without opening a full BI project.
 
 Status on 2026-03-14:
-- Planned
+- Implemented
+- Admin overview now exposes proof volume, active runs, checkout failures, city pulse, abuse watch, and weekly / monthly snapshots
 
 Scope:
 - Add a clearer admin ops dashboard for:
@@ -256,10 +259,9 @@ Scope:
   - credit top-ups
   - city usage by demand and run volume
 - Add route and run failure visibility:
-  - failed manifest builds
-  - failed proof uploads
-  - location denial rate
-  - share-code failures
+  - checkout failures
+  - abandoned runs
+  - hidden / archived proof load
 - Add simple date-range snapshots for weekly / monthly review
 
 Why this matters:
@@ -269,12 +271,15 @@ Why this matters:
 Handle ugly edge cases on phones without dumping riders into dead ends.
 
 Status on 2026-03-14:
-- Planned
+- Implemented as a recovery pass
+- Active Alleycat recovery already persists and reloads
+- Loop builder state now persists locally too
+- Auth/session expiry and checkout cancel states now return cleaner rider-facing recovery copy
 
 Scope:
 - Tighten recovery for:
   - app reload during an active Alleycat
-  - proof upload interruption
+  - loop builder reload
   - auth/session expiry during a run
   - failed top-up attempts
   - low-credit failure at the wrong moment
@@ -292,8 +297,8 @@ Make the paid lane clearer and connect it to community, not just top-ups.
 
 Status on 2026-03-14:
 - Started
-- Home and account surfaces can now frame the crew pass and credit economy more clearly
-- Full recurring billing and gated Discord access are still open
+- Community pass is intentionally hidden until the real Discord setup and recurring billing flow are ready
+- Public membership messaging has been pulled back out of the main app
 
 Scope:
 - Add a paid community pass:
@@ -314,24 +319,9 @@ Open backend work:
 - subscription state on user account
 - Discord invite / access handling
 - monthly credit grant automation
-  - keep tasks doable in real riding conditions
-- Human/admin review before publish
 
-Recommended model:
-- AI drafts
-- system scores spread and variety
-- admin approves
-
-Implementation note:
-- `OPENAI_API_KEY` stays server-side only
-- local development reads it from `.env`
-- production should provide it as a deployment secret
-- admin UI never receives the raw key
-
-Not allowed in V1.1:
-- fully autonomous AI publishing
-- AI-generated unsafe tasks
-- AI-only checkpoint selection without content constraints
+Release note:
+- Keep community / Discord access hidden in the live app until the real server, invite flow, and billing logic are ready.
 
 ## Explicitly deferred
 - Live multiplayer group mode

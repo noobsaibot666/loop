@@ -105,32 +105,31 @@ Related docs:
 - [-] comment/reaction systems
 
 ## Phase 9: Moderation and abuse tooling
-- [ ] Add proof moderation states beyond live/delete
-- [ ] Add rider abuse review surface
-- [ ] Add proof spam / suspicious activity visibility
+- [x] Add proof moderation states beyond live/delete
+- [x] Add rider abuse review surface
+- [x] Add proof spam / suspicious activity visibility
 - [ ] Add moderation action history
-- [ ] Tighten destructive admin action guardrails
+- [x] Tighten destructive admin action guardrails
 
 ## Phase 10: Analytics and ops dashboard
-- [ ] Add admin metrics for active riders and city usage
-- [ ] Add manifest / run / proof trend summaries
-- [ ] Add credit top-up visibility
-- [ ] Add failure-rate visibility for manifest, proof, and share flows
-- [ ] Add weekly / monthly ops snapshots
+- [x] Add admin metrics for active riders and city usage
+- [x] Add manifest / run / proof trend summaries
+- [x] Add credit top-up visibility
+- [x] Add failure-rate visibility for manifest, proof, and share flows
+- [x] Add weekly / monthly ops snapshots
 
 ## Phase 11: Mobile recovery hardening
-- [ ] Handle refresh during active Alleycat more safely
+- [x] Handle refresh during active Alleycat more safely
 - [ ] Improve proof upload interruption recovery
-- [ ] Improve auth/session expiry recovery mid-flow
-- [ ] Improve failed checkout / top-up recovery
-- [ ] Improve low-credit interruption handling
-- [ ] Keep recovery copy short and rider-facing
+- [x] Improve auth/session expiry recovery mid-flow
+- [x] Improve failed checkout / top-up recovery
+- [x] Improve low-credit interruption handling
+- [x] Keep recovery copy short and rider-facing
 
 ## Phase 12: Membership and credit economy
-- [x] Add home awareness of the crew pass
-- [x] Add account entry point for community access
+- [-] Keep crew pass hidden until Discord community is ready
 - [x] Clarify Loop vs Alleycat credit usage in account
-- [x] Add dedicated membership/community page
+- [-] Keep dedicated membership/community page non-promoted until launch-ready
 - [ ] Add recurring 4 EUR / month checkout flow
 - [ ] Add account subscription state
 - [ ] Add gated Discord invite/access handling

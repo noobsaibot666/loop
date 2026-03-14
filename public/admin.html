@@ -760,6 +760,22 @@
           <div class="label">Alleycat runs</div>
           <div class="metric" id="runsMetric">0</div>
         </div>
+        <div class="metric-card">
+          <div class="label">Proof posts</div>
+          <div class="metric" id="proofsMetric">0</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Active runs</div>
+          <div class="metric" id="activeRunsMetric">0</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Checkout failures</div>
+          <div class="metric" id="checkoutFailuresMetric">0</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Live city packs</div>
+          <div class="metric" id="livePacksMetric">0</div>
+        </div>
       </div>
     </section>
 
@@ -809,6 +825,26 @@
       <div class="sub" id="quarterLabel">Current quarter</div>
       <div class="winner-row" id="quarterTop3"></div>
       <div class="sessions" id="quarterLeaders"></div>
+    </section>
+
+    <section class="card" id="cityPulsePanel" data-section="overview" style="display:none;">
+      <div class="eyebrow">City pulse</div>
+      <div class="sessions" id="cityPulseList"></div>
+    </section>
+
+    <section class="card" id="abusePanel" data-section="overview" style="display:none;">
+      <div class="eyebrow">Abuse watch</div>
+      <div class="sessions" id="abuseWatchList"></div>
+    </section>
+
+    <section class="card" id="signalsPanel" data-section="overview" style="display:none;">
+      <div class="eyebrow">Failure signals</div>
+      <div class="mini-chip-row" id="failureSignals"></div>
+    </section>
+
+    <section class="card" id="snapshotsPanel" data-section="overview" style="display:none;">
+      <div class="eyebrow">Ops snapshots</div>
+      <div class="sessions" id="opsSnapshots"></div>
     </section>
 
     <section class="card" id="cityStudioPanel" data-section="city" style="display:none;">
@@ -955,6 +991,10 @@
       const proofsPanel = document.getElementById('proofsPanel');
       const requestsPanel = document.getElementById('requestsPanel');
       const quarterPanel = document.getElementById('quarterPanel');
+      const cityPulsePanel = document.getElementById('cityPulsePanel');
+      const abusePanel = document.getElementById('abusePanel');
+      const signalsPanel = document.getElementById('signalsPanel');
+      const snapshotsPanel = document.getElementById('snapshotsPanel');
       const cityStudioPanel = document.getElementById('cityStudioPanel');
       const sessionsList = document.getElementById('sessionsList');
       const proofsList = document.getElementById('proofsList');
@@ -963,6 +1003,10 @@
       const requestsSummary = document.getElementById('requestsSummary');
       const quarterLeaders = document.getElementById('quarterLeaders');
       const quarterTop3 = document.getElementById('quarterTop3');
+      const cityPulseList = document.getElementById('cityPulseList');
+      const abuseWatchList = document.getElementById('abuseWatchList');
+      const failureSignals = document.getElementById('failureSignals');
+      const opsSnapshots = document.getElementById('opsSnapshots');
       const packsList = document.getElementById('packsList');
       const checkpointsList = document.getElementById('checkpointsList');
       const previewBox = document.getElementById('previewBox');
@@ -1857,9 +1901,17 @@
           document.getElementById('ridersMetric').textContent = overview.metrics.riders_with_credits;
           document.getElementById('creditsMetric').textContent = overview.metrics.total_paid_credits;
           document.getElementById('runsMetric').textContent = overview.metrics.alleycat_runs;
+          document.getElementById('proofsMetric').textContent = overview.metrics.proof_posts || 0;
+          document.getElementById('activeRunsMetric').textContent = overview.metrics.active_runs || 0;
+          document.getElementById('checkoutFailuresMetric').textContent = overview.metrics.checkout_failures || 0;
+          document.getElementById('livePacksMetric').textContent = overview.metrics.live_city_packs || 0;
           sessionsList.innerHTML = '';
           quarterLeaders.innerHTML = '';
           quarterTop3.innerHTML = '';
+          cityPulseList.innerHTML = '';
+          abuseWatchList.innerHTML = '';
+          failureSignals.innerHTML = '';
+          opsSnapshots.innerHTML = '';
           document.getElementById('quarterLabel').textContent = overview.quarter?.label || 'Current quarter';
           if (!overview.recent_sessions.length) {
             sessionsList.innerHTML = '<div class="label">No recent Stripe sessions.</div>';
@@ -1904,6 +1956,70 @@
               `;
             quarterLeaders.appendChild(row);
           });
+
+          if (!overview.city_pulse?.length) {
+            cityPulseList.innerHTML = '<div class="label">No city pulse yet.</div>';
+          } else {
+            overview.city_pulse.forEach((entry) => {
+              const row = document.createElement('div');
+              row.className = 'session';
+              row.innerHTML = `
+                <div>
+                  <strong>${entry.city_name}</strong>
+                  <span>${entry.public_proofs} public proofs · ${entry.proofs} total proofs</span>
+                </div>
+                <div>
+                  <strong>${entry.manifests} manifests</strong>
+                </div>
+              `;
+              cityPulseList.appendChild(row);
+            });
+          }
+
+          if (!overview.abuse_watch?.length) {
+            abuseWatchList.innerHTML = '<div class="label">No rider watch items right now.</div>';
+          } else {
+            overview.abuse_watch.forEach((entry) => {
+              const row = document.createElement('div');
+              row.className = 'session';
+              row.innerHTML = `
+                <div>
+                  <strong>${entry.rider_name}</strong>
+                  <span>${entry.city_name || 'No city'} · ${entry.proof_count} proofs · ${entry.hidden_count} hidden · ${entry.archived_count} archived</span>
+                </div>
+                <div>
+                  <strong>${entry.last_at ? new Date(entry.last_at).toLocaleDateString() : '--'}</strong>
+                </div>
+              `;
+              abuseWatchList.appendChild(row);
+            });
+          }
+
+          (overview.failure_signals || []).forEach((entry) => {
+            const chip = document.createElement('div');
+            chip.className = 'mini-chip';
+            chip.innerHTML = `<strong>${entry.value}</strong> ${entry.label}`;
+            failureSignals.appendChild(chip);
+          });
+
+          if (!overview.ops_snapshots?.length) {
+            opsSnapshots.innerHTML = '<div class="label">No snapshot window yet.</div>';
+          } else {
+            overview.ops_snapshots.forEach((entry) => {
+              const row = document.createElement('div');
+              row.className = 'session';
+              row.innerHTML = `
+                <div>
+                  <strong>${entry.label}</strong>
+                  <span>${entry.manifests} manifests · ${entry.proofs} proofs</span>
+                </div>
+                <div>
+                  <strong>${entry.topups} top-ups</strong>
+                </div>
+              `;
+              opsSnapshots.appendChild(row);
+            });
+          }
         } catch (error) {
           statusEl.textContent = error.message;
         }

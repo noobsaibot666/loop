@@ -327,9 +327,8 @@ const supabase = supabaseUrl && supabaseAnon ? createClient(supabaseUrl, supabas
 const LOOP_FREE_LIMIT = 3;
 const LOOP_CREDIT_COST = 1;
 const MESSENGER_CREDIT_COST = 3;
-const CREW_PASS_PRICE_EUR = 4;
-const CREW_ACCESS_URL = "/membership.html";
 const ALLEYCAT_STORAGE_KEY = "loop_alleycat_state";
+const LOOP_BUILDER_STORAGE_KEY = "loop_builder_state";
 const ALLEYCAT_CITY_GROUPS = [
   { label: "Americas", cities: ["Bogota", "Buenos Aires", "Chicago", "Los Angeles", "Mexico City", "New York", "Philadelphia", "San Francisco", "Santos", "Sao Paulo", "Seattle"] },
   { label: "Europe", cities: ["Amsterdam", "Barcelona", "Berlin", "Krakow", "London", "Milan", "Paris", "Vienna", "Warsaw"] },
@@ -534,7 +533,9 @@ export default function App() {
       }
     }
     if (!response.ok) {
-      const message = data?.error || data?.message || text || `Request failed: ${response.status}`;
+      let message = data?.error || data?.message || text || `Request failed: ${response.status}`;
+      if (response.status === 401) message = "Your session dropped. Log in again and keep moving.";
+      if (response.status === 403) message = "That move is locked on this account.";
       throw new Error(message);
     }
     return data;
@@ -634,6 +635,19 @@ export default function App() {
   }, [user?.id, deviceId]);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("donation") !== "cancel") return;
+    setStatusMessage("Checkout was closed. No credits were taken.");
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("donation");
+      window.history.replaceState({}, "", url.toString());
+    } catch {
+      // Ignore.
+    }
+  }, []);
+
+  useEffect(() => {
     let active = true;
     if (!user?.id) return;
     const fetchUsage = async () => {
@@ -721,6 +735,31 @@ export default function App() {
 
   useEffect(() => {
     try {
+      const raw = localStorage.getItem(LOOP_BUILDER_STORAGE_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as {
+        point?: string;
+        distance?: number;
+        terrain?: string;
+        surface?: string;
+        vibe?: string;
+        unit?: "km" | "mi";
+        selectedCoords?: { lat: number; lng: number } | null;
+      };
+      if (saved.point) setLoopPoint(saved.point);
+      if (typeof saved.distance === "number") setDistance(saved.distance);
+      if (saved.terrain) setTerrain(saved.terrain);
+      if (saved.surface) setSurface(saved.surface);
+      if (saved.vibe) setVibe(saved.vibe);
+      if (saved.unit === "km" || saved.unit === "mi") setUnit(saved.unit);
+      if (saved.selectedCoords?.lat && saved.selectedCoords?.lng) setSelectedCoords(saved.selectedCoords);
+    } catch {
+      localStorage.removeItem(LOOP_BUILDER_STORAGE_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
       localStorage.setItem(
         ALLEYCAT_STORAGE_KEY,
         JSON.stringify({
@@ -741,6 +780,25 @@ export default function App() {
       // Ignore storage failures.
     }
   }, [messengerCity, messengerLocation, messengerDifficulty, messengerStyle, messengerCheckpointCount, messengerRange, messengerUnit, messengerManifestId, messengerManifest, messengerRun, challenge]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        LOOP_BUILDER_STORAGE_KEY,
+        JSON.stringify({
+          point: loopPoint,
+          distance,
+          terrain,
+          surface,
+          vibe,
+          unit,
+          selectedCoords,
+        })
+      );
+    } catch {
+      // Ignore storage failures.
+    }
+  }, [loopPoint, distance, terrain, surface, vibe, unit, selectedCoords]);
 
   useEffect(() => {
     const nextConfig = JSON.stringify({
@@ -1982,6 +2040,11 @@ export default function App() {
       if (message.includes("user already registered")) return "That email already rides with us. Sign in instead.";
       if (message.includes("password should be at least")) return "Password is too short. Make it at least 6 characters.";
       if (message.includes("email not confirmed")) return "Check your inbox and confirm the email first.";
+      if (message.includes("session dropped")) return "Session is gone. Log in again.";
+    }
+
+    if (context === "account" && message.includes("session dropped")) {
+      return "Session is gone. Log in again before you save or top up.";
     }
 
     if (context === "city-request" && message.includes("city_requests")) {
@@ -1995,6 +2058,7 @@ export default function App() {
     }
 
     if (context === "messenger") {
+      if (message.includes("session dropped")) return "Session is gone. Log in again, then reload your run.";
       if (message.includes("location")) return raw;
       if (message.includes("within")) return raw;
     }
@@ -2024,7 +2088,7 @@ export default function App() {
     <div className="sequential-layout">
       <Hero />
 
-      <section className="modular-grid home-modular-grid reveals">
+      <section className="modular-grid reveals">
         <div className="modular-cell modular-cell-featured">
           <h3 className="cell-title">Alleycat Mode</h3>
           <p className="cell-body">Pull the sheet, hit the spots, and let the city push back.</p>
@@ -2036,11 +2100,6 @@ export default function App() {
           <h3 className="cell-title">Loop Mode</h3>
           <p className="cell-body">Drop a point. Get back clean.</p>
           <button className="ghost-button small home-card-button" onClick={() => handleNavigate('loop')}>Start looping</button>
-        </div>
-        <div className="modular-cell modular-cell-community">
-          <h3 className="cell-title">Crew Pass</h3>
-          <p className="cell-body">{CREW_PASS_PRICE_EUR} EUR / month. Discord lane, monthly credit drop, and the paid crew.</p>
-          <a className="ghost-button small home-card-button" href={CREW_ACCESS_URL}>Open crew pass</a>
         </div>
       </section>
     </div>
@@ -2246,7 +2305,7 @@ export default function App() {
     <div className="sequential-layout sub-page">
       <section className="sub-page-header">
         <h1 className="sub-page-title">Account</h1>
-        <p className="sub-page-description">{user ? `${accountGreeting} Credits, crew, bike, runs.` : "Login, credits, crew, runs."}</p>
+        <p className="sub-page-description">{user ? `${accountGreeting} Credits, bike, runs.` : "Login, credits, bike, runs."}</p>
       </section>
 
       {!user && (
@@ -2275,7 +2334,6 @@ export default function App() {
             <div className="section-jump-strip">
               <a className="mini-chip active" href="#account-profile">Setup</a>
               <a className="mini-chip" href="#account-credits">Credits</a>
-              <a className="mini-chip" href="#account-access">Access</a>
               <a className="mini-chip" href="#account-activity">Stats</a>
               <a className="mini-chip" href="#account-history">History</a>
             </div>
@@ -2393,16 +2451,16 @@ export default function App() {
                 <strong>{hasUnlimitedCredits ? "Free" : `${LOOP_CREDIT_COST} each`}</strong>
               </div>
               <div>
-                <span>Crew pass</span>
-                <strong>{CREW_PASS_PRICE_EUR} EUR / month</strong>
+                <span>Free lane</span>
+                <strong>{hasUnlimitedCredits ? "Unlimited" : `${LOOP_FREE_LIMIT} starter loops`}</strong>
               </div>
               <div>
-                <span>Monthly drop</span>
-                <strong>Free credits</strong>
+                <span>Top-up lane</span>
+                <strong>Paid credits</strong>
               </div>
               <div>
-                <span>Community lane</span>
-                <strong>Discord access</strong>
+                <span>Heavy pull</span>
+                <strong>Alleycat first</strong>
               </div>
             </div>
 
@@ -2413,40 +2471,8 @@ export default function App() {
             </div>
             <div className="account-note">
               {hasUnlimitedCredits
-                ? "Admin account stays open across Loop, Alleycat, and crew access."
-                : `Loop burns ${LOOP_CREDIT_COST}. Alleycat burns ${MESSENGER_CREDIT_COST}. Crew pass riders get monthly free credits plus Discord access.`}
-            </div>
-          </div>
-
-          <div className="glass-card form-card account-community-card" id="account-access">
-            <div className="form-title">Crew access</div>
-            <div className="form-subtitle">Paid lane only.</div>
-            <div className="result-grid result-grid-two account-credit-grid">
-              <div>
-                <span>Pass</span>
-                <strong>{CREW_PASS_PRICE_EUR} EUR / month</strong>
-              </div>
-              <div>
-                <span>Access</span>
-                <strong>Discord crew</strong>
-              </div>
-              <div>
-                <span>Perk</span>
-                <strong>Monthly free credits</strong>
-              </div>
-              <div>
-                <span>Use it for</span>
-                <strong>Alleycat-heavy riders</strong>
-              </div>
-            </div>
-            <div className="account-note">
-              Alleycats hit harder than loops. If you live in the challenge lane, the crew pass keeps the meter softer and opens the community.
-            </div>
-            <div className="form-actions">
-              <a className="primary-button" href={CREW_ACCESS_URL}>Open crew pass</a>
-              <button className="ghost-button" type="button" onClick={handleDonate}>
-                Top up only
-              </button>
+                ? "Admin account stays open across Loop and Alleycat."
+                : `Loop burns ${LOOP_CREDIT_COST}. Alleycat burns ${MESSENGER_CREDIT_COST}. Alleycat hits your paid credits harder, so keep an eye on the meter.`}
             </div>
           </div>
 
