@@ -233,25 +233,25 @@ select {
 }
 
 .language-trigger {
-  width: 38px;
-  height: 38px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.03);
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
   color: var(--text-soft);
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
 }
 
 .language-trigger:hover {
   color: #fff;
-  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .language-trigger-icon {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
 }
 
 .language-menu {
