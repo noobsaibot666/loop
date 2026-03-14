@@ -453,7 +453,7 @@ const dictionaries: Record<Language, TranslationMap> = {
     "footer.how": "Como funciona",
     "footer.coffee": "Café",
     "footer.admin": "Admin",
-    "hero.title": "Engole o trânsito na rua",
+    "hero.title": "Lute pelo seu espaço na rua",
     "hero.subtitle": "Puxa um loop na city ou mete um alleycat com a banca local",
     "home.alleycat.title": "Modo Alleycat",
     "home.alleycat.body": "Puxa a folha, bate os pontos e deixa a cidade responder.",
