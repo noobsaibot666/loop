@@ -2012,9 +2012,9 @@ function AppShell() {
             <button className={`nav-link ${pageView === 'home' ? 'active' : ''}`} onClick={() => handleNavigate('home')}>{t("nav.home")}</button>
             <button className={`nav-link ${pageView === 'loop' ? 'active' : ''}`} onClick={() => handleNavigate('loop')}>{t("nav.loop")}</button>
             <button className={`nav-link ${pageView === 'messenger' ? 'active' : ''}`} onClick={() => handleNavigate('messenger')}>{t("nav.alleycat")}</button>
-            <button className={`nav-link ${pageView === 'cities' ? 'active' : ''}`} onClick={() => handleNavigate('cities')}>{t("nav.cities")}</button>
             <button className={`nav-link ${pageView === 'wall' ? 'active' : ''}`} onClick={() => handleNavigate('wall')}>{t("nav.wall")}</button>
             <button className={`nav-link ${pageView === 'leaderboard' ? 'active' : ''}`} onClick={() => handleNavigate('leaderboard')}>{t("nav.leaderboard")}</button>
+            <button className={`nav-link ${pageView === 'cities' ? 'active' : ''}`} onClick={() => handleNavigate('cities')}>{t("nav.cities")}</button>
           </nav>
         </div>
 
@@ -2046,9 +2046,9 @@ function AppShell() {
             <button className={`nav-link ${pageView === 'home' ? 'active' : ''}`} onClick={() => handleNavigate('home')}>{t("nav.home")}</button>
             <button className={`nav-link ${pageView === 'loop' ? 'active' : ''}`} onClick={() => handleNavigate('loop')}>{t("nav.loop")}</button>
             <button className={`nav-link ${pageView === 'messenger' ? 'active' : ''}`} onClick={() => handleNavigate('messenger')}>{t("nav.alleycat")}</button>
-            <button className={`nav-link ${pageView === 'cities' ? 'active' : ''}`} onClick={() => handleNavigate('cities')}>{t("nav.cities")}</button>
             <button className={`nav-link ${pageView === 'wall' ? 'active' : ''}`} onClick={() => handleNavigate('wall')}>{t("nav.wall")}</button>
             <button className={`nav-link ${pageView === 'leaderboard' ? 'active' : ''}`} onClick={() => handleNavigate('leaderboard')}>{t("nav.leaderboard")}</button>
+            <button className={`nav-link ${pageView === 'cities' ? 'active' : ''}`} onClick={() => handleNavigate('cities')}>{t("nav.cities")}</button>
             {user && <button className={`nav-link ${pageView === 'account' ? 'active' : ''}`} onClick={() => handleNavigate('account')}>{t("nav.accountShort")}</button>}
           </div>
           <div className="mobile-nav-actions">
