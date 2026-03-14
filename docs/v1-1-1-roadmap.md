@@ -9,7 +9,7 @@ Add multilingual support without changing the Cloudflare Pages single-page app s
 - Keep one SPA build
 - Keep one route system
 - Keep one API surface
-- Add `English`, `Portuguese`, and `Spanish`
+- Add `English`, `Portuguese (Brazil)`, and `Spanish`
 - Persist language on the client
 - Translate the highest-traffic UI first
 
@@ -30,7 +30,7 @@ Add multilingual support without changing the Cloudflare Pages single-page app s
 - No function or API path changes
 - No extra deployment topology
 
-## First Pass
+## Implemented Pass
 
 - App shell
   - header
@@ -43,7 +43,20 @@ Add multilingual support without changing the Cloudflare Pages single-page app s
 - Leaderboard
 - Cities
 - Rider profile
+- Account page
+- Auth modal
+- Password reset flow copy
+- City request modal
+- Share-code modal
+- Credit top-up modal
 - Date formatting by locale
+
+## Tone Rule
+
+- English keeps the current rider/street voice
+- Portuguese uses Brazilian Portuguese, not Portugal Portuguese
+- Portuguese public-facing copy should lean toward Sao Paulo rider slang where it improves fit
+- Spanish keeps direct street tone without breaking clarity
 
 ## Guardrails
 
@@ -52,13 +65,12 @@ Add multilingual support without changing the Cloudflare Pages single-page app s
 - Database content stays canonical
 - Dynamic city pack copy can stay English until content localization is planned
 
-## Follow-Up Passes
+## Remaining Follow-Up
 
-- Auth and payment modals
-- Account page deep copy
-- Alleycat run-panel/status text
-- Loop/alleycat edge-case messages
+- Alleycat run-panel/status deep copy
+- Loop/alleycat edge-case messages outside the main builder and modal flows
 - Static legal/help pages in multiple languages
+- Admin page translations if needed for non-admin demo users
 
 ## Release Rule
 
@@ -68,3 +80,4 @@ Ship only if:
 - existing routes still work
 - language switching does not reset app state
 - English remains the fallback for missing strings
+- account, cities, wall, and leaderboard stay usable during tester onboarding

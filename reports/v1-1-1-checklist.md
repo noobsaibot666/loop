@@ -29,19 +29,28 @@
 
 ## Follow-Up Surfaces
 
-- [ ] Auth modal
-- [ ] Credits modal
-- [ ] Account full copy
+- [x] Auth modal
+- [x] Credits modal
+- [x] Account full copy
+- [x] City request modal
+- [x] Share-code modal
 - [ ] Alleycat run-panel deep copy
-- [ ] Loop/alleycat recovery messages
+- [x] Loop/alleycat recovery messages in key modal and account flows
 - [ ] Static help/legal page translations
 
 ## Validation
 
-- [ ] `npm run build`
-- [ ] smoke-check home
-- [ ] smoke-check loop
-- [ ] smoke-check alleycat
-- [ ] smoke-check wall
-- [ ] smoke-check leaderboard
-- [ ] smoke-check cities
+- [x] `npm run build`
+- [x] smoke-check home
+- [x] smoke-check loop
+- [x] smoke-check alleycat
+- [x] smoke-check wall
+- [x] smoke-check leaderboard
+- [x] smoke-check cities
+
+## Notes
+
+- [x] Portuguese copy is now Brazilian Portuguese
+- [x] Home page PT copy tightened toward Sao Paulo street tone
+- [x] No route split was introduced
+- [x] Cloudflare Pages still runs as one SPA

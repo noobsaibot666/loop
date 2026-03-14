@@ -43,10 +43,10 @@ export default function CitiesPage({
 
   const getLaneLine = (lane: CityLane) => {
     if (lane.route_note) return lane.route_note;
-    if (lane.status === "requested") return "Riders are calling this lane up. Push it and move it into review.";
-    if (lane.status === "ready") return "Draft is tight enough to ship. One clean publish move and it goes live.";
-    if (lane.status === "review") return "The lane is rough-cut and waiting on a sharper review pass.";
-    return "Built to stay tight, local, and sharp.";
+    if (lane.status === "requested") return t("cities.fallback.requested");
+    if (lane.status === "ready") return t("cities.fallback.ready");
+    if (lane.status === "review") return t("cities.fallback.review");
+    return t("cities.fallback.default");
   };
 
   return (
@@ -88,10 +88,10 @@ export default function CitiesPage({
                         {t("cities.rideCity", { city: leadLane.city_name })}
                       </button>
                       <button className="ghost-button small" type="button" onClick={() => onOpenWallCity(leadLane.city_name)}>
-                        Wall
+                        {t("common.wall")}
                       </button>
                       <button className="ghost-button small" type="button" onClick={() => onOpenLeaderboardCity(leadLane.city_name)}>
-                        Board
+                        {t("common.board")}
                       </button>
                     </div>
                   </div>
@@ -162,10 +162,10 @@ export default function CitiesPage({
                           {t("cities.rideCity", { city: lane.city_name })}
                         </button>
                         <button className="ghost-button small" type="button" onClick={() => onOpenWallCity(lane.city_name)}>
-                          Wall
+                          {t("common.wall")}
                         </button>
                         <button className="ghost-button small" type="button" onClick={() => onOpenLeaderboardCity(lane.city_name)}>
-                          Board
+                          {t("common.board")}
                         </button>
                       </div>
                     </div>
@@ -207,7 +207,7 @@ export default function CitiesPage({
                         </div>
                       </div>
                       <div className="mini-chip-row compact">
-                        <div className="mini-chip">{lane.status} lane</div>
+                        <div className="mini-chip">{t("cities.laneStatus", { status: lane.status })}</div>
                         <div className="mini-chip">{t("cities.queue")}</div>
                       </div>
                       <div className="city-lane-actions">

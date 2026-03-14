@@ -1113,7 +1113,9 @@ function AppShell() {
     [t]
   );
   const riderHandle = (user?.email || "").split("@")[0] || "rider";
-  const accountGreeting = hasUnlimitedCredits ? `Yo admin ${riderHandle}.` : `Yo ${riderHandle}.`;
+  const accountGreeting = hasUnlimitedCredits
+    ? t("account.greetingAdmin", { name: riderHandle })
+    : t("account.greeting", { name: riderHandle });
   const canSubmitCityRequest = cityRequestName.trim().length > 1;
   const canJoinShareCode = shareInput.trim().length > 2;
   const canBuildMessengerManifest = messengerCity.trim().length > 1 && messengerLocation.trim().length > 1;
@@ -1282,7 +1284,7 @@ function AppShell() {
 
   const handleSubmitCityRequest = async () => {
     if (!cityRequestName.trim() && !cityRequestLocation.trim()) {
-      setCityRequestStatus("Drop a city or riding area first.");
+      setCityRequestStatus(t("cityRequest.needCity"));
       return;
     }
     setIsSendingCityRequest(true);
@@ -1294,7 +1296,7 @@ function AppShell() {
         note: cityRequestNote.trim(),
         email: user?.email || "",
       });
-      setCityRequestStatus("Request sent. It’s in the queue.");
+      setCityRequestStatus(t("cityRequest.sent"));
       setCityRequestName("");
       setCityRequestLocation("");
       setCityRequestNote("");
@@ -1304,7 +1306,7 @@ function AppShell() {
         setCityDemand(data);
       }
     } catch (error) {
-      setCityRequestStatus(getFriendlyMessage("city-request", error, "Could not send the request."));
+      setCityRequestStatus(getFriendlyMessage("city-request", error, t("cityRequest.failed")));
     } finally {
       setIsSendingCityRequest(false);
     }
@@ -1417,14 +1419,14 @@ function AppShell() {
       if (data.challenge_id) {
         setChallenge({ id: data.challenge_id, code: data.code });
       }
-      setShareStatus("Share code ready. Send it to a friend so they can load the same manifest.");
+      setShareStatus(t("share.ready"));
       try {
         await navigator.clipboard.writeText(data.code);
       } catch {
         // Ignore clipboard failures.
       }
     } catch (error) {
-      setShareStatus(getFriendlyMessage("share", error, "Could not create a share code."));
+      setShareStatus(getFriendlyMessage("share", error, t("share.createFailed")));
     } finally {
       setIsSharingManifest(false);
     }
@@ -1433,7 +1435,7 @@ function AppShell() {
   const handleLoadShareCode = async () => {
     if (!shareInput.trim()) return;
     if (!user?.id) {
-      requireLogin("Log in to join a shared Alleycat run.");
+      requireLogin(t("share.loginToJoin"));
       return;
     }
     setIsLoadingSharedManifest(true);
@@ -1458,7 +1460,7 @@ function AppShell() {
       setMessengerStatus("Shared manifest loaded. Start when you are ready.");
       setShowShareJoinModal(false);
     } catch (error) {
-      setShareStatus(getFriendlyMessage("share", error, "Could not load that share code."));
+      setShareStatus(getFriendlyMessage("share", error, t("share.loadFailed")));
     } finally {
       setIsLoadingSharedManifest(false);
     }
@@ -1527,7 +1529,7 @@ function AppShell() {
 
   const handleDonate = async () => {
     if (!user?.id) {
-      requireLogin("Log in first so credits land on the right rider.");
+      requireLogin(t("account.messages.loginForCredits"));
       return;
     }
     setShowCredits(true);
@@ -1538,7 +1540,7 @@ function AppShell() {
     await supabase.auth.signOut();
     setAccessToken("");
     setUser(null);
-    setAuthMessage("Logged out.");
+    setAuthMessage(t("account.messages.loggedOut"));
     setUsage(null);
     setAccountSummary(null);
     setMessengerManifest(null);
@@ -1561,7 +1563,7 @@ function AppShell() {
     event.preventDefault();
     if (!supabase) return;
     if (!loginEmail.trim() || !loginPassword.trim()) {
-      setAuthMessage("Add your email and password.");
+      setAuthMessage(t("account.messages.addEmailPassword"));
       return;
     }
     setAuthLoading(true);
@@ -1578,8 +1580,8 @@ function AppShell() {
         if (error) throw error;
         setAuthMessage(
           data.session
-            ? "Account ready. You are logged in."
-            : "Account created. Check your inbox if email confirmation is enabled."
+            ? t("account.messages.accountReady")
+            : t("account.messages.accountCreated")
         );
       } else {
         const { error } = await supabase.auth.signInWithPassword({
@@ -1587,7 +1589,7 @@ function AppShell() {
           password: loginPassword,
         });
         if (error) throw error;
-        setAuthMessage("Logged in.");
+        setAuthMessage(t("account.messages.loggedIn"));
       }
       setShowLogin(false);
       setLoginEmail("");
@@ -1602,7 +1604,7 @@ function AppShell() {
 
   const handlePasswordUpdate = async () => {
     if (!supabase || !accountPassword.trim()) {
-      setAccountStatus("Add a new password first.");
+      setAccountStatus(t("account.messages.addNewPassword"));
       return;
     }
     setIsUpdatingPassword(true);
@@ -1611,7 +1613,7 @@ function AppShell() {
       const { error } = await supabase.auth.updateUser({ password: accountPassword.trim() });
       if (error) throw error;
       setAccountPassword("");
-      setAccountStatus("Password updated.");
+      setAccountStatus(t("account.messages.passwordUpdated"));
     } catch (error) {
       setAccountStatus(getFriendlyMessage("account", error, "Could not update password."));
     } finally {
@@ -1621,7 +1623,7 @@ function AppShell() {
 
   const handleProfileSave = async () => {
     if (!user?.id) {
-      setAccountStatus("Log in first.");
+      setAccountStatus(t("account.messages.logInFirst"));
       return;
     }
     setIsSavingProfile(true);
@@ -1634,7 +1636,7 @@ function AppShell() {
         bike_ratio: accountBikeRatio,
       });
       setAccountSummary((current) => (current ? { ...current, profile: data.profile } : current));
-      setAccountStatus("Profile saved. Wall posts updated too.");
+      setAccountStatus(t("account.messages.profileSaved"));
     } catch (error) {
       setAccountStatus(getFriendlyMessage("account", error, "Could not save profile."));
     } finally {
@@ -1644,7 +1646,7 @@ function AppShell() {
 
   const handlePasswordReset = async () => {
     if (!supabase || !loginEmail.trim()) {
-      setAuthMessage("Add your email first.");
+      setAuthMessage(t("account.messages.addEmailFirst"));
       return;
     }
     setIsSendingReset(true);
@@ -1654,7 +1656,7 @@ function AppShell() {
         redirectTo: `${window.location.origin}/account`,
       });
       if (error) throw error;
-      setAuthMessage("If that email exists, a reset link is on the way.");
+      setAuthMessage(t("account.messages.resetSent"));
     } catch (error) {
       setAuthMessage(getFriendlyMessage("password-reset", error, "Could not send reset email."));
     } finally {
@@ -1664,11 +1666,11 @@ function AppShell() {
 
   const handleAccountFeedback = async () => {
     if (!user?.id) {
-      setAccountFeedbackStatus("Log in first.");
+      setAccountFeedbackStatus(t("account.messages.logInFirst"));
       return;
     }
     if (!canSendAccountFeedback) {
-      setAccountFeedbackStatus("Keep it clean. 200 words max.");
+      setAccountFeedbackStatus(t("account.messages.feedbackTooLong"));
       return;
     }
     setIsSendingFeedback(true);
@@ -1679,9 +1681,9 @@ function AppShell() {
         rider_name: accountRiderName.trim(),
       });
       setAccountFeedback("");
-      setAccountFeedbackStatus("Feedback sent.");
+      setAccountFeedbackStatus(t("account.messages.feedbackSent"));
     } catch (error) {
-      setAccountFeedbackStatus(error instanceof Error ? error.message : "Could not send feedback.");
+      setAccountFeedbackStatus(error instanceof Error ? error.message : t("account.messages.feedbackFailed"));
     } finally {
       setIsSendingFeedback(false);
     }
@@ -1737,7 +1739,7 @@ function AppShell() {
 
   const handleGenerateLoop = async () => {
     if (!user?.id) {
-      requireLogin("Log in so we can keep the free runs fair.");
+      requireLogin(t("account.messages.logInForFairUse"));
       return;
     }
     setIsGeneratingLoop(true);
@@ -2079,7 +2081,7 @@ function AppShell() {
         <span>{t("nav.loop")}</span>
       </button>
       <button className={`quickbar-link ${pageView === "wall" ? "active" : ""}`} type="button" onClick={() => handleNavigate("wall")}>
-        <span>Wall</span>
+        <span>{t("nav.wallShort")}</span>
       </button>
       <button
         className={`quickbar-link ${pageView === "account" ? "active" : ""}`}
@@ -2152,7 +2154,7 @@ function AppShell() {
     return expandedPanels[key] ? items : items.slice(0, baseLimit);
   };
 
-  const renderPanelToggle = (items: unknown[] | undefined, key: string, label = "Show all") => {
+  const renderPanelToggle = (items: unknown[] | undefined, key: string, label: string) => {
     if (!items || items.length <= 3) return null;
     return (
       <button
@@ -2160,7 +2162,7 @@ function AppShell() {
         type="button"
         onClick={() => setExpandedPanels((current) => ({ ...current, [key]: !current[key] }))}
       >
-        {expandedPanels[key] ? "Show less" : `${label} (${items.length})`}
+        {expandedPanels[key] ? t("common.showLess") : `${label} (${items.length})`}
       </button>
     );
   };
@@ -2191,32 +2193,32 @@ function AppShell() {
       {showLogin && (
         <div className="modal-overlay" role="dialog" aria-modal="true">
             <div className="modal-card">
-              <div className="modal-title">{authMode === "signup" ? "Create account" : "Sign in"}</div>
-            <div className="modal-subtitle">Email in. Ride out.</div>
+              <div className="modal-title">{authMode === "signup" ? t("account.guest.create") : t("account.guest.signIn")}</div>
+            <div className="modal-subtitle">{t("account.auth.subtitle")}</div>
             <div className="auth-mode-switch">
               <button
                 className={`pill ${authMode === "login" ? "active" : ""}`}
                 type="button"
                 onClick={() => setAuthMode("login")}
               >
-                Sign in
+                {t("account.guest.signIn")}
               </button>
               <button
                 className={`pill ${authMode === "signup" ? "active" : ""}`}
                 type="button"
                 onClick={() => setAuthMode("signup")}
               >
-                Create account
+                {t("account.guest.create")}
               </button>
             </div>
             <form className="modal-form" onSubmit={handleAuthSubmit}>
               <label className="field">
-                <span>Email</span>
+                <span>{t("account.profile.email")}</span>
                 <input
                   type="email"
                   value={loginEmail}
                   onChange={(event) => setLoginEmail(event.target.value)}
-                  placeholder="you@email.com"
+                  placeholder={t("account.auth.emailPlaceholder")}
                   autoFocus
                   autoComplete="email"
                   inputMode="email"
@@ -2224,12 +2226,12 @@ function AppShell() {
                 />
               </label>
               <label className="field">
-                <span>Password</span>
+                <span>{t("account.auth.password")}</span>
                 <input
                   type="password"
                   value={loginPassword}
                   onChange={(event) => setLoginPassword(event.target.value)}
-                  placeholder="At least 6 characters"
+                  placeholder={t("account.auth.passwordPlaceholder")}
                   autoComplete={authMode === "signup" ? "new-password" : "current-password"}
                   enterKeyHint="go"
                 />
@@ -2237,15 +2239,15 @@ function AppShell() {
               {renderStatusBanner(authMessage, true)}
               <div className="modal-actions">
                 <button className="ghost-button" type="button" onClick={() => setShowLogin(false)}>
-                  Cancel
+                  {t("common.cancel")}
                 </button>
                 {authMode === "login" && (
                   <button className="ghost-button" type="button" onClick={handlePasswordReset} disabled={isSendingReset}>
-                    {isSendingReset ? "Sending..." : "Reset password"}
+                    {isSendingReset ? t("common.sending") : t("account.auth.resetPassword")}
                   </button>
                 )}
                 <button className="primary-button" type="submit" disabled={authLoading}>
-                  {authLoading ? "Working..." : authMode === "signup" ? "Create account" : "Sign in"}
+                  {authLoading ? t("common.working") : authMode === "signup" ? t("account.guest.create") : t("account.guest.signIn")}
                 </button>
               </div>
             </form>
@@ -2256,27 +2258,27 @@ function AppShell() {
       {showCityRequest && (
         <div className="modal-overlay" role="dialog" aria-modal="true">
           <div className="modal-card">
-            <div className="modal-title">Request your city</div>
-            <div className="modal-subtitle">Drop the city. We handle the rest.</div>
+            <div className="modal-title">{t("cityRequest.title")}</div>
+            <div className="modal-subtitle">{t("cityRequest.subtitle")}</div>
             <label className="field">
-              <span>City</span>
-              <input value={cityRequestName} onChange={(event) => setCityRequestName(event.target.value)} placeholder="Berlin, Bogotá, NYC..." autoFocus enterKeyHint="next" />
+              <span>{t("cityRequest.city")}</span>
+              <input value={cityRequestName} onChange={(event) => setCityRequestName(event.target.value)} placeholder={t("cityRequest.cityPlaceholder")} autoFocus enterKeyHint="next" />
             </label>
             <details className="field-disclosure">
-              <summary>More detail if it helps</summary>
+              <summary>{t("cityRequest.moreDetail")}</summary>
               <div className="field-disclosure-body">
                 <div className="field-row">
                   <label className="field">
-                    <span>Area <small className="field-hint">optional</small></span>
-                    <input value={cityRequestLocation} onChange={(event) => setCityRequestLocation(event.target.value)} placeholder="Kreuzberg, Bushwick, Roma Norte..." enterKeyHint="next" />
+                    <span>{t("cityRequest.area")} <small className="field-hint">{t("common.optional")}</small></span>
+                    <input value={cityRequestLocation} onChange={(event) => setCityRequestLocation(event.target.value)} placeholder={t("cityRequest.areaPlaceholder")} enterKeyHint="next" />
                   </label>
                 </div>
                 <label className="field">
-                  <span>Why here? <small className="field-hint">optional</small></span>
+                  <span>{t("cityRequest.whyHere")} <small className="field-hint">{t("common.optional")}</small></span>
                   <textarea
                     value={cityRequestNote}
                     onChange={(event) => setCityRequestNote(event.target.value)}
-                    placeholder="Quick note on the scene, blocks, or why it deserves a pack."
+                    placeholder={t("cityRequest.notePlaceholder")}
                     rows={3}
                   />
                 </label>
@@ -2285,10 +2287,10 @@ function AppShell() {
             {renderStatusBanner(cityRequestStatus, true)}
             <div className="modal-actions">
               <button className="ghost-button" type="button" onClick={() => setShowCityRequest(false)}>
-                Close
+                {t("common.close")}
               </button>
               <button className="primary-button" type="button" onClick={handleSubmitCityRequest} disabled={isSendingCityRequest || !canSubmitCityRequest}>
-                {isSendingCityRequest ? "Sending..." : "Send"}
+                {isSendingCityRequest ? t("common.sending") : t("common.send")}
               </button>
             </div>
           </div>
@@ -2298,21 +2300,21 @@ function AppShell() {
       {showShareJoinModal && (
         <div className="modal-overlay" role="dialog" aria-modal="true">
           <div className="modal-card">
-            <div className="modal-title">Have a code?</div>
-            <div className="modal-subtitle">Drop the code. Pull the same list.</div>
+            <div className="modal-title">{t("share.title")}</div>
+            <div className="modal-subtitle">{t("share.subtitle")}</div>
             <label className="field">
-              <span>Share code</span>
+              <span>{t("share.code")}</span>
               <input
                 type="text"
                 value={shareInput}
                 onChange={(event) => setShareInput(event.target.value.toUpperCase())}
-                placeholder="Enter code"
+                placeholder={t("share.placeholder")}
               />
             </label>
             {renderStatusBanner(shareStatus)}
             <div className="modal-actions">
               <button className="ghost-button" type="button" onClick={() => setShowShareJoinModal(false)}>
-                Close
+                {t("common.close")}
               </button>
               <button
                 className="primary-button"
@@ -2320,7 +2322,7 @@ function AppShell() {
                 onClick={handleLoadShareCode}
                 disabled={isLoadingSharedManifest || !canJoinShareCode}
               >
-                {isLoadingSharedManifest ? "Loading..." : "Load manifest"}
+                {isLoadingSharedManifest ? t("common.loading") : t("share.loadManifest")}
               </button>
             </div>
           </div>
@@ -2330,12 +2332,12 @@ function AppShell() {
       {showCredits && (
         <div className="modal-overlay" role="dialog" aria-modal="true">
           <div className="modal-card">
-            <div className="modal-title">Add credits</div>
+            <div className="modal-title">{t("creditsModal.title")}</div>
             <div className="modal-subtitle">
-              Load up and keep moving.
+              {t("creditsModal.subtitle")}
             </div>
             <label className="field">
-              <span>Amount (USD)</span>
+              <span>{t("creditsModal.amountUsd")}</span>
               <input
                 type="number"
                 min="5"
@@ -2347,7 +2349,7 @@ function AppShell() {
             </label>
             <div className="modal-actions">
               <button className="ghost-button" type="button" onClick={() => setShowCredits(false)}>
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 className="primary-button"
@@ -2356,7 +2358,7 @@ function AppShell() {
                   if (!user?.id) return;
                   const amount = Math.max(5, Number.parseFloat(creditAmount || "0"));
                   if (Number.isNaN(amount)) {
-                    setStatusMessage("Enter a valid amount.");
+                    setStatusMessage(t("creditsModal.invalidAmount"));
                     return;
                   }
                   try {
@@ -2366,14 +2368,14 @@ function AppShell() {
                     });
                     if (data?.url) window.location.href = data.url;
                   } catch {
-                    setStatusMessage("Donation link unavailable right now.");
+                    setStatusMessage(t("creditsModal.linkUnavailable"));
                   } finally {
                     setShowCredits(false);
                     setCreditAmount("5");
                   }
                 }}
               >
-                Go to checkout
+                {t("creditsModal.checkout")}
               </button>
             </div>
           </div>
@@ -2385,22 +2387,22 @@ function AppShell() {
   const renderAccount = () => (
     <div className="sequential-layout sub-page">
       <section className="sub-page-header">
-        <h1 className="sub-page-title">Account</h1>
-        <p className="sub-page-description">{user ? `${accountGreeting} Credits, bike, runs.` : "Login, credits, bike, runs."}</p>
+        <h1 className="sub-page-title">{t("account.title")}</h1>
+        <p className="sub-page-description">{user ? t("account.subtitleAuthed", { greeting: accountGreeting }) : t("account.subtitleGuest")}</p>
       </section>
 
       {!user && (
         <div className="builder-grid single">
           <div className="glass-card form-card account-guest-card">
-            <div className="form-title">Sign in to open your dashboard</div>
-            <div className="form-subtitle">One account. All your runs.</div>
+            <div className="form-title">{t("account.guest.title")}</div>
+            <div className="form-subtitle">{t("account.guest.subtitle")}</div>
             {authMessage && <div className="status-message compact-status">{authMessage}</div>}
             <div className="form-actions centered-actions">
               <button className="primary-button" type="button" onClick={() => openAuth("login")}>
-                Sign in
+                {t("account.guest.signIn")}
               </button>
               <button className="ghost-button" type="button" onClick={() => openAuth("signup")}>
-                Create account
+                {t("account.guest.create")}
               </button>
             </div>
           </div>
@@ -2408,87 +2410,90 @@ function AppShell() {
       )}
 
       {user && (
-        <div className="builder-grid account-grid">
-          <div className="glass-card form-card account-feedback-card">
-            <div className="form-title">Quick feedback</div>
-            <div className="form-subtitle">Keep it direct.</div>
-            <label className="field compact-field">
-              <span>Test note</span>
-              <textarea
-                value={accountFeedback}
-                onChange={(event) => setAccountFeedback(event.target.value.replace(/\s+/g, " ").slice(0, 1200))}
-                placeholder="One clear note from your test."
-                rows={4}
-              />
-            </label>
-            <div className="history-actions">
-              <span>{accountFeedbackWords}/200 words</span>
-              <span>{accountFeedback.trim().length}/1200</span>
-            </div>
-            {renderStatusBanner(accountFeedbackStatus, true)}
-            <div className="form-actions">
-              <button className="ghost-button" type="button" onClick={handleAccountFeedback} disabled={isSendingFeedback || !canSendAccountFeedback}>
-                {isSendingFeedback ? "Sending..." : "Send feedback"}
-              </button>
+        <>
+          <div className="builder-grid single">
+            <div className="glass-card form-card account-feedback-card">
+              <div className="form-title">{t("account.feedback.title")}</div>
+              <div className="form-subtitle">{t("account.feedback.subtitle")}</div>
+              <label className="field compact-field">
+                <span>{t("account.feedback.label")}</span>
+                <textarea
+                  value={accountFeedback}
+                  onChange={(event) => setAccountFeedback(event.target.value.replace(/\s+/g, " ").slice(0, 1200))}
+                  placeholder={t("account.feedback.placeholder")}
+                  rows={4}
+                />
+              </label>
+              <div className="history-actions">
+                <span>{t("account.feedback.wordCount", { count: accountFeedbackWords })}</span>
+                <span>{accountFeedback.trim().length}/1200</span>
+              </div>
+              {renderStatusBanner(accountFeedbackStatus, true)}
+              <div className="form-actions">
+                <button className="ghost-button" type="button" onClick={handleAccountFeedback} disabled={isSendingFeedback || !canSendAccountFeedback}>
+                  {isSendingFeedback ? t("account.feedback.sending") : t("account.feedback.send")}
+                </button>
+              </div>
             </div>
           </div>
 
-          <div className="glass-card form-card account-summary-card" id="account-profile">
-            <div className="form-title">Profile & Security</div>
-            <div className="form-subtitle">Set your tag.</div>
+          <div className="builder-grid account-grid">
+            <div className="glass-card form-card account-summary-card" id="account-profile">
+            <div className="form-title">{t("account.profile.title")}</div>
+            <div className="form-subtitle">{t("account.profile.subtitle")}</div>
             <div className="section-jump-strip">
-              <a className="mini-chip active" href="#account-profile">Setup</a>
-              <a className="mini-chip" href="#account-credits">Credits</a>
-              <a className="mini-chip" href="#account-activity">Stats</a>
-              <a className="mini-chip" href="#account-history">History</a>
+              <a className="mini-chip active" href="#account-profile">{t("account.jump.setup")}</a>
+              <a className="mini-chip" href="#account-credits">{t("account.jump.credits")}</a>
+              <a className="mini-chip" href="#account-activity">{t("account.jump.stats")}</a>
+              <a className="mini-chip" href="#account-history">{t("account.jump.history")}</a>
             </div>
             {renderStatusBanner(authMessage, true)}
             {renderStatusBanner(accountStatus, true)}
             <div className="user-row">
-              <div className="user-label">Email</div>
-              <div className="user-value">{user.email || "No email"}</div>
+              <div className="user-label">{t("account.profile.email")}</div>
+              <div className="user-value">{user.email || t("account.profile.noEmail")}</div>
             </div>
 
             <div className="profile-grid">
               <label className="field">
-                <span>Rider name</span>
+                <span>{t("account.profile.riderName")}</span>
                 <input
                   type="text"
                   value={accountRiderName}
                   onChange={(event) => setAccountRiderName(event.target.value)}
-                  placeholder="Your name on the wall"
+                  placeholder={t("account.profile.riderNamePlaceholder")}
                   autoComplete="nickname"
                   enterKeyHint="next"
                 />
               </label>
               <label className="field">
-                <span>Home location</span>
+                <span>{t("account.profile.homeLocation")}</span>
                 <input
                   type="text"
                   value={accountHomeLocation}
                   onChange={(event) => setAccountHomeLocation(event.target.value)}
-                  placeholder="Berlin, Kreuzberg"
+                  placeholder={t("account.profile.homeLocationPlaceholder")}
                   autoComplete="address-level2"
                   enterKeyHint="next"
                 />
               </label>
               <label className="field">
-                <span>Bike name</span>
+                <span>{t("account.profile.bikeName")}</span>
                 <input
                   type="text"
                   value={accountBikeName}
                   onChange={(event) => setAccountBikeName(event.target.value)}
-                  placeholder="Black track build"
+                  placeholder={t("account.profile.bikeNamePlaceholder")}
                   enterKeyHint="next"
                 />
               </label>
               <label className="field">
-                <span>Bike ratio</span>
+                <span>{t("account.profile.bikeRatio")}</span>
                 <input
                   type="text"
                   value={accountBikeRatio}
                   onChange={(event) => setAccountBikeRatio(event.target.value)}
-                  placeholder="49x17"
+                  placeholder={t("account.profile.bikeRatioPlaceholder")}
                   autoCapitalize="off"
                   autoCorrect="off"
                   spellCheck={false}
@@ -2499,147 +2504,147 @@ function AppShell() {
 
             <div className="form-actions">
               <button className="primary-button" type="button" onClick={handleProfileSave} disabled={isSavingProfile}>
-                {isSavingProfile ? "Saving..." : "Save profile"}
+                {isSavingProfile ? t("account.profile.saving") : t("account.profile.save")}
               </button>
             </div>
             <div className="helper-note">
-              Rider name, bike name, and ratio go public on your wall posts. Email and password stay private.
+              {t("account.profile.helper")}
             </div>
 
             <label className="field">
-              <span>Change password</span>
+              <span>{t("account.profile.changePassword")}</span>
               <input
                 type="password"
                 value={accountPassword}
                 onChange={(event) => setAccountPassword(event.target.value)}
-                placeholder="New password"
+                placeholder={t("account.profile.newPasswordPlaceholder")}
                 autoComplete="new-password"
                 enterKeyHint="done"
               />
             </label>
             <div className="form-actions">
               <button className="primary-button" type="button" onClick={handlePasswordUpdate} disabled={isUpdatingPassword}>
-                {isUpdatingPassword ? "Saving..." : "Update password"}
+                {isUpdatingPassword ? t("account.profile.saving") : t("account.profile.updatePassword")}
               </button>
               <button className="ghost-button" type="button" onClick={handleLogout}>
-                Logout
+                {t("account.profile.logout")}
               </button>
             </div>
           </div>
 
           <div className="glass-card form-card account-credits-card" id="account-credits">
-            <div className="form-title">Credits</div>
-            <div className="form-subtitle">Know the burn.</div>
+            <div className="form-title">{t("account.credits.title")}</div>
+            <div className="form-subtitle">{t("account.credits.subtitle")}</div>
 
             <div className="result-grid result-grid-two account-credit-grid">
               <div>
-                <span>Total credits</span>
-                <strong>{hasUnlimitedCredits ? "Unlimited" : totalCredits}</strong>
+                <span>{t("account.credits.total")}</span>
+                <strong>{hasUnlimitedCredits ? t("credits.unlimited") : totalCredits}</strong>
               </div>
               <div>
-                <span>Alleycat burn</span>
-                <strong>{hasUnlimitedCredits ? "Free" : `${MESSENGER_CREDIT_COST} each`}</strong>
+                <span>{t("account.credits.alleycatBurn")}</span>
+                <strong>{hasUnlimitedCredits ? t("account.credits.free") : t("account.credits.each", { count: MESSENGER_CREDIT_COST })}</strong>
               </div>
               <div>
-                <span>Free loops left</span>
-                <strong>{hasUnlimitedCredits ? "Unlimited" : usage?.free_remaining || 0}</strong>
+                <span>{t("account.credits.freeLoopsLeft")}</span>
+                <strong>{hasUnlimitedCredits ? t("credits.unlimited") : usage?.free_remaining || 0}</strong>
               </div>
               <div>
-                <span>Paid credits live</span>
-                <strong>{hasUnlimitedCredits ? "Unlimited" : messengerCreditsOnly}</strong>
+                <span>{t("account.credits.paidCreditsLive")}</span>
+                <strong>{hasUnlimitedCredits ? t("credits.unlimited") : messengerCreditsOnly}</strong>
               </div>
             </div>
 
             <div className="result-grid result-grid-two account-credit-rules">
               <div>
-                <span>Loop burn</span>
-                <strong>{hasUnlimitedCredits ? "Free" : `${LOOP_CREDIT_COST} each`}</strong>
+                <span>{t("account.credits.loopBurn")}</span>
+                <strong>{hasUnlimitedCredits ? t("account.credits.free") : t("account.credits.each", { count: LOOP_CREDIT_COST })}</strong>
               </div>
               <div>
-                <span>Free lane</span>
-                <strong>{hasUnlimitedCredits ? "Unlimited" : `${LOOP_FREE_LIMIT} starter loops`}</strong>
+                <span>{t("account.credits.freeLane")}</span>
+                <strong>{hasUnlimitedCredits ? t("credits.unlimited") : t("account.credits.starterLoops", { count: LOOP_FREE_LIMIT })}</strong>
               </div>
               <div>
-                <span>Top-up lane</span>
-                <strong>Paid credits</strong>
+                <span>{t("account.credits.topUpLane")}</span>
+                <strong>{t("account.credits.paidCredits")}</strong>
               </div>
               <div>
-                <span>Heavy pull</span>
-                <strong>Alleycat first</strong>
+                <span>{t("account.credits.heavyPull")}</span>
+                <strong>{t("account.credits.alleycatFirst")}</strong>
               </div>
             </div>
 
             <div className="form-actions" style={{ marginTop: '16px' }}>
               <button className="primary-button" type="button" onClick={handleDonate}>
-                Add credits
+                {t("account.credits.add")}
               </button>
             </div>
             <div className="account-note">
               {hasUnlimitedCredits
-                ? "Admin account stays open across Loop and Alleycat."
-                : `Loop burns ${LOOP_CREDIT_COST}. Alleycat burns ${MESSENGER_CREDIT_COST}. Alleycat hits your paid credits harder, so keep an eye on the meter.`}
+                ? t("account.credits.adminNote")
+                : t("account.credits.note", { loop: LOOP_CREDIT_COST, alleycat: MESSENGER_CREDIT_COST })}
             </div>
           </div>
 
           <div className="glass-card form-card account-stats-card" id="account-activity">
-            <div className="form-title">V1 activity</div>
-            <div className="form-subtitle">Your numbers.</div>
+            <div className="form-title">{t("account.activity.title")}</div>
+            <div className="form-subtitle">{t("account.activity.subtitle")}</div>
             <div className="result-grid result-grid-two">
               <div>
-                <span>Manifests</span>
+                <span>{t("account.activity.manifests")}</span>
                 <strong>{accountSummary?.alleycat?.manifests || 0}</strong>
               </div>
               <div>
-                <span>Runs</span>
+                <span>{t("account.activity.runs")}</span>
                 <strong>{accountSummary?.alleycat?.runs || 0}</strong>
               </div>
               <div>
-                <span>Finished</span>
+                <span>{t("account.activity.finished")}</span>
                 <strong>{accountSummary?.alleycat?.finished_runs || 0}</strong>
               </div>
               <div>
-                <span>Challenges</span>
+                <span>{t("account.activity.challenges")}</span>
                 <strong>{accountSummary?.alleycat?.challenges || 0}</strong>
               </div>
               <div>
-                <span>Proofs</span>
+                <span>{t("account.activity.proofs")}</span>
                 <strong>{accountSummary?.alleycat?.proofs || 0}</strong>
               </div>
               <div>
-                <span>Public proofs</span>
+                <span>{t("account.activity.publicProofs")}</span>
                 <strong>{accountSummary?.alleycat?.public_proofs || 0}</strong>
               </div>
             </div>
             <div className="account-note">
               {hasUnlimitedCredits
-                ? "Admin account stays unlocked for testing."
-                : `Loop rides the light meter. Alleycat hits ${MESSENGER_CREDIT_COST} credits a pull.`}
+                ? t("account.activity.adminNote")
+                : t("account.activity.note", { alleycat: MESSENGER_CREDIT_COST })}
             </div>
           </div>
 
           <div className="glass-card form-card account-quarter-card">
-            <div className="form-title">Quarter board</div>
-            <div className="form-subtitle">{accountSummary?.quarter?.label || "Current quarter"}. Proof first.</div>
+            <div className="form-title">{t("account.quarter.title")}</div>
+            <div className="form-subtitle">{t("account.quarter.subtitle", { label: accountSummary?.quarter?.label || t("leaderboard.currentQuarter") })}</div>
             <div className="result-grid result-grid-three">
               <div>
-                <span>Rank</span>
+                <span>{t("account.quarter.rank")}</span>
                 <strong>
                   {accountSummary?.quarter?.rank ? `#${accountSummary.quarter.rank}` : "--"}
                 </strong>
               </div>
               <div>
-                <span>Public proofs</span>
+                <span>{t("account.quarter.publicProofs")}</span>
                 <strong>{accountSummary?.quarter?.public_proofs || 0}</strong>
               </div>
               <div>
-                <span>Quarter finishes</span>
+                <span>{t("account.quarter.finishes")}</span>
                 <strong>{accountSummary?.quarter?.finished_runs || 0}</strong>
               </div>
             </div>
             <div className="account-note">
               {accountSummary?.quarter?.total_ranked_riders
-                ? `${accountSummary.quarter.total_ranked_riders} riders are on the board right now.`
-                : "No ranked riders yet this quarter."}
+                ? t("account.quarter.ridersOnBoard", { count: accountSummary.quarter.total_ranked_riders })
+                : t("account.quarter.noRanked")}
             </div>
             {accountSummary?.badges?.length ? (
               <div className="badge-list">
@@ -2652,7 +2657,7 @@ function AppShell() {
               </div>
             ) : (
               <div className="empty-state">
-                <div className="empty-state-body">Post proof and close runs for badges.</div>
+                <div className="empty-state-body">{t("account.quarter.noBadges")}</div>
               </div>
             )}
             {accountSummary?.quarter?.leaders?.length ? (
@@ -2661,9 +2666,9 @@ function AppShell() {
                   <div key={entry.user_id} className="leaderboard-row">
                     <div className="leaderboard-rank">#{entry.rank}</div>
                     <div className="leaderboard-main">
-                      <strong>{entry.user_id === user?.id ? "You" : entry.rider_name}</strong>
+                      <strong>{entry.user_id === user?.id ? t("account.quarter.you") : entry.rider_name}</strong>
                       <span>
-                        {entry.public_proofs} proofs · {entry.finished_runs} finishes
+                        {t("account.quarter.proofsFinishes", { proofs: entry.public_proofs, finishes: entry.finished_runs })}
                       </span>
                     </div>
                   </div>
@@ -2673,11 +2678,11 @@ function AppShell() {
           </div>
 
           <div className="glass-card form-card account-purchases-card">
-            <div className="form-title">Recent purchases</div>
-            <div className="form-subtitle">Money in.</div>
+            <div className="form-title">{t("account.purchases.title")}</div>
+            <div className="form-subtitle">{t("account.purchases.subtitle")}</div>
             {!accountSummary?.purchases?.length && (
               <div className="empty-state">
-                <div className="empty-state-body">No credit purchases yet.</div>
+                <div className="empty-state-body">{t("account.purchases.empty")}</div>
               </div>
             )}
             {accountSummary?.purchases?.length ? (
@@ -2686,25 +2691,25 @@ function AppShell() {
                   <div key={purchase.session_id} className="purchase-row">
                     <div>
                       <strong>${(purchase.amount_cents / 100).toFixed(2)}</strong>
-                      <span>{new Date(purchase.created_at).toLocaleDateString()}</span>
+                      <span>{formatDate(purchase.created_at)}</span>
                     </div>
                     <div>
-                      <strong>{purchase.credits_to_grant} credits</strong>
+                      <strong>{t("account.purchases.credits", { count: purchase.credits_to_grant })}</strong>
                       <span>{purchase.status.replace(/_/g, " ")}</span>
                     </div>
                   </div>
                 ))}
               </div>
             ) : null}
-            {renderPanelToggle(accountSummary?.purchases, "purchases", "Show purchases")}
+            {renderPanelToggle(accountSummary?.purchases, "purchases", t("account.purchases.showMore"))}
           </div>
 
           <div className="glass-card form-card account-history-card" id="account-history">
-            <div className="form-title">Loop history</div>
-            <div className="form-subtitle">Last routes.</div>
+            <div className="form-title">{t("account.loopHistory.title")}</div>
+            <div className="form-subtitle">{t("account.loopHistory.subtitle")}</div>
             {!accountSummary?.loop_history?.length ? (
               <div className="empty-state">
-                <div className="empty-state-body">No loop history yet.</div>
+                <div className="empty-state-body">{t("account.loopHistory.empty")}</div>
               </div>
             ) : (
               <div className="history-list">
@@ -2717,33 +2722,33 @@ function AppShell() {
                       </span>
                     </div>
                     <div className="history-actions">
-                      <span>{new Date(loop.created_at).toLocaleDateString()}</span>
+                      <span>{formatDate(loop.created_at)}</span>
                       <a className="ghost-button small" href={loop.route_url} target="_blank" rel="noreferrer">
-                        Open
+                        {t("account.loopHistory.open")}
                       </a>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-            {renderPanelToggle(accountSummary?.loop_history, "loop-history", "Show routes")}
+            {renderPanelToggle(accountSummary?.loop_history, "loop-history", t("account.loopHistory.showMore"))}
           </div>
 
           <div className="glass-card form-card account-history-card">
-            <div className="form-title">Alleycat runs</div>
-            <div className="form-subtitle">Runs, times, proofs.</div>
+            <div className="form-title">{t("account.alleycatHistory.title")}</div>
+            <div className="form-subtitle">{t("account.alleycatHistory.subtitle")}</div>
             {!accountSummary?.alleycat_history?.length ? (
               <div className="empty-state">
-                <div className="empty-state-body">No Alleycat history yet.</div>
+                <div className="empty-state-body">{t("account.alleycatHistory.empty")}</div>
               </div>
             ) : (
               <div className="history-list">
                 {getExpandedLimit(accountSummary.alleycat_history, "alleycat-history").map((item) => (
                   <div key={item.id} className="history-row">
                     <div>
-                      <strong>{item.city_name || "City"} · {item.manifest_title}</strong>
+                      <strong>{item.city_name || t("account.common.city")} · {item.manifest_title}</strong>
                       <span>
-                        {item.difficulty} · {item.style} · {item.proof_count} proofs · {item.source_challenge_id ? "Shared" : "Solo"}
+                        {item.difficulty} · {item.style} · {t("account.alleycatHistory.proofs", { count: item.proof_count })} · {item.source_challenge_id ? t("account.alleycatHistory.shared") : t("account.alleycatHistory.solo")}
                       </span>
                     </div>
                     <div className="history-actions">
@@ -2752,49 +2757,49 @@ function AppShell() {
                           ? `${formatDuration(item.best_seconds)}${item.ghost_delta !== null ? ` · ${item.ghost_delta <= 0 ? "-" : "+"}${formatDuration(Math.abs(item.ghost_delta))}` : ""}`
                           : item.status}
                       </span>
-                      <span>{new Date(item.created_at).toLocaleDateString()}</span>
+                      <span>{formatDate(item.created_at)}</span>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-            {renderPanelToggle(accountSummary?.alleycat_history, "alleycat-history", "Show runs")}
+            {renderPanelToggle(accountSummary?.alleycat_history, "alleycat-history", t("account.alleycatHistory.showMore"))}
           </div>
 
           <div className="glass-card form-card account-history-card">
-            <div className="form-title">Challenge log</div>
-            <div className="form-subtitle">Codes and crew.</div>
+            <div className="form-title">{t("account.challenges.title")}</div>
+            <div className="form-subtitle">{t("account.challenges.subtitle")}</div>
             {!accountSummary?.challenge_history?.length ? (
               <div className="empty-state">
-                <div className="empty-state-body">No shared challenge history yet.</div>
+                <div className="empty-state-body">{t("account.challenges.empty")}</div>
               </div>
             ) : (
               <div className="history-list">
                 {getExpandedLimit(accountSummary.challenge_history, "challenge-history").map((item) => (
                   <div key={item.challenge_id} className="history-row">
                     <div>
-                      <strong>Code {item.code}</strong>
+                      <strong>{t("account.challenges.code", { code: item.code })}</strong>
                       <span>
-                        {item.city_name || "City"} · {item.manifest_title || "Manifest"} · {item.rival_count} rivals
+                        {item.city_name || t("account.common.city")} · {item.manifest_title || t("account.challenges.manifestFallback")} · {t("account.challenges.rivals", { count: item.rival_count })}
                       </span>
                     </div>
                     <div className="history-actions">
                       <span>{item.best_seconds ? formatDuration(item.best_seconds) : item.status}</span>
-                      <span>{new Date(item.joined_at).toLocaleDateString()}</span>
+                      <span>{formatDate(item.joined_at)}</span>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-            {renderPanelToggle(accountSummary?.challenge_history, "challenge-history", "Show codes")}
+            {renderPanelToggle(accountSummary?.challenge_history, "challenge-history", t("account.challenges.showMore"))}
           </div>
 
           <div className="glass-card form-card account-history-card" id="account-crew">
-            <div className="form-title">Riders you raced with</div>
-            <div className="form-subtitle">Shared runs only.</div>
+            <div className="form-title">{t("account.crew.title")}</div>
+            <div className="form-subtitle">{t("account.crew.subtitle")}</div>
             {!accountSummary?.shared_riders?.length ? (
               <div className="empty-state">
-                <div className="empty-state-body">No shared rider links yet.</div>
+                <div className="empty-state-body">{t("account.crew.empty")}</div>
               </div>
             ) : (
               <div className="history-list">
@@ -2803,20 +2808,21 @@ function AppShell() {
                     <div>
                       <strong>{rider.rider_name}</strong>
                       <span>
-                        {rider.shared_challenges} shared challenges · {rider.cities.join(", ") || "No city tags yet"}
+                        {t("account.crew.sharedChallenges", { count: rider.shared_challenges })} · {rider.cities.join(", ") || t("account.crew.noCityTags")}
                       </span>
                     </div>
                     <div className="history-actions">
-                      <span>Last seen</span>
-                      <span>{new Date(rider.last_joined_at).toLocaleDateString()}</span>
+                      <span>{t("account.crew.lastSeen")}</span>
+                      <span>{formatDate(rider.last_joined_at)}</span>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-            {renderPanelToggle(accountSummary?.shared_riders, "shared-riders", "Show crew")}
+            {renderPanelToggle(accountSummary?.shared_riders, "shared-riders", t("account.crew.showMore"))}
           </div>
         </div>
+        </>
       )}
     </div>
   );
