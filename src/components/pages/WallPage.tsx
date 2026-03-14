@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { useI18n } from "../../i18n";
 
 type WallPost = {
   id: string;
@@ -41,24 +42,25 @@ export default function WallPage({
   onOpenWallCity,
   onOpenLeaderboardCity,
 }: WallPageProps) {
+  const { t, formatDate } = useI18n();
   const [showCityPicker, setShowCityPicker] = useState(false);
   const cityGroups = useMemo(() => [
     {
-      label: "Americas",
+      label: t("continent.americas"),
       cities: cityPresets
         .filter((city) => ["Bogota", "Buenos Aires", "Chicago", "Los Angeles", "Mexico City", "New York", "Philadelphia", "San Francisco", "Santos", "Sao Paulo", "Seattle"].includes(city))
         .sort((a, b) => a.localeCompare(b)),
       anchor: "wall-city-group-americas",
     },
     {
-      label: "Europe",
+      label: t("continent.europe"),
       cities: cityPresets
         .filter((city) => ["Amsterdam", "Barcelona", "Berlin", "Krakow", "London", "Milan", "Paris", "Vienna", "Warsaw"].includes(city))
         .sort((a, b) => a.localeCompare(b)),
       anchor: "wall-city-group-europe",
     },
     {
-      label: "Asia",
+      label: t("continent.asia"),
       cities: cityPresets
         .filter((city) => ["Bangkok", "Seoul", "Taipei", "Tokyo"].includes(city))
         .sort((a, b) => a.localeCompare(b)),
@@ -69,16 +71,16 @@ export default function WallPage({
   return (
     <div className="sequential-layout sub-page">
       <section className="sub-page-header">
-        <h1 className="sub-page-title">Wall of Fame</h1>
+        <h1 className="sub-page-title">{t("wall.title")}</h1>
       </section>
 
       <section className="wall-section reveals" id="wall-feed">
         <div className="filter-strip" id="wall-filter">
           <button type="button" className="inline-link-button wall-filter-link" onClick={() => setShowCityPicker(true)}>
-            {selectedWallCity ? getCityLabel(selectedWallCity) : "All Cities"}
+            {selectedWallCity ? getCityLabel(selectedWallCity) : t("wall.allCities")}
           </button>
         </div>
-        {isLoadingWall && <div className="status-message">Loading Wall of Fame…</div>}
+        {isLoadingWall && <div className="status-message">{t("wall.loading")}</div>}
         {wallPosts.length > 0 && (
           <div className="wall-grid">
             {wallPosts.map((post) => (
@@ -87,11 +89,11 @@ export default function WallPage({
                 <div className="wall-meta">
                   <div className="wall-detail-grid">
                     <div>
-                      <span>Type</span>
-                      <strong>Alleycat</strong>
+                      <span>{t("wall.type")}</span>
+                      <strong>{t("wall.typeAlleycat")}</strong>
                     </div>
                     <div>
-                      <span>Rider</span>
+                      <span>{t("wall.rider")}</span>
                       <strong>
                         <button className="inline-link-button checkpoint-name" type="button" onClick={() => onOpenRiderProfile(post.user_id)}>
                           {post.rider_name}
@@ -99,28 +101,28 @@ export default function WallPage({
                       </strong>
                     </div>
                     <div>
-                      <span>Location</span>
+                      <span>{t("wall.location")}</span>
                       <strong>{post.location_label || post.city_name}</strong>
                     </div>
                     <div>
-                      <span>Date</span>
-                      <strong>{new Date(post.created_at).toLocaleDateString()}</strong>
+                      <span>{t("wall.date")}</span>
+                      <strong>{formatDate(post.created_at)}</strong>
                     </div>
                     <div>
-                      <span>Bike</span>
-                      <strong>{post.bike_name || "Bike"}</strong>
+                      <span>{t("wall.bike")}</span>
+                      <strong>{post.bike_name || t("wall.bikeFallback")}</strong>
                     </div>
                     <div>
-                      <span>Ratio</span>
-                      <strong>{post.bike_ratio || "Ratio"}</strong>
+                      <span>{t("wall.ratio")}</span>
+                      <strong>{post.bike_ratio || t("wall.ratioFallback")}</strong>
                     </div>
                   </div>
                   <div className="wall-city-actions">
                     <button className="ghost-button small" type="button" onClick={() => onOpenWallCity(post.city_name)}>
-                      Wall
+                      {t("wall.buttonWall")}
                     </button>
                     <button className="ghost-button small" type="button" onClick={() => onOpenLeaderboardCity(post.city_name)}>
-                      Board
+                      {t("wall.buttonBoard")}
                     </button>
                   </div>
                 </div>
@@ -134,8 +136,8 @@ export default function WallPage({
         <div className="modal-overlay" role="dialog" aria-modal="true">
           <div className="modal-card">
             <div className="modal-header">
-              <div className="modal-title">Choose a city</div>
-              <button className="modal-close" type="button" aria-label="Close city picker" onClick={() => setShowCityPicker(false)}>
+              <div className="modal-title">{t("wall.chooseCity")}</div>
+              <button className="modal-close" type="button" aria-label={t("common.close")} onClick={() => setShowCityPicker(false)}>
                 ×
               </button>
             </div>
@@ -155,7 +157,7 @@ export default function WallPage({
                   setShowCityPicker(false);
                 }}
               >
-                All
+                {t("common.all")}
               </button>
               {cityGroups.map((group) => (
                 <div key={group.anchor} className="city-picker-group" id={group.anchor}>
@@ -178,7 +180,7 @@ export default function WallPage({
                 </div>
               ))}
               <button className="primary-button" type="button" onClick={() => setShowCityPicker(false)}>
-                Close
+                {t("common.close")}
               </button>
             </div>
           </div>

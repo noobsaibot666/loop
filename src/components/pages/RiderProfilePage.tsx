@@ -1,4 +1,5 @@
 import { formatDuration } from "../../utils/routeUtils";
+import { useI18n } from "../../i18n";
 
 type WallPost = {
   id: string;
@@ -92,29 +93,30 @@ export default function RiderProfilePage({
   onOpenLeaderboardCity,
   onOpenRiderProfile,
 }: RiderProfilePageProps) {
+  const { t, formatDate } = useI18n();
   return (
     <div className="sequential-layout sub-page">
       <section className="sub-page-header">
-        <h1 className="sub-page-title">{publicRiderProfile?.profile?.rider_name || "Rider profile"}</h1>
-        <p className="sub-page-description">Proof, heat, bike.</p>
+        <h1 className="sub-page-title">{publicRiderProfile?.profile?.rider_name || t("rider.notFound")}</h1>
+        <p className="sub-page-description">{t("rider.subtitle")}</p>
         {publicRiderProfile && (
           <div className="section-jump-strip">
-            <a className="mini-chip active" href="#rider-stats">Stats</a>
-            <a className="mini-chip" href="#rider-cities">Cities</a>
-            <a className="mini-chip" href="#rider-standing">Standing</a>
-            <a className="mini-chip" href="#rider-ledger">Ledger</a>
-            <a className="mini-chip" href="#rider-proof">Proof</a>
+            <a className="mini-chip active" href="#rider-stats">{t("rider.jump.stats")}</a>
+            <a className="mini-chip" href="#rider-cities">{t("rider.jump.cities")}</a>
+            <a className="mini-chip" href="#rider-standing">{t("rider.jump.standing")}</a>
+            <a className="mini-chip" href="#rider-ledger">{t("rider.jump.ledger")}</a>
+            <a className="mini-chip" href="#rider-proof">{t("rider.jump.proof")}</a>
           </div>
         )}
       </section>
 
       <section className="builder-grid single reveals">
         <div className="glass-card form-card rider-profile-card">
-          {isLoadingPublicRiderProfile && <div className="status-message">Loading rider profile…</div>}
+          {isLoadingPublicRiderProfile && <div className="status-message">{t("rider.loading")}</div>}
           {!isLoadingPublicRiderProfile && !publicRiderProfile && (
             <div className="empty-state">
-              <div className="empty-state-title">Rider not found</div>
-              <div className="empty-state-body">Profile is private or the link is dead.</div>
+              <div className="empty-state-title">{t("rider.notFound")}</div>
+              <div className="empty-state-body">{t("rider.notFoundBody")}</div>
             </div>
           )}
           {publicRiderProfile && (
@@ -124,12 +126,12 @@ export default function RiderProfilePage({
                   <div>
                     <div className="form-title">{publicRiderProfile.profile.rider_name}</div>
                     <div className="form-subtitle">
-                      {publicRiderProfile.profile.home_location || publicRiderProfile.stats.top_city || "No city tag yet"}
+                      {publicRiderProfile.profile.home_location || publicRiderProfile.stats.top_city || t("rider.noCityTag")}
                     </div>
                   </div>
                   <div className="rider-bike-tag">
-                    <span>{publicRiderProfile.profile.bike_name || "Bike not set"}</span>
-                    <strong>{publicRiderProfile.profile.bike_ratio || "Ratio not set"}</strong>
+                    <span>{publicRiderProfile.profile.bike_name || t("rider.bikeNotSet")}</span>
+                    <strong>{publicRiderProfile.profile.bike_ratio || t("rider.ratioNotSet")}</strong>
                   </div>
                 </div>
 
@@ -143,9 +145,9 @@ export default function RiderProfilePage({
                       decoding="async"
                     />
                     <div className="rider-feature-meta">
-                      <span>Latest wall hit</span>
+                      <span>{t("rider.latestWallHit")}</span>
                       <strong>{publicRiderProfile.recent_proofs[0].checkpoint_name}</strong>
-                      <em>{publicRiderProfile.recent_proofs[0].city_name} · {new Date(publicRiderProfile.recent_proofs[0].created_at).toLocaleDateString()}</em>
+                      <em>{publicRiderProfile.recent_proofs[0].city_name} · {formatDate(publicRiderProfile.recent_proofs[0].created_at)}</em>
                     </div>
                   </div>
                 )}
@@ -153,42 +155,42 @@ export default function RiderProfilePage({
 
               <div className="result-grid result-grid-four rider-stat-grid" id="rider-stats">
                 <div>
-                  <span>Public proofs</span>
+                  <span>{t("rider.publicProofs")}</span>
                   <strong>{publicRiderProfile.stats.public_proofs}</strong>
                 </div>
                 <div>
-                  <span>Finished runs</span>
+                  <span>{t("rider.finishedRuns")}</span>
                   <strong>{publicRiderProfile.stats.finished_runs}</strong>
                 </div>
                 <div>
-                  <span>Quarter rank</span>
+                  <span>{t("rider.quarterRank")}</span>
                   <strong>{publicRiderProfile.stats.quarter_rank ? `#${publicRiderProfile.stats.quarter_rank}` : "--"}</strong>
                 </div>
                 <div>
-                  <span>Best finish</span>
+                  <span>{t("rider.bestFinish")}</span>
                   <strong>{publicRiderProfile.stats.best_finish_seconds ? formatDuration(publicRiderProfile.stats.best_finish_seconds) : "--:--"}</strong>
                 </div>
               </div>
 
               <div className="result-grid result-grid-three rider-stat-grid rider-stat-grid-secondary">
                 <div>
-                  <span>Cities hit</span>
+                  <span>{t("rider.citiesHit")}</span>
                   <strong>{publicRiderProfile.stats.cities}</strong>
                 </div>
                 <div>
-                  <span>Top city</span>
+                  <span>{t("rider.topCity")}</span>
                   <strong>{publicRiderProfile.stats.top_city || "--"}</strong>
                 </div>
                 <div>
-                  <span>Quarter proofs</span>
+                  <span>{t("rider.quarterProofs")}</span>
                   <strong>{publicRiderProfile.stats.quarter_public_proofs}</strong>
                 </div>
                 <div>
-                  <span>Shared codes</span>
+                  <span>{t("rider.sharedCodes")}</span>
                   <strong>{publicRiderProfile.stats.shared_challenges}</strong>
                 </div>
                 <div>
-                  <span>Rivals met</span>
+                  <span>{t("rider.rivalsMet")}</span>
                   <strong>{publicRiderProfile.stats.rivals}</strong>
                 </div>
               </div>
@@ -196,25 +198,25 @@ export default function RiderProfilePage({
               <div className="rider-story-strip">
                 <div className="mini-chip active">
                   {publicRiderProfile.stats.quarter_rank
-                    ? `Quarter heat: #${publicRiderProfile.stats.quarter_rank}`
-                    : "Quarter heat: building"}
+                    ? t("rider.quarterHeat", { rank: publicRiderProfile.stats.quarter_rank })
+                    : t("rider.quarterHeatBuilding")}
                 </div>
                 <div className="mini-chip">
                   {publicRiderProfile.stats.last_active_at
-                    ? `Last active ${new Date(publicRiderProfile.stats.last_active_at).toLocaleDateString()}`
-                    : "No recent run date yet"}
+                    ? t("rider.lastActive", { date: formatDate(publicRiderProfile.stats.last_active_at) })
+                    : t("rider.noRecentRun")}
                 </div>
                 <div className="mini-chip">
                   {publicRiderProfile.stats.top_city
-                    ? `${publicRiderProfile.stats.top_city} is the main lane`
-                    : "City story still loading"}
+                    ? t("rider.mainLane", { city: publicRiderProfile.stats.top_city })
+                    : t("rider.cityStoryLoading")}
                 </div>
                 <div className="mini-chip">
                   {publicRiderProfile.stats.proof_streak_days > 1
-                    ? `${publicRiderProfile.stats.proof_streak_days}-day proof streak`
+                    ? t("rider.proofStreak", { count: publicRiderProfile.stats.proof_streak_days })
                     : publicRiderProfile.stats.public_proofs > 0
-                      ? "Fresh proof line live"
-                      : "No streak yet"}
+                      ? t("rider.freshProof")
+                      : t("rider.noStreak")}
                 </div>
               </div>
 

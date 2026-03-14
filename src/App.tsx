@@ -4,6 +4,7 @@ import heroImage from "./images/hero_6.jpg";
 import alleycatImage from "./images/hero_4.jpg";
 
 import Hero from "./components/Hero";
+import { I18nProvider, useI18n } from "./i18n";
 import { formatDuration, getPageView, getRiderIdFromPath } from "./utils/routeUtils";
 
 const WallPage = lazy(() => import("./components/pages/WallPage"));
@@ -357,48 +358,14 @@ const loopSteps = [
   },
 ];
 
-const productHighlights = [
-  {
-    title: "Alleycat Mode",
-    body: "City pack, ghost heat, proof, and your own line through town.",
-    action: "Open Alleycat",
-    page: "messenger" as PageView,
-  },
-  {
-    title: "Loop",
-    body: "Fast routes back. Point, build, move.",
-    action: "Open Loop",
-    page: "loop" as PageView,
-  },
-];
-
-const messengerFlow = [
-  {
-    number: "01",
-    title: "Pick the city",
-    body: "Pick a city and pull the list.",
-  },
-  {
-    number: "02",
-    title: "Hit the points",
-    body: "Clear the checkpoints your own way.",
-  },
-  {
-    number: "03",
-    title: "Proof of passage",
-    body: "Post proof and let it hit the wall.",
-  },
-];
-
-
-
-
-export default function App() {
+function AppShell() {
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", "dark");
   }, []);
+  const { language, setLanguage, t, formatDate } = useI18n();
 
   const [pageView, setPageView] = useState<PageView>(() => getPageView());
+  const [showLanguageMenu, setShowLanguageMenu] = useState(false);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -417,6 +384,13 @@ export default function App() {
 
     return () => observer.disconnect();
   }, [pageView]);
+
+  useEffect(() => {
+    if (!showLanguageMenu) return;
+    const handleClick = () => setShowLanguageMenu(false);
+    window.addEventListener("click", handleClick);
+    return () => window.removeEventListener("click", handleClick);
+  }, [showLanguageMenu]);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeStep, setActiveStep] = useState(-1);
@@ -1106,6 +1080,35 @@ export default function App() {
   const isAdminUser = Boolean(accountSummary?.is_admin || usage?.is_admin);
   const totalCredits = hasUnlimitedCredits ? 9999 : Math.max(0, (usage?.credits_remaining || 0) + (usage?.free_remaining || 0));
   const messengerCreditsOnly = hasUnlimitedCredits ? 9999 : Math.max(0, usage?.credits_remaining || 0);
+  const alleycatCityGroups = useMemo(
+    () =>
+      ALLEYCAT_CITY_GROUPS.map((group) => ({
+        ...group,
+        label:
+          group.label === "Americas"
+            ? t("continent.americas")
+            : group.label === "Europe"
+              ? t("continent.europe")
+              : t("continent.asia"),
+      })),
+    [t]
+  );
+  const loopSteps = useMemo(
+    () => [
+      { number: "01", title: t("loop.step1.title"), body: t("loop.step1.body") },
+      { number: "02", title: t("loop.step2.title"), body: t("loop.step2.body") },
+      { number: "03", title: t("loop.step3.title"), body: t("loop.step3.body") },
+    ],
+    [t]
+  );
+  const messengerFlow = useMemo(
+    () => [
+      { number: "01", title: t("alleycat.step1.title"), body: t("alleycat.step1.body") },
+      { number: "02", title: t("alleycat.step2.title"), body: t("alleycat.step2.body") },
+      { number: "03", title: t("alleycat.step3.title"), body: t("alleycat.step3.body") },
+    ],
+    [t]
+  );
   const riderHandle = (user?.email || "").split("@")[0] || "rider";
   const accountGreeting = hasUnlimitedCredits ? `Yo admin ${riderHandle}.` : `Yo ${riderHandle}.`;
   const canSubmitCityRequest = cityRequestName.trim().length > 1;
@@ -1915,6 +1918,45 @@ export default function App() {
     }
   };
 
+  const renderLanguageSwitcher = () => (
+    <div className="language-menu-wrap">
+      <button
+        type="button"
+        className="language-trigger"
+        aria-label="Language"
+        aria-expanded={showLanguageMenu}
+        onClick={(event) => {
+          event.stopPropagation();
+          setShowLanguageMenu((current) => !current);
+        }}
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true" className="language-trigger-icon">
+          <path
+            d="M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18Zm6.92 8h-3.01a14.8 14.8 0 0 0-1.19-4.23A7.03 7.03 0 0 1 18.92 11Zm-6.92 8c-.73 0-1.93-1.62-2.43-4h4.86c-.5 2.38-1.7 4-2.43 4Zm-2.74-6A18.04 18.04 0 0 1 9.2 11c0-.7.02-1.37.06-2h5.48c.04.63.06 1.3.06 2c0 .7-.02 1.37-.06 2H9.26Zm-4.18-2h-3a7.03 7.03 0 0 1 4.2-4.23A14.8 14.8 0 0 0 5.08 11Zm0 2a14.8 14.8 0 0 0 1.19 4.23A7.03 7.03 0 0 1 2.08 13h3Zm2.17 0h3.01a14.8 14.8 0 0 0 1.19 4.23A7.03 7.03 0 0 1 7.25 13Zm3.01-4H7.25A14.8 14.8 0 0 1 8.44 4.77A7.03 7.03 0 0 1 11.26 9Zm2.48-4.23A14.8 14.8 0 0 1 16.75 9h-3.01a7.03 7.03 0 0 1 2.82-4.23ZM13.74 13h3.01a7.03 7.03 0 0 1-2.82 4.23A14.8 14.8 0 0 0 13.74 13Zm4.18 0h3a7.03 7.03 0 0 1-4.2 4.23A14.8 14.8 0 0 0 17.92 13Z"
+            fill="currentColor"
+          />
+        </svg>
+      </button>
+      {showLanguageMenu && (
+        <div className="language-menu" onClick={(event) => event.stopPropagation()}>
+          {(["en", "pt", "es"] as const).map((code) => (
+            <button
+              key={code}
+              type="button"
+              className={`language-option ${language === code ? "active" : ""}`}
+              onClick={() => {
+                setLanguage(code);
+                setShowLanguageMenu(false);
+              }}
+            >
+              {t(`lang.${code}`)}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   const renderHeader = () => (
     <header className="site-header">
       <div className={`nav-container ${menuOpen ? "menu-open" : ""}`}>
@@ -1934,57 +1976,59 @@ export default function App() {
             </div>
           </div>
           <nav className="header-nav">
-            <button className={`nav-link ${pageView === 'home' ? 'active' : ''}`} onClick={() => handleNavigate('home')}>Home</button>
-            <button className={`nav-link ${pageView === 'loop' ? 'active' : ''}`} onClick={() => handleNavigate('loop')}>Loop</button>
-            <button className={`nav-link ${pageView === 'messenger' ? 'active' : ''}`} onClick={() => handleNavigate('messenger')}>Alleycat</button>
-            <button className={`nav-link ${pageView === 'cities' ? 'active' : ''}`} onClick={() => handleNavigate('cities')}>Cities</button>
-            <button className={`nav-link ${pageView === 'wall' ? 'active' : ''}`} onClick={() => handleNavigate('wall')}>Wall of Fame</button>
-            <button className={`nav-link ${pageView === 'leaderboard' ? 'active' : ''}`} onClick={() => handleNavigate('leaderboard')}>Leaderboard</button>
+            <button className={`nav-link ${pageView === 'home' ? 'active' : ''}`} onClick={() => handleNavigate('home')}>{t("nav.home")}</button>
+            <button className={`nav-link ${pageView === 'loop' ? 'active' : ''}`} onClick={() => handleNavigate('loop')}>{t("nav.loop")}</button>
+            <button className={`nav-link ${pageView === 'messenger' ? 'active' : ''}`} onClick={() => handleNavigate('messenger')}>{t("nav.alleycat")}</button>
+            <button className={`nav-link ${pageView === 'cities' ? 'active' : ''}`} onClick={() => handleNavigate('cities')}>{t("nav.cities")}</button>
+            <button className={`nav-link ${pageView === 'wall' ? 'active' : ''}`} onClick={() => handleNavigate('wall')}>{t("nav.wall")}</button>
+            <button className={`nav-link ${pageView === 'leaderboard' ? 'active' : ''}`} onClick={() => handleNavigate('leaderboard')}>{t("nav.leaderboard")}</button>
           </nav>
         </div>
 
         <div className="nav-right">
           {user ? (
             <>
-              <button className="nav-link" onClick={() => handleNavigate('account')}>My Account</button>
-              <button className="ghost-button small" onClick={handleDonate}>Add Credits</button>
-              <button className="ghost-button small header-signout" onClick={() => handleLogout()} aria-label="Sign out">
+              <button className="nav-link" onClick={() => handleNavigate('account')}>{t("nav.account")}</button>
+              <button className="ghost-button small" onClick={handleDonate}>{t("nav.addCredits")}</button>
+              <button className="ghost-button small header-signout" onClick={() => handleLogout()} aria-label={t("nav.out")}>
                 <span className="header-signout-icon" aria-hidden="true">↗</span>
-                <span>Out</span>
+                <span>{t("nav.out")}</span>
               </button>
             </>
           ) : (
             <>
-              <button className="nav-link" onClick={() => openAuth("login")}>Log in</button>
-              <button className="primary-button small" onClick={() => openAuth("signup")}>Get Started</button>
+              <button className="nav-link" onClick={() => openAuth("login")}>{t("nav.logIn")}</button>
+              <button className="primary-button small" onClick={() => openAuth("signup")}>{t("nav.getStarted")}</button>
             </>
           )}
         </div>
 
         <button className="menu-toggle" type="button" onClick={() => setMenuOpen((prev) => !prev)} aria-expanded={menuOpen}>
-          {menuOpen ? "Close" : "Menu"}
+          {menuOpen ? t("nav.close") : t("nav.menu")}
         </button>
+
+        {renderLanguageSwitcher()}
 
         <div className={`mobile-nav-sheet ${menuOpen ? "open" : ""}`}>
           <div className="mobile-nav-links">
-            <button className={`nav-link ${pageView === 'home' ? 'active' : ''}`} onClick={() => handleNavigate('home')}>Home</button>
-            <button className={`nav-link ${pageView === 'loop' ? 'active' : ''}`} onClick={() => handleNavigate('loop')}>Loop</button>
-            <button className={`nav-link ${pageView === 'messenger' ? 'active' : ''}`} onClick={() => handleNavigate('messenger')}>Alleycat</button>
-            <button className={`nav-link ${pageView === 'cities' ? 'active' : ''}`} onClick={() => handleNavigate('cities')}>Cities</button>
-            <button className={`nav-link ${pageView === 'wall' ? 'active' : ''}`} onClick={() => handleNavigate('wall')}>Wall of Fame</button>
-            <button className={`nav-link ${pageView === 'leaderboard' ? 'active' : ''}`} onClick={() => handleNavigate('leaderboard')}>Leaderboard</button>
-            {user && <button className={`nav-link ${pageView === 'account' ? 'active' : ''}`} onClick={() => handleNavigate('account')}>Account</button>}
+            <button className={`nav-link ${pageView === 'home' ? 'active' : ''}`} onClick={() => handleNavigate('home')}>{t("nav.home")}</button>
+            <button className={`nav-link ${pageView === 'loop' ? 'active' : ''}`} onClick={() => handleNavigate('loop')}>{t("nav.loop")}</button>
+            <button className={`nav-link ${pageView === 'messenger' ? 'active' : ''}`} onClick={() => handleNavigate('messenger')}>{t("nav.alleycat")}</button>
+            <button className={`nav-link ${pageView === 'cities' ? 'active' : ''}`} onClick={() => handleNavigate('cities')}>{t("nav.cities")}</button>
+            <button className={`nav-link ${pageView === 'wall' ? 'active' : ''}`} onClick={() => handleNavigate('wall')}>{t("nav.wall")}</button>
+            <button className={`nav-link ${pageView === 'leaderboard' ? 'active' : ''}`} onClick={() => handleNavigate('leaderboard')}>{t("nav.leaderboard")}</button>
+            {user && <button className={`nav-link ${pageView === 'account' ? 'active' : ''}`} onClick={() => handleNavigate('account')}>{t("nav.accountShort")}</button>}
           </div>
           <div className="mobile-nav-actions">
             {user ? (
               <>
-                <button className="ghost-button small" onClick={handleDonate}>Credits</button>
-                <button className="primary-button small" onClick={handleLogout}>Sign out</button>
+                <button className="ghost-button small" onClick={handleDonate}>{t("nav.credits")}</button>
+                <button className="primary-button small" onClick={handleLogout}>{t("nav.out")}</button>
               </>
             ) : (
               <>
-                <button className="ghost-button small" onClick={() => openAuth("login")}>Log in</button>
-                <button className="primary-button small" onClick={() => openAuth("signup")}>Get started</button>
+                <button className="ghost-button small" onClick={() => openAuth("login")}>{t("nav.logIn")}</button>
+                <button className="primary-button small" onClick={() => openAuth("signup")}>{t("nav.getStartedShort")}</button>
               </>
             )}
           </div>
@@ -1996,13 +2040,13 @@ export default function App() {
   const renderMobileDock = () => (
     <nav className="mobile-quickbar" aria-label="Quick navigation">
       <button className={`quickbar-link ${pageView === "home" ? "active" : ""}`} type="button" onClick={() => handleNavigate("home")}>
-        <span>Home</span>
+        <span>{t("nav.home")}</span>
       </button>
       <button className={`quickbar-link ${pageView === "messenger" ? "active" : ""}`} type="button" onClick={() => handleNavigate("messenger")}>
-        <span>Alleycat</span>
+        <span>{t("nav.alleycat")}</span>
       </button>
       <button className={`quickbar-link ${pageView === "loop" ? "active" : ""}`} type="button" onClick={() => handleNavigate("loop")}>
-        <span>Loop</span>
+        <span>{t("nav.loop")}</span>
       </button>
       <button className={`quickbar-link ${pageView === "wall" ? "active" : ""}`} type="button" onClick={() => handleNavigate("wall")}>
         <span>Wall</span>
@@ -2012,7 +2056,7 @@ export default function App() {
         type="button"
         onClick={() => (user ? handleNavigate("account") : openAuth("login"))}
       >
-        <span>{user ? "Me" : "Log in"}</span>
+        <span>{user ? t("dock.me") : t("nav.logIn")}</span>
       </button>
     </nav>
   );
@@ -2090,16 +2134,16 @@ export default function App() {
 
       <section className="modular-grid reveals">
         <div className="modular-cell modular-cell-featured">
-          <h3 className="cell-title">Alleycat Mode</h3>
-          <p className="cell-body">Pull the sheet, hit the spots, and let the city push back.</p>
+          <h3 className="cell-title">{t("home.alleycat.title")}</h3>
+          <p className="cell-body">{t("home.alleycat.body")}</p>
           <button className="primary-button primary-button-flat small home-card-button" onClick={() => handleNavigate('messenger')}>
-            Start challenge
+            {t("home.alleycat.action")}
           </button>
         </div>
         <div className="modular-cell">
-          <h3 className="cell-title">Loop Mode</h3>
-          <p className="cell-body">Drop a point. Get back clean.</p>
-          <button className="ghost-button small home-card-button" onClick={() => handleNavigate('loop')}>Start looping</button>
+          <h3 className="cell-title">{t("home.loop.title")}</h3>
+          <p className="cell-body">{t("home.loop.body")}</p>
+          <button className="ghost-button small home-card-button" onClick={() => handleNavigate('loop')}>{t("home.loop.action")}</button>
         </div>
       </section>
     </div>
@@ -2719,10 +2763,10 @@ export default function App() {
   const renderLoop = () => (
     <div className="sequential-layout sub-page">
       <section className="sub-page-header loop-page-header">
-        <h1 className="sub-page-title">Lets Loop</h1>
-        <p className="sub-page-description">Set the point. Ride out clean.</p>
+        <h1 className="sub-page-title">{t("loop.title")}</h1>
+        <p className="sub-page-description">{t("loop.subtitle")}</p>
         <div className="sub-page-image-shell loop-image-shell">
-          <img src={heroImage} alt="Cyclist moving through a city loop" />
+          <img src={heroImage} alt={t("loop.imageAlt")} />
         </div>
       </section>
 
@@ -2743,13 +2787,13 @@ export default function App() {
           <div className="glass-card form-card">
               <div className="form-header">
                 <div>
-                  <h2 className="form-title">Dial The Loop</h2>
-                <p className="form-subtitle">Set the point and send it.</p>
+                  <h2 className="form-title">{t("loop.builderTitle")}</h2>
+                <p className="form-subtitle">{t("loop.builderSubtitle")}</p>
                 </div>
               {usage && (
                 <div className="loops-left">
-                  <span className="loops-left-line">{hasUnlimitedCredits ? "Unlimited" : `${totalCredits} credits`}</span>
-                  <span className="loops-left-line">{hasUnlimitedCredits ? "Admin" : `${usage.free_remaining} free left`}</span>
+                  <span className="loops-left-line">{hasUnlimitedCredits ? t("credits.unlimited") : t("credits.balance", { count: totalCredits })}</span>
+                  <span className="loops-left-line">{hasUnlimitedCredits ? t("credits.admin") : t("credits.freeLeft", { count: usage.free_remaining })}</span>
                 </div>
               )}
             </div>
@@ -2758,7 +2802,7 @@ export default function App() {
                 <div className="section-block-head">
               </div>
               <label className="field">
-                <span>Loop starting point</span>
+                <span>{t("loop.startPoint")}</span>
                 <input
                   type="text"
                   value={loopPoint}
@@ -2767,9 +2811,9 @@ export default function App() {
                     setSelectedCoords(null);
                     setStep1Touched(true);
                   }}
-                  placeholder="Search neighborhood, station, or full address"
+                  placeholder={t("loop.startPlaceholder")}
                 />
-                {isSuggesting && <div className="field-hint">Searching…</div>}
+                {isSuggesting && <div className="field-hint">{t("common.searching")}</div>}
                 {suggestions.length > 0 && (
                   <div className="suggestions">
                     {suggestions.map((item) => (
@@ -2796,7 +2840,7 @@ export default function App() {
               <div className="section-block-head">
               </div>
               <label className="field">
-                <span>Distance</span>
+                <span>{t("loop.distance")}</span>
                 <div className="unit-toggle loop-centered-pills">
                   <button
                     type="button"
@@ -2806,7 +2850,7 @@ export default function App() {
                       setStep2Touched(true);
                     }}
                   >
-                    KM
+                    {t("common.km")}
                   </button>
                   <button
                     type="button"
@@ -2816,7 +2860,7 @@ export default function App() {
                       setStep2Touched(true);
                     }}
                   >
-                    Miles
+                    {t("common.miles")}
                   </button>
                 </div>
                 <input
@@ -2847,13 +2891,13 @@ export default function App() {
               </label>
 
               <label className="field loop-terrain-field">
-                <span>Terrain</span>
+                <span>{t("loop.terrain")}</span>
                 <div className="pill-group terrain-pill-grid">
                   {[
-                    ["mix", "Urban mix"],
-                    ["road", "Road fast"],
-                    ["climb", "Climb"],
-                    ["coast", "Water edge"],
+                    ["mix", t("loop.terrain.mix")],
+                    ["road", t("loop.terrain.road")],
+                    ["climb", t("loop.terrain.climb")],
+                    ["coast", t("loop.terrain.coast")],
                   ].map(([value, label]) => (
                     <button
                       key={value}
@@ -2871,12 +2915,12 @@ export default function App() {
               </label>
 
               <label className="field loop-surface-field">
-                <span>Surface</span>
+                <span>{t("loop.surface")}</span>
                 <div className="pill-group terrain-pill-grid">
                   {[
-                    ["paved", "Paved"],
-                    ["mixed", "Mixed"],
-                    ["gravel", "Gravel"],
+                    ["paved", t("loop.surface.paved")],
+                    ["mixed", t("loop.surface.mixed")],
+                    ["gravel", t("loop.surface.gravel")],
                   ].map(([value, label]) => (
                     <button
                       key={value}
@@ -2894,9 +2938,14 @@ export default function App() {
               </label>
 
               <label className="field loop-vibe-field">
-                <span>Ride vibe</span>
+                <span>{t("loop.vibe")}</span>
                 <div className="terrain-pill-grid">
-                  {["Elegant", "Energy", "Scenic", "Climb"].map((option) => (
+                  {[
+                    ["Elegant", t("loop.vibe.elegant")],
+                    ["Energy", t("loop.vibe.energy")],
+                    ["Scenic", t("loop.vibe.scenic")],
+                    ["Climb", t("loop.vibe.climb")],
+                  ].map(([option, label]) => (
                     <button
                       key={option}
                       className={`pill ${vibe === option ? "active" : ""}`}
@@ -2906,7 +2955,7 @@ export default function App() {
                       }}
                       type="button"
                     >
-                      {option}
+                      {label}
                     </button>
                   ))}
                 </div>
@@ -2922,7 +2971,7 @@ export default function App() {
                   onClick={handleGenerateLoop}
                   disabled={isGeneratingLoop || !allLoopDone}
                 >
-                  {isGeneratingLoop ? "Building..." : "Build loop"}
+                  {isGeneratingLoop ? t("common.building") : t("loop.build")}
                 </button>
               </div>
               {statusMessage && <div className="status-message">{statusMessage}</div>}
@@ -2930,10 +2979,10 @@ export default function App() {
                 <div className="route-output">
                   <div className="route-actions">
                     <button className="ghost-button small" type="button" onClick={handleCopy}>
-                      Copy link
+                      {t("loop.copyLink")}
                     </button>
                     <a className="primary-button small" href={lastRouteUrl} target="_blank" rel="noreferrer">
-                      Open in Maps
+                      {t("loop.openMaps")}
                     </a>
                   </div>
                 </div>
@@ -2948,10 +2997,10 @@ export default function App() {
   const renderMessenger = () => (
     <div className="sequential-layout sub-page">
       <section className="sub-page-header alleycat-page-header">
-        <h1 className="sub-page-title">Alleycat</h1>
-        <p className="sub-page-description">Can you survive an alleycat? Build your own and call the crew in.</p>
+        <h1 className="sub-page-title">{t("alleycat.title")}</h1>
+        <p className="sub-page-description">{t("alleycat.subtitle")}</p>
         <div className="sub-page-image-shell alleycat-image-shell">
-          <img src={alleycatImage} alt="Alleycat rider cutting through city traffic" />
+          <img src={alleycatImage} alt={t("alleycat.imageAlt")} />
         </div>
       </section>
 
@@ -2974,27 +3023,27 @@ export default function App() {
               <div className="form-header">
                 <div>
                   <div className="form-title premium-title">
-                    Manifest Killer
+                    {t("alleycat.builderTitle")}
                   </div>
                   <div className="form-subtitle">
-                    Pull the sheet and smoke the line.
+                    {t("alleycat.builderSubtitle")}
                   </div>
                 </div>
                 <div className="loops-left">
-                  <span className="loops-left-line">{hasUnlimitedCredits ? "Credits Unlimited" : `Credits ${messengerCreditsOnly}`}</span>
-                  <span className="loops-left-line">{MESSENGER_CREDIT_COST} per manifest</span>
+                  <span className="loops-left-line">{hasUnlimitedCredits ? t("alleycat.creditsUnlimited") : t("credits.balance", { count: messengerCreditsOnly })}</span>
+                  <span className="loops-left-line">{t("alleycat.perManifest", { count: MESSENGER_CREDIT_COST })}</span>
                 </div>
               </div>
 
               <div className="form-section section-block section-block-clean">
                 <label className="field">
-                  <span>City</span>
+                  <span>{t("alleycat.city")}</span>
                   <select
                     value={messengerCity}
                     onChange={(event) => setMessengerCity(event.target.value)}
                   >
-                    <option value="">Choose a city</option>
-                    {ALLEYCAT_CITY_GROUPS.map((group) => (
+                    <option value="">{t("alleycat.chooseCity")}</option>
+                    {alleycatCityGroups.map((group) => (
                       <optgroup key={group.label} label={group.label}>
                         {group.cities.map((city) => (
                           <option key={city} value={city}>
@@ -3006,23 +3055,23 @@ export default function App() {
                   </select>
                   <div className="field-inline-actions">
                     <button className="text-link-button" type="button" onClick={() => setShowCityRequest(true)}>
-                      {isLoadingCityDemand ? "Checking city queue..." : "Don’t see your city?"}
+                      {isLoadingCityDemand ? t("alleycat.checkingQueue") : t("alleycat.requestCity")}
                     </button>
                   </div>
                 </label>
                 <label className="field">
-                  <span>Start area</span>
+                  <span>{t("alleycat.startArea")}</span>
                   <input
                     type="text"
                     value={messengerLocation}
                     onChange={(event) => {
                       setMessengerLocation(event.target.value);
                     }}
-                    placeholder="Kreuzberg, Soho, Shibuya..."
+                    placeholder={t("alleycat.startPlaceholder")}
                     autoComplete="street-address"
                     enterKeyHint="next"
                   />
-                  {isSuggestingMessengerLocation && <div className="field-hint">Searching…</div>}
+                  {isSuggestingMessengerLocation && <div className="field-hint">{t("common.searching")}</div>}
                   {messengerLocationSuggestions.length > 0 && (
                     <div className="suggestions">
                       {messengerLocationSuggestions.map((item) => (
@@ -3045,7 +3094,7 @@ export default function App() {
 
               <div className="form-section section-block">
                 <label className="field">
-                  <span>Ride zone</span>
+                  <span>{t("alleycat.rideZone")}</span>
                   <div className="pill-group range-unit-toggle">
                     <button
                       type="button"
@@ -3056,7 +3105,7 @@ export default function App() {
                         setMessengerRange((current) => Number((current * 1.60934).toFixed(1)));
                       }}
                     >
-                      KM
+                      {t("common.km")}
                     </button>
                     <button
                       type="button"
@@ -3067,7 +3116,7 @@ export default function App() {
                         setMessengerRange((current) => Number((current / 1.60934).toFixed(1)));
                       }}
                     >
-                      MI
+                      {t("common.miles")}
                     </button>
                   </div>
                   <input
@@ -3096,12 +3145,12 @@ export default function App() {
                 </label>
 
                 <label className="field difficulty-field">
-                  <span>Difficulty</span>
+                  <span>{t("alleycat.difficulty")}</span>
                   <div className="pill-group">
                     {[
-                      ["easy", "Easy"],
-                      ["medium", "Medium"],
-                      ["hard", "Hard"],
+                      ["easy", t("difficulty.easy")],
+                      ["medium", t("difficulty.medium")],
+                      ["hard", t("difficulty.hard")],
                     ].map(([value, label]) => (
                       <button
                         key={value}
@@ -3116,7 +3165,7 @@ export default function App() {
                 </label>
 
                 <label className="field">
-                  <span>Checkpoints</span>
+                  <span>{t("alleycat.checkpoints")}</span>
                   <div className="pill-group checkpoint-count-grid">
                     {[1, 2, 3, 4, 5, 6].map((count) => (
                       <button
@@ -3125,19 +3174,19 @@ export default function App() {
                         className={`pill ${messengerCheckpointCount === count ? "active" : ""}`}
                         onClick={() => setMessengerCheckpointCount(count)}
                       >
-                        {count} stops
+                        {t("alleycat.stops", { count })}
                       </button>
                     ))}
                   </div>
                 </label>
 
                 <label className="field">
-                  <span>How dare you ?</span>
+                  <span>{t("alleycat.streetTone")}</span>
                   <div className="pill-group street-tone-group">
                     {[
-                      ["local", "Lazy"],
-                      ["fast", "Fast"],
-                      ["chaotic", "Chaotic"],
+                      ["local", t("alleycat.style.local")],
+                      ["fast", t("alleycat.style.fast")],
+                      ["chaotic", t("alleycat.style.chaotic")],
                     ].map(([value, label]) => (
                       <button
                         key={value}
@@ -3162,11 +3211,11 @@ export default function App() {
                     onClick={handleGenerateMessenger}
                     disabled={isGeneratingMessenger || !canBuildMessengerManifest}
                   >
-                    {isGeneratingMessenger ? "Building..." : "Build manifest"}
+                    {isGeneratingMessenger ? t("common.building") : t("alleycat.build")}
                   </button>
                   {(messengerManifest || messengerRun) && (
                     <button className="ghost-button" type="button" onClick={handleResetAlleycat}>
-                      Reset alleycat
+                      {t("alleycat.reset")}
                     </button>
                   )}
                   {messengerManifestId && (
@@ -3176,13 +3225,13 @@ export default function App() {
                       onClick={handleCreateShareCode}
                       disabled={isSharingManifest}
                     >
-                      {isSharingManifest ? "Making code..." : "Make share code"}
+                      {isSharingManifest ? t("alleycat.sharing") : t("alleycat.share")}
                     </button>
                   )}
                 </div>
                 <div className="form-actions compact-actions">
                   <button className="text-link-button" type="button" onClick={() => setShowShareJoinModal(true)}>
-                    Have a code?
+                    {t("alleycat.haveCode")}
                   </button>
                 </div>
                 {renderStatusBanner(messengerStatus, true, "builder")}
@@ -3621,7 +3670,7 @@ export default function App() {
           ? renderAccount()
             : pageView === "wall"
             ? (
-              <Suspense fallback={<div className="status-message page-loader">Loading Wall of Fame…</div>}>
+              <Suspense fallback={<div className="status-message page-loader">{t("wall.loading")}</div>}>
                 <WallPage
                   publicQuarterLabel={publicQuarterLabel}
                   selectedWallCity={selectedWallCity}
@@ -3639,7 +3688,7 @@ export default function App() {
             )
             : pageView === "cities"
               ? (
-                <Suspense fallback={<div className="status-message page-loader">Loading city lanes…</div>}>
+                <Suspense fallback={<div className="status-message page-loader">{t("cities.loading")}</div>}>
                   <CitiesPage
                     cityLanes={cityLanes}
                     isLoadingCityLanes={isLoadingCityLanes}
@@ -3655,7 +3704,7 @@ export default function App() {
               )
             : pageView === "leaderboard"
               ? (
-                <Suspense fallback={<div className="status-message page-loader">Loading leaderboard…</div>}>
+              <Suspense fallback={<div className="status-message page-loader">{t("leaderboard.loading")}</div>}>
                   <LeaderboardPage
                     publicQuarterLabel={publicQuarterLabel}
                     selectedLeaderboardCity={selectedLeaderboardCity}
@@ -3671,7 +3720,7 @@ export default function App() {
               )
               : pageView === "rider"
                 ? (
-                  <Suspense fallback={<div className="status-message page-loader">Loading rider profile…</div>}>
+              <Suspense fallback={<div className="status-message page-loader">{t("rider.loading")}</div>}>
                     <RiderProfilePage
                       isLoadingPublicRiderProfile={isLoadingPublicRiderProfile}
                       publicRiderProfile={publicRiderProfile}
@@ -3702,13 +3751,13 @@ export default function App() {
             <div className="corner bottom-right"></div>
           </div>
           <div className="footer-links">
-            <a className="ghost-link" href="/leaderboard">Leaderboard</a>
-            <a className="ghost-link" href="/cities">Cities</a>
-            <a className="ghost-link" href="/privacy.html">Privacy</a>
-            <a className="ghost-link" href="/terms.html">Terms</a>
-            <a className="ghost-link" href="/how.html">How</a>
-            <a className="ghost-link" href="/coffee.html">Coffee</a>
-            {isAdminUser && <a className="ghost-link admin-link" href="/admin.html">Admin</a>}
+            <a className="ghost-link" href="/leaderboard">{t("nav.leaderboard")}</a>
+            <a className="ghost-link" href="/cities">{t("nav.cities")}</a>
+            <a className="ghost-link" href="/privacy.html">{t("footer.privacy")}</a>
+            <a className="ghost-link" href="/terms.html">{t("footer.terms")}</a>
+            <a className="ghost-link" href="/how.html">{t("footer.how")}</a>
+            <a className="ghost-link" href="/coffee.html">{t("footer.coffee")}</a>
+            {isAdminUser && <a className="ghost-link admin-link" href="/admin.html">{t("footer.admin")}</a>}
           </div>
           <div className="footer-meta">
             <span className="footer-title">LOOP_V1.0.4</span>
@@ -3716,5 +3765,13 @@ export default function App() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <I18nProvider>
+      <AppShell />
+    </I18nProvider>
   );
 }

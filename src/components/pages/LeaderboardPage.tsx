@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { useI18n } from "../../i18n";
 
 type PublicLeaderboardEntry = {
   user_id: string;
@@ -32,24 +33,25 @@ export default function LeaderboardPage({
   publicLeaderboard,
   onOpenRiderProfile,
 }: LeaderboardPageProps) {
+  const { t } = useI18n();
   const [showCityPicker, setShowCityPicker] = useState(false);
   const cityGroups = useMemo(() => [
     {
-      label: "Americas",
+      label: t("continent.americas"),
       cities: cityPresets
         .filter((city) => ["Bogota", "Buenos Aires", "Chicago", "Los Angeles", "Mexico City", "New York", "Philadelphia", "San Francisco", "Santos", "Sao Paulo", "Seattle"].includes(city))
         .sort((a, b) => a.localeCompare(b)),
       anchor: "leaderboard-city-group-americas",
     },
     {
-      label: "Europe",
+      label: t("continent.europe"),
       cities: cityPresets
         .filter((city) => ["Amsterdam", "Barcelona", "Berlin", "Krakow", "London", "Milan", "Paris", "Vienna", "Warsaw"].includes(city))
         .sort((a, b) => a.localeCompare(b)),
       anchor: "leaderboard-city-group-europe",
     },
     {
-      label: "Asia",
+      label: t("continent.asia"),
       cities: cityPresets
         .filter((city) => ["Bangkok", "Seoul", "Taipei", "Tokyo"].includes(city))
         .sort((a, b) => a.localeCompare(b)),
@@ -60,50 +62,50 @@ export default function LeaderboardPage({
   return (
     <div className="sequential-layout sub-page">
       <section className="sub-page-header">
-        <h1 className="sub-page-title">Leaderboard</h1>
+        <h1 className="sub-page-title">{t("leaderboard.title")}</h1>
       </section>
 
       <section className="builder-grid single reveals">
         <div className="glass-card form-card">
           <div className="leaderboard-public-head" id="leaderboard-filter">
-            <div className="form-title">{publicQuarterLabel || "Current quarter"}</div>
+            <div className="form-title">{publicQuarterLabel || t("leaderboard.currentQuarter")}</div>
             <button type="button" className="inline-link-button wall-filter-link" onClick={() => setShowCityPicker(true)}>
-              {selectedLeaderboardCity ? getCityLabel(selectedLeaderboardCity) : "All Cities"}
+              {selectedLeaderboardCity ? getCityLabel(selectedLeaderboardCity) : t("leaderboard.allCities")}
             </button>
           </div>
-          {isLoadingPublicLeaderboard && <div className="status-message">Loading leaderboard…</div>}
+          {isLoadingPublicLeaderboard && <div className="status-message">{t("leaderboard.loading")}</div>}
           {!isLoadingPublicLeaderboard && publicLeaderboard.length === 0 && <div className="empty-state" />}
           {publicLeaderboard.length > 0 && (
             <div className="result-grid result-grid-three leaderboard-summary-grid">
               <div>
-                <span>Ranked riders</span>
+                <span>{t("leaderboard.rankedRiders")}</span>
                 <strong>{publicLeaderboard.length}</strong>
               </div>
               <div>
-                <span>Total proofs</span>
+                <span>{t("leaderboard.totalProofs")}</span>
                 <strong>{publicLeaderboard.reduce((sum, entry) => sum + entry.public_proofs, 0)}</strong>
               </div>
               <div>
-                <span>Total finishes</span>
+                <span>{t("leaderboard.totalFinishes")}</span>
                 <strong>{publicLeaderboard.reduce((sum, entry) => sum + entry.finished_runs, 0)}</strong>
               </div>
             </div>
           )}
           {publicLeaderboard.length > 0 && (
             <div className="winner-callout">
-              <span className="winner-label">Quarter leader</span>
+              <span className="winner-label">{t("leaderboard.quarterLeader")}</span>
               <strong>{publicLeaderboard[0].rider_name}</strong>
-              <span>{publicLeaderboard[0].public_proofs} proofs · {publicLeaderboard[0].finished_runs} finishes</span>
+              <span>{t("leaderboard.proofsFinishes", { proofs: publicLeaderboard[0].public_proofs, finishes: publicLeaderboard[0].finished_runs })}</span>
             </div>
           )}
           {publicLeaderboard.length > 0 && (
             <div className="result-grid result-grid-three leaderboard-glance-grid">
               <div>
-                <span>Current filter</span>
-                <strong>{selectedLeaderboardCity ? getCityLabel(selectedLeaderboardCity) : "All cities"}</strong>
+                <span>{t("leaderboard.currentFilter")}</span>
+                <strong>{selectedLeaderboardCity ? getCityLabel(selectedLeaderboardCity) : t("leaderboard.allCitiesLower")}</strong>
               </div>
               <div>
-                <span>Leader share</span>
+                <span>{t("leaderboard.leaderShare")}</span>
                 <strong>
                   {Math.max(
                     1,
@@ -120,7 +122,7 @@ export default function LeaderboardPage({
                 </strong>
               </div>
               <div>
-                <span>Avg proofs</span>
+                <span>{t("leaderboard.avgProofs")}</span>
                 <strong>
                   {(
                     publicLeaderboard.reduce((sum, entry) => sum + entry.public_proofs, 0) /
@@ -139,9 +141,9 @@ export default function LeaderboardPage({
                   className={`podium-card podium-${entry.rank}`}
                   onClick={() => onOpenRiderProfile(entry.user_id)}
                 >
-                  <span className="winner-label">Top {entry.rank}</span>
+                  <span className="winner-label">{t("leaderboard.top", { rank: entry.rank })}</span>
                   <strong>{entry.rider_name}</strong>
-                  <span>{entry.public_proofs} proofs · {entry.finished_runs} finishes</span>
+                  <span>{t("leaderboard.proofsFinishes", { proofs: entry.public_proofs, finishes: entry.finished_runs })}</span>
                 </button>
               ))}
             </div>
@@ -157,11 +159,11 @@ export default function LeaderboardPage({
                         {entry.rider_name}
                       </button>
                     </strong>
-                    <span>{entry.public_proofs} proofs · {entry.finished_runs} finishes</span>
+                    <span>{t("leaderboard.proofsFinishes", { proofs: entry.public_proofs, finishes: entry.finished_runs })}</span>
                     <div className="leaderboard-meta-chips">
-                      <span className="mini-chip active">Top {entry.rank}</span>
-                      {entry.finished_runs > 0 && <span className="mini-chip">{entry.finished_runs} closed</span>}
-                      {entry.public_proofs > 0 && <span className="mini-chip">{entry.public_proofs} posted</span>}
+                      <span className="mini-chip active">{t("leaderboard.top", { rank: entry.rank })}</span>
+                      {entry.finished_runs > 0 && <span className="mini-chip">{t("leaderboard.closed", { count: entry.finished_runs })}</span>}
+                      {entry.public_proofs > 0 && <span className="mini-chip">{t("leaderboard.posted", { count: entry.public_proofs })}</span>}
                     </div>
                   </div>
                 </div>
@@ -175,8 +177,8 @@ export default function LeaderboardPage({
         <div className="modal-overlay" role="dialog" aria-modal="true">
           <div className="modal-card">
             <div className="modal-header">
-              <div className="modal-title">Choose a city</div>
-              <button className="modal-close" type="button" aria-label="Close city picker" onClick={() => setShowCityPicker(false)}>
+              <div className="modal-title">{t("leaderboard.chooseCity")}</div>
+              <button className="modal-close" type="button" aria-label={t("common.close")} onClick={() => setShowCityPicker(false)}>
                 ×
               </button>
             </div>
@@ -196,7 +198,7 @@ export default function LeaderboardPage({
                   setShowCityPicker(false);
                 }}
               >
-                All
+                {t("common.all")}
               </button>
               {cityGroups.map((group) => (
                 <div key={group.anchor} className="city-picker-group" id={group.anchor}>
@@ -219,7 +221,7 @@ export default function LeaderboardPage({
                 </div>
               ))}
               <button className="primary-button" type="button" onClick={() => setShowCityPicker(false)}>
-                Close
+                {t("common.close")}
               </button>
             </div>
           </div>
