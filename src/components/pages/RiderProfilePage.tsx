@@ -94,6 +94,7 @@ export default function RiderProfilePage({
   onOpenRiderProfile,
 }: RiderProfilePageProps) {
   const { t, formatDate } = useI18n();
+  const getProofLabel = (count: number) => count === 1 ? t("rider.proofCount", { count }) : t("rider.proofCountPlural", { count });
   return (
     <div className="sequential-layout sub-page">
       <section className="sub-page-header">
@@ -223,20 +224,20 @@ export default function RiderProfilePage({
               {!!publicRiderProfile.city_breakdown?.length && (
                 <>
                   <div className="rider-profile-proof-head" id="rider-cities">
-                    <div className="form-title">City lanes</div>
-                    <div className="form-subtitle">Where they hit.</div>
+                    <div className="form-title">{t("rider.cityLanes")}</div>
+                    <div className="form-subtitle">{t("rider.whereTheyHit")}</div>
                   </div>
                   <div className="rider-city-grid">
                     {publicRiderProfile.city_breakdown.map((city) => (
                       <div key={city.city_name} className="rider-city-card">
-                        <span className="winner-label">{city.proof_count} proof{city.proof_count === 1 ? "" : "s"}</span>
+                        <span className="winner-label">{getProofLabel(city.proof_count)}</span>
                         <strong>{city.city_name}</strong>
                         <div className="rider-city-actions">
                           <button className="ghost-button small" type="button" onClick={() => onOpenWallCity(city.city_name)}>
-                            Open wall
+                            {t("rider.openWall")}
                           </button>
                           <button className="ghost-button small" type="button" onClick={() => onOpenLeaderboardCity(city.city_name)}>
-                            City board
+                            {t("rider.cityBoard")}
                           </button>
                         </div>
                       </div>
@@ -248,19 +249,19 @@ export default function RiderProfilePage({
               {!!publicRiderProfile.city_clusters?.length && (
                 <>
                   <div className="rider-profile-proof-head">
-                    <div className="form-title">Proof clusters</div>
-                    <div className="form-subtitle">Where they post.</div>
+                    <div className="form-title">{t("rider.proofClusters")}</div>
+                    <div className="form-subtitle">{t("rider.whereTheyPost")}</div>
                   </div>
                   <div className="rider-cluster-grid">
                     {publicRiderProfile.city_clusters.map((cluster) => (
                       <div key={cluster.city_name} className="rider-cluster-card">
                         <div className="rider-cluster-head">
                           <div>
-                            <span className="winner-label">{cluster.proof_count} proof{cluster.proof_count === 1 ? "" : "s"}</span>
+                            <span className="winner-label">{getProofLabel(cluster.proof_count)}</span>
                             <strong>{cluster.city_name}</strong>
                           </div>
                           <button className="ghost-button small" type="button" onClick={() => onOpenWallCity(cluster.city_name)}>
-                            Open wall
+                            {t("rider.openWall")}
                           </button>
                         </div>
                         <div className="rider-cluster-images">
@@ -277,21 +278,21 @@ export default function RiderProfilePage({
               {publicRiderProfile.city_context && (
                 <>
                   <div className="rider-profile-proof-head" id="rider-standing">
-                    <div className="form-title">City standing</div>
-                    <div className="form-subtitle">How they stack.</div>
+                    <div className="form-title">{t("rider.cityStanding")}</div>
+                    <div className="form-subtitle">{t("rider.howTheyStack")}</div>
                   </div>
                   <div className="rider-city-standing-card">
                     <div className="result-grid result-grid-three">
                       <div>
-                        <span>Lane</span>
+                        <span>{t("rider.lane")}</span>
                         <strong>{publicRiderProfile.city_context.city_name}</strong>
                       </div>
                       <div>
-                        <span>Quarter rank</span>
+                        <span>{t("rider.quarterRank")}</span>
                         <strong>{publicRiderProfile.city_context.rank ? `#${publicRiderProfile.city_context.rank}` : "--"}</strong>
                       </div>
                       <div>
-                        <span>Posted / closed</span>
+                        <span>{t("rider.postedClosed")}</span>
                         <strong>{publicRiderProfile.city_context.proof_count} / {publicRiderProfile.city_context.finish_count}</strong>
                       </div>
                     </div>
@@ -304,19 +305,19 @@ export default function RiderProfilePage({
                             className="rider-city-leader"
                             onClick={() => onOpenRiderProfile(entry.user_id)}
                           >
-                            <span className="winner-label">Top {entry.rank}</span>
+                            <span className="winner-label">{t("leaderboard.top", { rank: entry.rank })}</span>
                             <strong>{entry.rider_name}</strong>
-                            <span>{entry.public_proofs} proofs · {entry.finished_runs} finishes</span>
+                            <span>{t("leaderboard.proofsFinishes", { proofs: entry.public_proofs, finishes: entry.finished_runs })}</span>
                           </button>
                         ))}
                       </div>
                     )}
                     <div className="rider-city-actions">
                       <button className="ghost-button small" type="button" onClick={() => onOpenWallCity(publicRiderProfile.city_context?.city_name)}>
-                        Open city wall
+                        {t("rider.openCityWall")}
                       </button>
                       <button className="ghost-button small" type="button" onClick={() => onOpenLeaderboardCity(publicRiderProfile.city_context?.city_name)}>
-                        Open city board
+                        {t("rider.openCityBoard")}
                       </button>
                     </div>
                   </div>
@@ -335,27 +336,27 @@ export default function RiderProfilePage({
               )}
 
               <div className="rider-profile-proof-head" id="rider-ledger">
-                <div className="form-title">Run ledger</div>
-                <div className="form-subtitle">Closed runs and ghost gaps.</div>
+                <div className="form-title">{t("rider.runLedger")}</div>
+                <div className="form-subtitle">{t("rider.closedRunsGhostGaps")}</div>
               </div>
               {!publicRiderProfile.recent_runs?.length ? (
                 <div className="empty-state">
-                  <div className="empty-state-body">No finished runs yet.</div>
+                  <div className="empty-state-body">{t("rider.noFinishedRuns")}</div>
                 </div>
               ) : (
                 <div className="history-list rider-run-list">
                   {publicRiderProfile.recent_runs.map((run) => (
                     <div key={run.id} className="history-row rider-run-row">
                       <div>
-                        <strong>{run.city_name || "City"} · {run.manifest_title}</strong>
-                        <span>{new Date(run.finished_at).toLocaleDateString()}</span>
+                        <strong>{run.city_name || t("rider.cityFallback")} · {run.manifest_title}</strong>
+                        <span>{formatDate(run.finished_at)}</span>
                       </div>
                       <div className="history-actions">
                         <strong>{formatDuration(run.finish_seconds)}</strong>
                         <span className={run.ghost_delta !== null && run.ghost_delta <= 0 ? "good-time" : "slow-time"}>
                           {run.ghost_delta !== null
-                            ? `${run.ghost_delta <= 0 ? "-" : "+"}${formatDuration(Math.abs(run.ghost_delta))} vs ghost`
-                            : "No ghost split"}
+                            ? t("rider.vsGhost", { delta: `${run.ghost_delta <= 0 ? "-" : "+"}${formatDuration(Math.abs(run.ghost_delta))}` })
+                            : t("rider.noGhostSplit")}
                         </span>
                       </div>
                     </div>
@@ -364,12 +365,12 @@ export default function RiderProfilePage({
               )}
 
               <div className="rider-profile-proof-head">
-                <div className="form-title">Rider circle</div>
-                <div className="form-subtitle">Shared codes only.</div>
+                <div className="form-title">{t("rider.riderCircle")}</div>
+                <div className="form-subtitle">{t("rider.sharedCodesOnly")}</div>
               </div>
               {!publicRiderProfile.recent_rivals?.length ? (
                 <div className="empty-state">
-                  <div className="empty-state-body">No shared crew yet.</div>
+                  <div className="empty-state-body">{t("rider.noSharedCrew")}</div>
                 </div>
               ) : (
                 <div className="rider-rival-grid">
@@ -380,22 +381,22 @@ export default function RiderProfilePage({
                       className="rider-rival-card"
                       onClick={() => onOpenRiderProfile(rival.user_id)}
                     >
-                      <span className="winner-label">Shared codes</span>
+                      <span className="winner-label">{t("rider.sharedCodesLabel")}</span>
                       <strong>{rival.rider_name}</strong>
-                      <em>{rival.shared_challenges} runs together</em>
-                      <span>{rival.cities.join(" · ") || "No city tags yet"}</span>
+                      <em>{t("rider.runsTogether", { count: rival.shared_challenges })}</em>
+                      <span>{rival.cities.join(" · ") || t("rider.noCityTags")}</span>
                     </button>
                   ))}
                 </div>
               )}
 
               <div className="rider-profile-proof-head" id="rider-proof">
-                <div className="form-title">Recent proof</div>
-                <div className="form-subtitle">Latest hits.</div>
+                <div className="form-title">{t("rider.recentProof")}</div>
+                <div className="form-subtitle">{t("rider.latestHits")}</div>
               </div>
               {!publicRiderProfile.recent_proofs?.length ? (
                 <div className="empty-state">
-                  <div className="empty-state-body">No public proof yet.</div>
+                  <div className="empty-state-body">{t("rider.noPublicProof")}</div>
                 </div>
               ) : (
                 <div className="wall-grid rider-proof-grid">
@@ -404,26 +405,26 @@ export default function RiderProfilePage({
                       <img src={post.public_url} alt={`${post.checkpoint_name} by ${post.rider_name}`} className="wall-image" loading="lazy" decoding="async" />
                       <div className="wall-meta">
                         <div className="checkpoint-meta">
-                          <span>Alleycat</span>
+                          <span>{t("wall.typeAlleycat")}</span>
                           <span>{post.city_name}</span>
                         </div>
                         <div className="checkpoint-name">{post.rider_name}</div>
                         <div className="wall-detail-grid">
                           <div>
-                            <span>Location</span>
+                            <span>{t("wall.location")}</span>
                             <strong>{post.location_label || post.city_name}</strong>
                           </div>
                           <div>
-                            <span>Date</span>
-                            <strong>{new Date(post.created_at).toLocaleDateString()}</strong>
+                            <span>{t("wall.date")}</span>
+                            <strong>{formatDate(post.created_at)}</strong>
                           </div>
                           <div>
-                            <span>Bike</span>
-                            <strong>{post.bike_name || publicRiderProfile.profile.bike_name || "Bike not set"}</strong>
+                            <span>{t("wall.bike")}</span>
+                            <strong>{post.bike_name || publicRiderProfile.profile.bike_name || t("rider.bikeNotSet")}</strong>
                           </div>
                           <div>
-                            <span>Ratio</span>
-                            <strong>{post.bike_ratio || publicRiderProfile.profile.bike_ratio || "Ratio not set"}</strong>
+                            <span>{t("wall.ratio")}</span>
+                            <strong>{post.bike_ratio || publicRiderProfile.profile.bike_ratio || t("rider.ratioNotSet")}</strong>
                           </div>
                         </div>
                       </div>

@@ -991,6 +991,41 @@ app.post("/api/account/profile", async (req, res) => {
   return res.json({ ok: true, profile: data?.[0] || null });
 });
 
+app.post("/api/account-feedback", async (req, res) => {
+  const authUser = await getAuthUser(req);
+  const user_id = authUser?.id || "";
+  if (!user_id) return res.status(401).json({ error: "login required" });
+
+  const trimFeedback = (value = "") => String(value).replace(/\s+/g, " ").trim();
+  const countWords = (value = "") => (trimFeedback(value).match(/\S+/g) || []).length;
+  const WORD_LIMIT = 200;
+  const CHAR_LIMIT = 1200;
+
+  const feedback = trimFeedback(req.body?.feedback || "");
+  const rider_name = trimFeedback(req.body?.rider_name || "").slice(0, 60);
+
+  if (!feedback) return res.status(400).json({ error: "feedback required" });
+  if (feedback.length > CHAR_LIMIT) return res.status(400).json({ error: `keep it under ${CHAR_LIMIT} characters` });
+  if (countWords(feedback) > WORD_LIMIT) return res.status(400).json({ error: `keep it under ${WORD_LIMIT} words` });
+
+  const { error } = await supabase.from("account_feedback").insert({
+    user_id,
+    email: authUser?.email || null,
+    rider_name: rider_name || null,
+    feedback,
+    source: "account",
+  });
+
+  if (error) {
+    if (String(error.message || "").toLowerCase().includes("account_feedback")) {
+      return res.status(500).json({ error: "Feedback table is not ready in Supabase yet. Apply account_feedback.sql first." });
+    }
+    return res.status(500).json({ error: error.message });
+  }
+
+  return res.json({ ok: true });
+});
+
 app.post("/api/usage/consume", async (req, res) => {
   const { device_id } = req.body || {};
   const authUser = await getAuthUser(req);

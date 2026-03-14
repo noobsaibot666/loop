@@ -479,13 +479,14 @@ select {
   background: var(--accent-soft);
 }
 
-.header-signout {
-  min-width: 76px;
-  opacity: 0.82;
-  padding: 0 12px;
+.header-signout-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.72;
 }
 
-.header-signout:hover {
+.header-signout-link:hover {
   opacity: 1;
 }
 

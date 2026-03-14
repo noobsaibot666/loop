@@ -414,8 +414,11 @@ function AppShell() {
   const [accountBikeRatio, setAccountBikeRatio] = useState("");
   const [accountPassword, setAccountPassword] = useState("");
   const [accountStatus, setAccountStatus] = useState("");
+  const [accountFeedback, setAccountFeedback] = useState("");
+  const [accountFeedbackStatus, setAccountFeedbackStatus] = useState("");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [isSendingFeedback, setIsSendingFeedback] = useState(false);
   const [isSendingReset, setIsSendingReset] = useState(false);
   const [wallPosts, setWallPosts] = useState<WallPost[]>([]);
   const [isLoadingWall, setIsLoadingWall] = useState(false);
@@ -1114,6 +1117,8 @@ function AppShell() {
   const canSubmitCityRequest = cityRequestName.trim().length > 1;
   const canJoinShareCode = shareInput.trim().length > 2;
   const canBuildMessengerManifest = messengerCity.trim().length > 1 && messengerLocation.trim().length > 1;
+  const accountFeedbackWords = (accountFeedback.trim().match(/\S+/g) || []).length;
+  const canSendAccountFeedback = accountFeedbackWords > 0 && accountFeedbackWords <= 200 && accountFeedback.trim().length <= 1200;
   const currentElapsed = useMemo(() => {
     if (!messengerRun) return 0;
     if (messengerRun.finishSeconds) return messengerRun.finishSeconds;
@@ -1649,11 +1654,36 @@ function AppShell() {
         redirectTo: `${window.location.origin}/account`,
       });
       if (error) throw error;
-      setAuthMessage("Password reset email sent.");
+      setAuthMessage("If that email exists, a reset link is on the way.");
     } catch (error) {
-      setAuthMessage(getFriendlyMessage("auth", error, "Could not send reset email."));
+      setAuthMessage(getFriendlyMessage("password-reset", error, "Could not send reset email."));
     } finally {
       setIsSendingReset(false);
+    }
+  };
+
+  const handleAccountFeedback = async () => {
+    if (!user?.id) {
+      setAccountFeedbackStatus("Log in first.");
+      return;
+    }
+    if (!canSendAccountFeedback) {
+      setAccountFeedbackStatus("Keep it clean. 200 words max.");
+      return;
+    }
+    setIsSendingFeedback(true);
+    setAccountFeedbackStatus("");
+    try {
+      await postJSON("/api/account-feedback", {
+        feedback: accountFeedback.trim(),
+        rider_name: accountRiderName.trim(),
+      });
+      setAccountFeedback("");
+      setAccountFeedbackStatus("Feedback sent.");
+    } catch (error) {
+      setAccountFeedbackStatus(error instanceof Error ? error.message : "Could not send feedback.");
+    } finally {
+      setIsSendingFeedback(false);
     }
   };
 
@@ -1987,11 +2017,12 @@ function AppShell() {
         </div>
 
         <div className="nav-right">
+          {renderLanguageSwitcher()}
           {user ? (
             <>
               <button className="nav-link" onClick={() => handleNavigate('account')}>{t("nav.account")}</button>
               <button className="ghost-button small" onClick={handleDonate}>{t("nav.addCredits")}</button>
-              <button className="ghost-button small header-signout" onClick={() => handleLogout()} aria-label={t("nav.out")}>
+              <button className="nav-link header-signout-link" onClick={() => handleLogout()} aria-label={t("nav.out")}>
                 <span className="header-signout-icon" aria-hidden="true">↗</span>
                 <span>{t("nav.out")}</span>
               </button>
@@ -2007,8 +2038,6 @@ function AppShell() {
         <button className="menu-toggle" type="button" onClick={() => setMenuOpen((prev) => !prev)} aria-expanded={menuOpen}>
           {menuOpen ? t("nav.close") : t("nav.menu")}
         </button>
-
-        {renderLanguageSwitcher()}
 
         <div className={`mobile-nav-sheet ${menuOpen ? "open" : ""}`}>
           <div className="mobile-nav-links">
@@ -2076,7 +2105,7 @@ function AppShell() {
       </div>
     ) : null;
 
-  const getFriendlyMessage = (context: "auth" | "account" | "city-request" | "share" | "loop" | "messenger", error: unknown, fallback: string) => {
+  const getFriendlyMessage = (context: "auth" | "password-reset" | "account" | "city-request" | "share" | "loop" | "messenger", error: unknown, fallback: string) => {
     const raw = error instanceof Error ? error.message : fallback;
     const message = raw.toLowerCase();
 
@@ -2086,6 +2115,13 @@ function AppShell() {
       if (message.includes("password should be at least")) return "Password is too short. Make it at least 6 characters.";
       if (message.includes("email not confirmed")) return "Check your inbox and confirm the email first.";
       if (message.includes("session dropped")) return "Session is gone. Log in again.";
+    }
+
+    if (context === "password-reset") {
+      if (message.includes("invalid email")) return "That email looks off. Check it and try again.";
+      if (message.includes("email not confirmed")) return "Check your inbox first, then try the reset again.";
+      if (message.includes("for security purposes")) return "If that email exists, a reset link is on the way.";
+      if (message.includes("rate limit")) return "Too many reset tries. Give it a minute and try again.";
     }
 
     if (context === "account" && message.includes("session dropped")) {
@@ -2373,6 +2409,30 @@ function AppShell() {
 
       {user && (
         <div className="builder-grid account-grid">
+          <div className="glass-card form-card account-feedback-card">
+            <div className="form-title">Quick feedback</div>
+            <div className="form-subtitle">Keep it direct.</div>
+            <label className="field compact-field">
+              <span>Test note</span>
+              <textarea
+                value={accountFeedback}
+                onChange={(event) => setAccountFeedback(event.target.value.replace(/\s+/g, " ").slice(0, 1200))}
+                placeholder="One clear note from your test."
+                rows={4}
+              />
+            </label>
+            <div className="history-actions">
+              <span>{accountFeedbackWords}/200 words</span>
+              <span>{accountFeedback.trim().length}/1200</span>
+            </div>
+            {renderStatusBanner(accountFeedbackStatus, true)}
+            <div className="form-actions">
+              <button className="ghost-button" type="button" onClick={handleAccountFeedback} disabled={isSendingFeedback || !canSendAccountFeedback}>
+                {isSendingFeedback ? "Sending..." : "Send feedback"}
+              </button>
+            </div>
+          </div>
+
           <div className="glass-card form-card account-summary-card" id="account-profile">
             <div className="form-title">Profile & Security</div>
             <div className="form-subtitle">Set your tag.</div>
