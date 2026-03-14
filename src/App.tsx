@@ -328,8 +328,8 @@ const LOOP_FREE_LIMIT = 3;
 const MESSENGER_CREDIT_COST = 3;
 const ALLEYCAT_STORAGE_KEY = "loop_alleycat_state";
 const ALLEYCAT_CITY_GROUPS = [
-  { label: "Americas", cities: ["Bogota", "Mexico City", "New York", "San Francisco", "Santos", "Sao Paulo"] },
-  { label: "Europe", cities: ["Amsterdam", "Barcelona", "Berlin", "London", "Milan", "Paris", "Vienna", "Warsaw"] },
+  { label: "Americas", cities: ["Bogota", "Buenos Aires", "Chicago", "Los Angeles", "Mexico City", "New York", "Philadelphia", "San Francisco", "Santos", "Sao Paulo", "Seattle"] },
+  { label: "Europe", cities: ["Amsterdam", "Barcelona", "Berlin", "Krakow", "London", "Milan", "Paris", "Vienna", "Warsaw"] },
   { label: "Asia", cities: ["Bangkok", "Seoul", "Taipei", "Tokyo"] },
 ];
 const ALLEYCAT_CITY_PRESETS = ALLEYCAT_CITY_GROUPS.flatMap((group) => group.cities);

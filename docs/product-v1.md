@@ -77,7 +77,7 @@ Gimme The Loop V1 has two product surfaces:
 ## Alleycat Mode capabilities
 - Dedicated `/messenger` page with separate communication and layout
 - Premium manifest generation
-- Supported city packs in V1 tester set: `New York`, `San Francisco`, `Berlin`, `London`, `Tokyo`, `Mexico City`, `Bogota`, `Warsaw`, `Barcelona`, `Sao Paulo`, `Vienna`, `Santos`, `Amsterdam`, `Paris`, `Milan`, `Bangkok`, `Taipei`, `Seoul`
+- Supported city packs in V1 tester set: `New York`, `San Francisco`, `Berlin`, `London`, `Tokyo`, `Mexico City`, `Bogota`, `Warsaw`, `Barcelona`, `Sao Paulo`, `Vienna`, `Santos`, `Amsterdam`, `Paris`, `Milan`, `Bangkok`, `Taipei`, `Seoul`, `Chicago`, `Los Angeles`, `Philadelphia`, `Seattle`, `Buenos Aires`, `Krakow`
 - Difficulty levels: `Easy`, `Medium`, `Hard`
 - Street tones: `Lazy`, `Fast`, `Chaotic`
 - Curated checkpoint list with task prompt and hint

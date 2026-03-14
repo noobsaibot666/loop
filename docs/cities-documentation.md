@@ -29,10 +29,17 @@ Use this file to track:
 - Bangkok
 - Taipei
 - Seoul
+- Chicago
+- Los Angeles
+- Philadelphia
+- Seattle
+- Buenos Aires
+- Krakow
 
 ## Current smoke read
 - Smoke report:
   - [city-batch-2026-03-smoke.md](/Users/alan/_localDEV/Loop/reports/city-batch-2026-03-smoke.md)
+  - [city-batch-2026-04-smoke.md](/Users/alan/_localDEV/Loop/reports/city-batch-2026-04-smoke.md)
 - Current read:
   - the full 2026-03 batch passes the fallback tester smoke matrix
   - central density was tightened for:
@@ -41,6 +48,8 @@ Use this file to track:
     - Paris
     - Milan
     - Seoul
+  - the 2026-04 batch also passes the fallback tester smoke matrix
+  - the current live-code tester set now covers 24 cities
 
 ## Batch seed ready
 - SQL batch prepared:
@@ -54,6 +63,21 @@ Use this file to track:
   - Bangkok
   - Taipei
   - Seoul
+
+## Next batch
+- SQL batch prepared:
+  - [city_batch_2026_04_seed.sql](/Users/alan/_localDEV/Loop/db/sql/city_batch_2026_04_seed.sql)
+- This batch covers:
+  - Chicago
+  - Los Angeles
+  - Philadelphia
+  - Seattle
+  - Buenos Aires
+  - Krakow
+- Why this batch mattered:
+  - expands the US flagship track after New York and San Francisco
+  - adds Buenos Aires back into the alleycat map
+  - moves Krakow from rider request into active rollout
 
 ## Why this wave matters
 - `Vienna` gives Central Europe coverage with a dense inner-city street grid.
@@ -137,10 +161,12 @@ Before a city is marked live, it should have:
 
 ## Requested by riders
 - Add entries here as they come in from city requests and tester feedback.
+- Krakow
 
 ## Notes
 - `Santos` should be treated as its own city pack, not merged into Sao Paulo.
 - `Milan`, `Bangkok`, and `Taipei` are the chosen hub cities unless stronger live scene evidence appears.
 - `Seoul` is explicit, not a hub proxy.
 - The 2026-03 batch is live for tester use in code.
+- The 2026-04 batch is live for tester use in code.
 - keep using batch SQL for city rollout from this point onward.
