@@ -1931,10 +1931,11 @@ function AppShell() {
         }}
       >
         <svg viewBox="0 0 24 24" aria-hidden="true" className="language-trigger-icon">
-          <path
-            d="M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18Zm6.92 8h-3.01a14.8 14.8 0 0 0-1.19-4.23A7.03 7.03 0 0 1 18.92 11Zm-6.92 8c-.73 0-1.93-1.62-2.43-4h4.86c-.5 2.38-1.7 4-2.43 4Zm-2.74-6A18.04 18.04 0 0 1 9.2 11c0-.7.02-1.37.06-2h5.48c.04.63.06 1.3.06 2c0 .7-.02 1.37-.06 2H9.26Zm-4.18-2h-3a7.03 7.03 0 0 1 4.2-4.23A14.8 14.8 0 0 0 5.08 11Zm0 2a14.8 14.8 0 0 0 1.19 4.23A7.03 7.03 0 0 1 2.08 13h3Zm2.17 0h3.01a14.8 14.8 0 0 0 1.19 4.23A7.03 7.03 0 0 1 7.25 13Zm3.01-4H7.25A14.8 14.8 0 0 1 8.44 4.77A7.03 7.03 0 0 1 11.26 9Zm2.48-4.23A14.8 14.8 0 0 1 16.75 9h-3.01a7.03 7.03 0 0 1 2.82-4.23ZM13.74 13h3.01a7.03 7.03 0 0 1-2.82 4.23A14.8 14.8 0 0 0 13.74 13Zm4.18 0h3a7.03 7.03 0 0 1-4.2 4.23A14.8 14.8 0 0 0 17.92 13Z"
-            fill="currentColor"
-          />
+          <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" strokeWidth="1.7" />
+          <path d="M3.8 12h16.4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M12 3.5c2.3 2.1 3.6 5.2 3.6 8.5S14.3 18.4 12 20.5c-2.3-2.1-3.6-5.2-3.6-8.5S9.7 5.6 12 3.5Z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M6.2 8.2c1.7.8 3.7 1.2 5.8 1.2s4.1-.4 5.8-1.2" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M6.2 15.8c1.7-.8 3.7-1.2 5.8-1.2s4.1.4 5.8 1.2" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
         </svg>
       </button>
       {showLanguageMenu && (
