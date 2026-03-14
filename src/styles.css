@@ -802,6 +802,12 @@ p {
   background: rgba(255, 255, 255, 0.02);
 }
 
+.modular-cell-community {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01)),
+    radial-gradient(circle at top left, rgba(255, 90, 31, 0.12), transparent 52%);
+}
+
 .module-card:last-child {
   border-right: none;
 }
@@ -859,6 +865,10 @@ p {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   border-top: 1px solid hsla(0, 0%, 100%, 0.1);
   border-bottom: 1px solid hsla(0, 0%, 100%, 0.1);
+}
+
+.home-modular-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .flow-grid {
@@ -3148,6 +3158,7 @@ input[type="range"]::-moz-range-thumb {
 
 .account-summary-card,
 .account-credits-card,
+.account-community-card,
 .account-stats-card,
 .account-quarter-card,
 .account-history-card {
@@ -3160,6 +3171,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .account-summary-card,
+.account-community-card,
 .account-quarter-card,
 .account-purchases-card,
 .account-history-card,
@@ -3185,6 +3197,12 @@ input[type="range"]::-moz-range-thumb {
 
 .account-credit-grid {
   gap: 18px 22px;
+}
+
+.account-credit-rules {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
 }
 
 .account-credit-grid div {
@@ -3301,6 +3319,7 @@ input[type="range"]::-moz-range-thumb {
 
   .account-summary-card,
   .account-credits-card,
+  .account-community-card,
   .account-stats-card,
   .account-quarter-card,
   .account-purchases-card,

@@ -325,7 +325,10 @@ const supabaseAnon = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 const supabase = supabaseUrl && supabaseAnon ? createClient(supabaseUrl, supabaseAnon) : null;
 
 const LOOP_FREE_LIMIT = 3;
+const LOOP_CREDIT_COST = 1;
 const MESSENGER_CREDIT_COST = 3;
+const CREW_PASS_PRICE_EUR = 4;
+const CREW_ACCESS_URL = "/membership.html";
 const ALLEYCAT_STORAGE_KEY = "loop_alleycat_state";
 const ALLEYCAT_CITY_GROUPS = [
   { label: "Americas", cities: ["Bogota", "Buenos Aires", "Chicago", "Los Angeles", "Mexico City", "New York", "Philadelphia", "San Francisco", "Santos", "Sao Paulo", "Seattle"] },
@@ -2021,7 +2024,7 @@ export default function App() {
     <div className="sequential-layout">
       <Hero />
 
-      <section className="modular-grid reveals">
+      <section className="modular-grid home-modular-grid reveals">
         <div className="modular-cell modular-cell-featured">
           <h3 className="cell-title">Alleycat Mode</h3>
           <p className="cell-body">Pull the sheet, hit the spots, and let the city push back.</p>
@@ -2033,6 +2036,11 @@ export default function App() {
           <h3 className="cell-title">Loop Mode</h3>
           <p className="cell-body">Drop a point. Get back clean.</p>
           <button className="ghost-button small home-card-button" onClick={() => handleNavigate('loop')}>Start looping</button>
+        </div>
+        <div className="modular-cell modular-cell-community">
+          <h3 className="cell-title">Crew Pass</h3>
+          <p className="cell-body">{CREW_PASS_PRICE_EUR} EUR / month. Discord lane, monthly credit drop, and the paid crew.</p>
+          <a className="ghost-button small home-card-button" href={CREW_ACCESS_URL}>Open crew pass</a>
         </div>
       </section>
     </div>
@@ -2238,7 +2246,7 @@ export default function App() {
     <div className="sequential-layout sub-page">
       <section className="sub-page-header">
         <h1 className="sub-page-title">Account</h1>
-        <p className="sub-page-description">{user ? `${accountGreeting} Credits, bike, runs.` : "Login, credits, runs."}</p>
+        <p className="sub-page-description">{user ? `${accountGreeting} Credits, crew, bike, runs.` : "Login, credits, crew, runs."}</p>
       </section>
 
       {!user && (
@@ -2267,9 +2275,9 @@ export default function App() {
             <div className="section-jump-strip">
               <a className="mini-chip active" href="#account-profile">Setup</a>
               <a className="mini-chip" href="#account-credits">Credits</a>
+              <a className="mini-chip" href="#account-access">Access</a>
               <a className="mini-chip" href="#account-activity">Stats</a>
               <a className="mini-chip" href="#account-history">History</a>
-              <a className="mini-chip" href="#account-crew">Crew</a>
             </div>
             {renderStatusBanner(authMessage, true)}
             {renderStatusBanner(accountStatus, true)}
@@ -2358,7 +2366,7 @@ export default function App() {
 
           <div className="glass-card form-card account-credits-card" id="account-credits">
             <div className="form-title">Credits</div>
-            <div className="form-subtitle">What is left.</div>
+            <div className="form-subtitle">Know the burn.</div>
 
             <div className="result-grid result-grid-two account-credit-grid">
               <div>
@@ -2366,7 +2374,7 @@ export default function App() {
                 <strong>{hasUnlimitedCredits ? "Unlimited" : totalCredits}</strong>
               </div>
               <div>
-                <span>Manifest cost</span>
+                <span>Alleycat burn</span>
                 <strong>{hasUnlimitedCredits ? "Free" : `${MESSENGER_CREDIT_COST} each`}</strong>
               </div>
               <div>
@@ -2379,9 +2387,65 @@ export default function App() {
               </div>
             </div>
 
+            <div className="result-grid result-grid-two account-credit-rules">
+              <div>
+                <span>Loop burn</span>
+                <strong>{hasUnlimitedCredits ? "Free" : `${LOOP_CREDIT_COST} each`}</strong>
+              </div>
+              <div>
+                <span>Crew pass</span>
+                <strong>{CREW_PASS_PRICE_EUR} EUR / month</strong>
+              </div>
+              <div>
+                <span>Monthly drop</span>
+                <strong>Free credits</strong>
+              </div>
+              <div>
+                <span>Community lane</span>
+                <strong>Discord access</strong>
+              </div>
+            </div>
+
             <div className="form-actions" style={{ marginTop: '16px' }}>
               <button className="primary-button" type="button" onClick={handleDonate}>
                 Add credits
+              </button>
+            </div>
+            <div className="account-note">
+              {hasUnlimitedCredits
+                ? "Admin account stays open across Loop, Alleycat, and crew access."
+                : `Loop burns ${LOOP_CREDIT_COST}. Alleycat burns ${MESSENGER_CREDIT_COST}. Crew pass riders get monthly free credits plus Discord access.`}
+            </div>
+          </div>
+
+          <div className="glass-card form-card account-community-card" id="account-access">
+            <div className="form-title">Crew access</div>
+            <div className="form-subtitle">Paid lane only.</div>
+            <div className="result-grid result-grid-two account-credit-grid">
+              <div>
+                <span>Pass</span>
+                <strong>{CREW_PASS_PRICE_EUR} EUR / month</strong>
+              </div>
+              <div>
+                <span>Access</span>
+                <strong>Discord crew</strong>
+              </div>
+              <div>
+                <span>Perk</span>
+                <strong>Monthly free credits</strong>
+              </div>
+              <div>
+                <span>Use it for</span>
+                <strong>Alleycat-heavy riders</strong>
+              </div>
+            </div>
+            <div className="account-note">
+              Alleycats hit harder than loops. If you live in the challenge lane, the crew pass keeps the meter softer and opens the community.
+            </div>
+            <div className="form-actions">
+              <a className="primary-button" href={CREW_ACCESS_URL}>Open crew pass</a>
+              <button className="ghost-button" type="button" onClick={handleDonate}>
+                Top up only
               </button>
             </div>
           </div>
@@ -2418,7 +2482,7 @@ export default function App() {
             <div className="account-note">
               {hasUnlimitedCredits
                 ? "Admin account stays unlocked for testing."
-                : `Alleycat costs ${MESSENGER_CREDIT_COST} credits a run. Loop still rides the normal meter.`}
+                : `Loop rides the light meter. Alleycat hits ${MESSENGER_CREDIT_COST} credits a pull.`}
             </div>
           </div>
 

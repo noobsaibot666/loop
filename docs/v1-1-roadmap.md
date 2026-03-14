@@ -218,6 +218,102 @@ Scope:
   - vary slang lightly without becoming cringe or unreadable
   - avoid overusing iconic tourist-center spots
   - distribute checkpoints across districts
+
+### Phase 9: Moderation and abuse tooling
+Tighten the control layer now that public proof, city rollout, and tester traffic are broader.
+
+Status on 2026-03-14:
+- Planned
+
+Scope:
+- Add stronger proof moderation states:
+  - live
+  - hidden
+  - flagged
+  - deleted
+- Add rider abuse review tools:
+  - repeated proof spam visibility
+  - suspicious upload patterns
+  - rider-level moderation notes
+- Add basic action history for admin moderation changes
+- Add clearer admin guardrails for destructive actions
+
+Why this matters:
+- V1 now has enough public surface area that moderation needs to move beyond one-click cleanup.
+
+### Phase 10: Analytics and ops visibility
+Make release health, usage, and failure patterns visible without opening a full BI project.
+
+Status on 2026-03-14:
+- Planned
+
+Scope:
+- Add a clearer admin ops dashboard for:
+  - active riders
+  - manifests generated
+  - finished runs
+  - proof posts
+  - credit top-ups
+  - city usage by demand and run volume
+- Add route and run failure visibility:
+  - failed manifest builds
+  - failed proof uploads
+  - location denial rate
+  - share-code failures
+- Add simple date-range snapshots for weekly / monthly review
+
+Why this matters:
+- More cities and more testers mean the team needs fast ops reads, not guesses.
+
+### Phase 11: Mobile recovery hardening
+Handle ugly edge cases on phones without dumping riders into dead ends.
+
+Status on 2026-03-14:
+- Planned
+
+Scope:
+- Tighten recovery for:
+  - app reload during an active Alleycat
+  - proof upload interruption
+  - auth/session expiry during a run
+  - failed top-up attempts
+  - low-credit failure at the wrong moment
+- Add clearer rider-facing recovery states:
+  - what failed
+  - what was kept
+  - what to do next
+- Keep recovery copy short and branded, not technical
+
+Why this matters:
+- Edge-case recovery on mobile is now product quality, not polish.
+
+### Phase 12: Membership, community, and credit economy
+Make the paid lane clearer and connect it to community, not just top-ups.
+
+Status on 2026-03-14:
+- Started
+- Home and account surfaces can now frame the crew pass and credit economy more clearly
+- Full recurring billing and gated Discord access are still open
+
+Scope:
+- Add a paid community pass:
+  - 4 EUR / month
+  - Discord community access
+  - monthly free credit drop
+- Make credit usage clearer in account:
+  - Loop cost
+  - Alleycat cost
+  - what free loops cover
+  - what paid credits cover
+- Add a dedicated community / membership surface
+- Add account entry point for community access
+- Keep the home page aware of the paid lane without turning it into a pricing page
+
+Open backend work:
+- recurring membership checkout flow
+- subscription state on user account
+- Discord invite / access handling
+- monthly credit grant automation
   - keep tasks doable in real riding conditions
 - Human/admin review before publish
 
