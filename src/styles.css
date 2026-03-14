@@ -4220,6 +4220,8 @@ input[type="range"]::-moz-range-thumb {
   .city-lane-card {
     gap: 14px;
     padding: 18px;
+    width: min(100%, 340px);
+    justify-self: center;
   }
 
   .city-editorial-section {
@@ -4240,6 +4242,11 @@ input[type="range"]::-moz-range-thumb {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
+  }
+
+  .city-lane-grid,
+  .city-lane-grid.compact-grid {
+    justify-items: center;
   }
 
   .city-lane-actions .small {
