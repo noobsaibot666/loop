@@ -327,7 +327,12 @@ const supabase = supabaseUrl && supabaseAnon ? createClient(supabaseUrl, supabas
 const LOOP_FREE_LIMIT = 3;
 const MESSENGER_CREDIT_COST = 3;
 const ALLEYCAT_STORAGE_KEY = "loop_alleycat_state";
-const ALLEYCAT_CITY_PRESETS = ["New York", "San Francisco", "Berlin", "London", "Tokyo", "Mexico City", "Bogota", "Warsaw", "Barcelona", "Sao Paulo"];
+const ALLEYCAT_CITY_GROUPS = [
+  { label: "Americas", cities: ["Bogota", "Mexico City", "New York", "San Francisco", "Santos", "Sao Paulo"] },
+  { label: "Europe", cities: ["Amsterdam", "Barcelona", "Berlin", "London", "Milan", "Paris", "Vienna", "Warsaw"] },
+  { label: "Asia", cities: ["Bangkok", "Seoul", "Taipei", "Tokyo"] },
+];
+const ALLEYCAT_CITY_PRESETS = ALLEYCAT_CITY_GROUPS.flatMap((group) => group.cities);
 const PROOF_BUCKET = "alleycat-proofs";
 const toCitySlug = (value = "") => value.trim().toLowerCase().replace(/\s+/g, "");
 const getCityLabel = (value = "") => ALLEYCAT_CITY_PRESETS.find((city) => toCitySlug(city) === toCitySlug(value)) || value;
@@ -767,7 +772,6 @@ export default function App() {
   useEffect(() => {
     if (messengerUnit === "km" && messengerRange <= 1 && messengerCheckpointCount > 2) {
       setMessengerCheckpointCount(2);
-      setMessengerStatus("1 km test mode caps the list at 2 checkpoints.");
     }
   }, [messengerRange, messengerUnit, messengerCheckpointCount]);
 
@@ -1883,7 +1887,10 @@ export default function App() {
             <>
               <button className="nav-link" onClick={() => handleNavigate('account')}>My Account</button>
               <button className="ghost-button small" onClick={handleDonate}>Add Credits</button>
-              <button className="primary-button small" onClick={() => handleLogout()}>Sign Out</button>
+              <button className="ghost-button small header-signout" onClick={() => handleLogout()} aria-label="Sign out">
+                <span className="header-signout-icon" aria-hidden="true">↗</span>
+                <span>Out</span>
+              </button>
             </>
           ) : (
             <>
@@ -1956,9 +1963,9 @@ export default function App() {
     </div>
   );
 
-  const renderStatusBanner = (message?: string, compact = false) =>
+  const renderStatusBanner = (message?: string, compact = false, tone: "default" | "builder" = "default") =>
     message ? (
-      <div className={`status-message ${compact ? "compact-status" : ""}`} role="status" aria-live="polite">
+      <div className={`status-message ${compact ? "compact-status" : ""} ${tone === "builder" ? "builder-status-note" : ""}`} role="status" aria-live="polite">
         {message}
       </div>
     ) : null;
@@ -2103,22 +2110,6 @@ export default function App() {
           <div className="modal-card">
             <div className="modal-title">Request your city</div>
             <div className="modal-subtitle">Drop the city. We handle the rest.</div>
-            {cityDemand && (
-              <div className="mini-chip-row compact">
-                <span className="mini-chip active">{cityDemand.open_requests} open</span>
-                <span className="mini-chip">{cityDemand.queued_requests} queued</span>
-                {cityDemand.top_cities.slice(0, 2).map((entry) => (
-                  <button
-                    key={entry.city}
-                    className="mini-chip chip-button"
-                    type="button"
-                    onClick={() => setCityRequestName(entry.city)}
-                  >
-                    {entry.city}
-                  </button>
-                ))}
-              </div>
-            )}
             <label className="field">
               <span>City</span>
               <input value={cityRequestName} onChange={(event) => setCityRequestName(event.target.value)} placeholder="Berlin, Bogotá, NYC..." autoFocus enterKeyHint="next" />
@@ -2898,15 +2889,6 @@ export default function App() {
                   <div className="form-subtitle">
                     Pull the sheet and smoke the line.
                   </div>
-                  {cityDemand && (
-                    <div className="mini-chip-row">
-                      <span className="mini-chip active">{cityDemand.open_requests} city asks live</span>
-                      <span className="mini-chip">{cityDemand.queued_requests} queued</span>
-                      {cityDemand.top_cities[0] && (
-                        <span className="mini-chip">Top ask: {cityDemand.top_cities[0].city}</span>
-                      )}
-                    </div>
-                  )}
                 </div>
                 <div className="loops-left">
                   <span className="loops-left-line">{hasUnlimitedCredits ? "Credits Unlimited" : `Credits ${messengerCreditsOnly}`}</span>
@@ -2922,10 +2904,14 @@ export default function App() {
                     onChange={(event) => setMessengerCity(event.target.value)}
                   >
                     <option value="">Choose a city</option>
-                    {ALLEYCAT_CITY_PRESETS.map((city) => (
-                      <option key={city} value={city}>
-                        {city}
-                      </option>
+                    {ALLEYCAT_CITY_GROUPS.map((group) => (
+                      <optgroup key={group.label} label={group.label}>
+                        {group.cities.map((city) => (
+                          <option key={city} value={city}>
+                            {city}
+                          </option>
+                        ))}
+                      </optgroup>
                     ))}
                   </select>
                   <div className="field-inline-actions">
@@ -3109,7 +3095,7 @@ export default function App() {
                     Have a code?
                   </button>
                 </div>
-                {renderStatusBanner(messengerStatus)}
+                {renderStatusBanner(messengerStatus, true, "builder")}
               </div>
             </div>
 

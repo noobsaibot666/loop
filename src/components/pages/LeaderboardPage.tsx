@@ -37,21 +37,21 @@ export default function LeaderboardPage({
     {
       label: "Americas",
       cities: cityPresets
-        .filter((city) => ["Bogota", "Mexico City", "New York", "San Francisco", "Sao Paulo"].includes(city))
+        .filter((city) => ["Bogota", "Mexico City", "New York", "San Francisco", "Sao Paulo", "Santos"].includes(city))
         .sort((a, b) => a.localeCompare(b)),
       anchor: "leaderboard-city-group-americas",
     },
     {
       label: "Europe",
       cities: cityPresets
-        .filter((city) => ["Barcelona", "Berlin", "London", "Warsaw"].includes(city))
+        .filter((city) => ["Amsterdam", "Barcelona", "Berlin", "London", "Milan", "Paris", "Vienna", "Warsaw"].includes(city))
         .sort((a, b) => a.localeCompare(b)),
       anchor: "leaderboard-city-group-europe",
     },
     {
       label: "Asia",
       cities: cityPresets
-        .filter((city) => ["Tokyo"].includes(city))
+        .filter((city) => ["Bangkok", "Seoul", "Taipei", "Tokyo"].includes(city))
         .sort((a, b) => a.localeCompare(b)),
       anchor: "leaderboard-city-group-asia",
     },

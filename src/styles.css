@@ -415,6 +415,21 @@ select {
   background: var(--accent-soft);
 }
 
+.header-signout {
+  min-width: 76px;
+  opacity: 0.82;
+  padding: 0 12px;
+}
+
+.header-signout:hover {
+  opacity: 1;
+}
+
+.header-signout-icon {
+  font-size: 0.82rem;
+  line-height: 1;
+}
+
 .share-manifest-button {
   background: var(--accent) !important;
   color: #000 !important;
@@ -550,6 +565,7 @@ p {
   text-decoration: underline;
   text-underline-offset: 0.22em;
   margin-left: auto;
+  margin-right: 10px;
 }
 
 .metric {
@@ -2228,6 +2244,16 @@ input[type="range"]::-moz-range-thumb {
   padding: 10px 12px;
 }
 
+.builder-status-note {
+  margin-top: 4px;
+  border: 1px solid rgba(255, 102, 0, 0.28);
+  background: rgba(255, 102, 0, 0.08);
+  color: rgba(255, 245, 240, 0.86);
+  font-size: 0.82rem;
+  letter-spacing: 0.01em;
+  line-height: 1.35;
+}
+
 .messenger-link-card {
   align-items: center;
 }
@@ -3412,6 +3438,8 @@ input[type="range"]::-moz-range-thumb {
   .nav-left {
     min-width: 0;
     gap: 12px;
+    justify-content: center;
+    flex: 1 1 auto;
   }
 
   .header-nav,
@@ -3428,9 +3456,10 @@ input[type="range"]::-moz-range-thumb {
     font-size: 0.78rem;
     line-height: 1;
     white-space: nowrap;
+    text-align: center;
   }
 
-  .brand-title br {
+  .brand-mark {
     display: none;
   }
 
@@ -4035,11 +4064,18 @@ input[type="range"]::-moz-range-thumb {
   }
 
   .wall-detail-grid span {
-    font-size: 0.62rem;
+    font-size: 0.52rem;
+    letter-spacing: 0.08em;
+    line-height: 1.2;
   }
 
   .wall-detail-grid strong {
-    font-size: 0.8rem;
+    font-size: 0.68rem;
+    line-height: 1.1;
+  }
+
+  .wall-filter-link {
+    margin-right: 14px;
   }
 
   .wall-city-actions {

@@ -4,6 +4,7 @@ Related planning docs:
 - [v1-1-roadmap.md](/Users/alan/_localDEV/Loop/docs/v1-1-roadmap.md)
 - [v1-1-checklist.md](/Users/alan/_localDEV/Loop/reports/v1-1-checklist.md)
 - [city-rollout.md](/Users/alan/_localDEV/Loop/docs/city-rollout.md)
+- [cities-documentation.md](/Users/alan/_localDEV/Loop/docs/cities-documentation.md)
 - [phase-2-gate-checklist.md](/Users/alan/_localDEV/Loop/reports/phase-2-gate-checklist.md)
 - [phase-3-roadmap.md](/Users/alan/_localDEV/Loop/docs/phase-3-roadmap.md)
 - [phase-3-checklist.md](/Users/alan/_localDEV/Loop/reports/phase-3-checklist.md)
@@ -76,7 +77,7 @@ Gimme The Loop V1 has two product surfaces:
 ## Alleycat Mode capabilities
 - Dedicated `/messenger` page with separate communication and layout
 - Premium manifest generation
-- Supported city packs in V1: `New York`, `San Francisco`, `Berlin`, `London`, `Tokyo`, `Mexico City`, `Bogota`, `Warsaw`, `Barcelona`, `Sao Paulo`
+- Supported city packs in V1 tester set: `New York`, `San Francisco`, `Berlin`, `London`, `Tokyo`, `Mexico City`, `Bogota`, `Warsaw`, `Barcelona`, `Sao Paulo`, `Vienna`, `Santos`, `Amsterdam`, `Paris`, `Milan`, `Bangkok`, `Taipei`, `Seoul`
 - Difficulty levels: `Easy`, `Medium`, `Hard`
 - Street tones: `Lazy`, `Fast`, `Chaotic`
 - Curated checkpoint list with task prompt and hint
