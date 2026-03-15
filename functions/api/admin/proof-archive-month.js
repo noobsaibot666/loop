@@ -36,6 +36,25 @@ export async function onRequest({ request, env }) {
     }
   );
 
+  await supabaseRequest(env, "moderation_action_history", {
+    method: "POST",
+    headers: {
+      Prefer: "return=minimal",
+    },
+    body: JSON.stringify({
+      admin_user_id: admin.id || null,
+      admin_email: admin.email || "",
+      action: "proof_archive_month",
+      target_type: "proof_month",
+      target_id: month,
+      target_label: month,
+      details: {
+        month,
+        archived_count: updated?.length || 0,
+      },
+    }),
+  }).catch(() => null);
+
   return json({
     ok: true,
     archived: updated?.length || 0,

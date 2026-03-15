@@ -15,6 +15,17 @@ type WallPost = {
   created_at: string;
 };
 
+type NightRidePost = {
+  id: string;
+  rider_name: string;
+  crew_name?: string | null;
+  city_name?: string | null;
+  route_title?: string | null;
+  distance_km?: number | null;
+  image_url: string;
+  created_at: string;
+};
+
 type WallPageProps = {
   publicQuarterLabel: string;
   selectedWallCity: string;
@@ -24,6 +35,7 @@ type WallPageProps = {
   getCityLabel: (value?: string) => string;
   isLoadingWall: boolean;
   wallPosts: WallPost[];
+  nightRidePosts: NightRidePost[];
   onOpenRiderProfile: (userId?: string) => void;
   onOpenWallCity: (cityName?: string) => void;
   onOpenLeaderboardCity: (cityName?: string) => void;
@@ -38,6 +50,7 @@ export default function WallPage({
   getCityLabel,
   isLoadingWall,
   wallPosts,
+  nightRidePosts,
   onOpenRiderProfile,
   onOpenWallCity,
   onOpenLeaderboardCity,
@@ -127,6 +140,30 @@ export default function WallPage({
                   </div>
                 </div>
               </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="wall-section reveals" id="night-wall-feed">
+        <div className="filter-strip wall-subsection-head">
+          <div className="wall-subsection-title">{t("wall.nightTitle")}</div>
+          <div className="wall-subsection-copy">{t("wall.nightSubtitle")}</div>
+        </div>
+        {nightRidePosts.length > 0 && (
+          <div className="night-wall-grid">
+            {nightRidePosts.map((post) => (
+              <article key={post.id} className="glass-card night-wall-card">
+                <img src={post.image_url} alt={post.route_title || post.crew_name || post.rider_name} className="night-wall-image" loading="lazy" decoding="async" />
+                <div className="night-wall-meta">
+                  <strong>{post.crew_name || post.rider_name}</strong>
+                  <span>{post.route_title || t("wall.nightRouteFallback")}</span>
+                  <span>
+                    {post.city_name || t("wall.nightCityFallback")}
+                    {post.distance_km ? ` · ${Number(post.distance_km).toFixed(1)} km` : ""}
+                  </span>
+                </div>
+              </article>
             ))}
           </div>
         )}

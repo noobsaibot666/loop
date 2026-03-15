@@ -1008,6 +1008,7 @@
         <button class="section-chip active" data-section="overview">Overview</button>
         <button class="section-chip" data-section="ops">Ops</button>
         <button class="section-chip" data-section="wall">Wall of Fame</button>
+        <button class="section-chip" data-section="night">Night rides</button>
         <button class="section-chip" data-section="requests">Requests</button>
         <button class="section-chip" data-section="city">City studio</button>
       </div>
@@ -1059,6 +1060,11 @@
     <section class="card" id="abusePanel" data-section="overview" style="display:none;">
       <div class="eyebrow">Abuse watch</div>
       <div class="sessions" id="abuseWatchList"></div>
+    </section>
+
+    <section class="card" id="moderationPanel" data-section="overview" style="display:none;">
+      <div class="eyebrow">Moderation history</div>
+      <div class="sessions" id="moderationHistoryList"></div>
     </section>
 
     <section class="card" id="signalsPanel" data-section="overview" style="display:none;">
@@ -1198,6 +1204,18 @@
       <div class="proofs" id="proofsList"></div>
     </section>
 
+    <section class="card" id="nightRidesPanel" data-section="night" style="display:none;">
+      <div class="section-head">
+        <div class="section-title">
+          <div class="eyebrow">Night Ride</div>
+          <h2>Shadow feed</h2>
+          <p class="mini-note">Read surface for crew/night posts. Keep an eye on names, captions, and image tone before public launch.</p>
+        </div>
+        <button id="refreshNightRides" class="secondary">Refresh night rides</button>
+      </div>
+      <div class="proof-month-grid" id="nightRidesList"></div>
+    </section>
+
     <div class="status" id="status"></div>
   </div>
 
@@ -1213,22 +1231,27 @@
       const controlsPanel = document.getElementById('controlsPanel');
       const sessionsPanel = document.getElementById('sessionsPanel');
       const proofsPanel = document.getElementById('proofsPanel');
+      const nightRidesPanel = document.getElementById('nightRidesPanel');
       const requestsPanel = document.getElementById('requestsPanel');
       const quarterPanel = document.getElementById('quarterPanel');
       const cityPulsePanel = document.getElementById('cityPulsePanel');
       const abusePanel = document.getElementById('abusePanel');
+      const moderationPanel = document.getElementById('moderationPanel');
       const signalsPanel = document.getElementById('signalsPanel');
       const snapshotsPanel = document.getElementById('snapshotsPanel');
       const cityStudioPanel = document.getElementById('cityStudioPanel');
       const sessionsList = document.getElementById('sessionsList');
       const proofsList = document.getElementById('proofsList');
       const refreshProofsButton = document.getElementById('refreshProofs');
+      const nightRidesList = document.getElementById('nightRidesList');
+      const refreshNightRidesButton = document.getElementById('refreshNightRides');
       const requestsList = document.getElementById('requestsList');
       const requestsSummary = document.getElementById('requestsSummary');
       const quarterLeaders = document.getElementById('quarterLeaders');
       const quarterTop3 = document.getElementById('quarterTop3');
       const cityPulseList = document.getElementById('cityPulseList');
       const abuseWatchList = document.getElementById('abuseWatchList');
+      const moderationHistoryList = document.getElementById('moderationHistoryList');
       const failureSignals = document.getElementById('failureSignals');
       const opsSnapshots = document.getElementById('opsSnapshots');
       const packsList = document.getElementById('packsList');
@@ -1490,6 +1513,12 @@
           button.classList.toggle('active', button.dataset.section === section);
         });
       };
+
+      const formatModerationAction = (action) =>
+        String(action || '')
+          .replace(/^proof_/, '')
+          .replace(/_/g, ' ')
+          .replace(/\b\w/g, (char) => char.toUpperCase());
 
       const post = async (path, body) => {
         if (!accessToken) throw new Error('Login required');
@@ -1786,6 +1815,33 @@
             }
           };
           requestsList.appendChild(row);
+        });
+      };
+
+      const loadNightRides = async () => {
+        nightRidesList.innerHTML = '';
+        const response = await fetch(`${apiBase}/api/night-rides/feed`, {
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
+        });
+        const data = await response.json().catch(() => ({ posts: [] }));
+        const posts = data.posts || [];
+        if (!posts.length) {
+          nightRidesList.innerHTML = '<div class="label">No night ride posts yet.</div>';
+          return;
+        }
+        posts.forEach((post) => {
+          const tile = document.createElement('article');
+          tile.className = 'proof-tile';
+          tile.innerHTML = `
+            <img src="${post.image_url}" alt="${post.route_title || post.crew_name || post.rider_name || 'Night ride post'}" />
+            <div>
+              <strong>${post.crew_name || post.rider_name || 'Night rider'}</strong>
+              <span>${post.route_title || 'Night route'}</span>
+              <span>${post.city_name || 'Night city'}${post.distance_km ? ` · ${Number(post.distance_km).toFixed(1)} km` : ''}</span>
+              <span>${new Date(post.created_at).toLocaleDateString()}</span>
+            </div>
+          `;
+          nightRidesList.appendChild(tile);
         });
       };
 
@@ -2135,6 +2191,7 @@
           quarterTop3.innerHTML = '';
           cityPulseList.innerHTML = '';
           abuseWatchList.innerHTML = '';
+          moderationHistoryList.innerHTML = '';
           failureSignals.innerHTML = '';
           opsSnapshots.innerHTML = '';
           document.getElementById('quarterLabel').textContent = overview.quarter?.label || 'Current quarter';
@@ -2158,29 +2215,29 @@
           await loadProofs();
           if (!overview.quarter?.leaders?.length) {
             quarterLeaders.innerHTML = '<div class="label">No ranked riders yet.</div>';
-            return;
-          }
-          overview.quarter.leaders.slice(0, 3).forEach((entry) => {
-            const card = document.createElement('div');
-            card.className = 'winner-card';
-            card.innerHTML = `
-              <div class="label">Top ${entry.rank}</div>
-              <strong>${entry.rider_name}</strong>
-              <span>${entry.public_proofs} proofs · ${entry.finished_runs} finishes</span>
-            `;
-            quarterTop3.appendChild(card);
-          });
-          overview.quarter.leaders.forEach((entry) => {
-            const row = document.createElement('div');
-            row.className = 'session';
-            row.innerHTML = `
-                <div>
-                  <strong>#${entry.rank} ${entry.rider_name}</strong>
-                  <span>${entry.public_proofs} proofs · ${entry.finished_runs} finishes</span>
-                </div>
+          } else {
+            overview.quarter.leaders.slice(0, 3).forEach((entry) => {
+              const card = document.createElement('div');
+              card.className = 'winner-card';
+              card.innerHTML = `
+                <div class="label">Top ${entry.rank}</div>
+                <strong>${entry.rider_name}</strong>
+                <span>${entry.public_proofs} proofs · ${entry.finished_runs} finishes</span>
               `;
-            quarterLeaders.appendChild(row);
-          });
+              quarterTop3.appendChild(card);
+            });
+            overview.quarter.leaders.forEach((entry) => {
+              const row = document.createElement('div');
+              row.className = 'session';
+              row.innerHTML = `
+                  <div>
+                    <strong>#${entry.rank} ${entry.rider_name}</strong>
+                    <span>${entry.public_proofs} proofs · ${entry.finished_runs} finishes</span>
+                  </div>
+                `;
+              quarterLeaders.appendChild(row);
+            });
+          }
 
           if (!overview.city_pulse?.length) {
             cityPulseList.innerHTML = '<div class="label">No city pulse yet.</div>';
@@ -2217,6 +2274,25 @@
                 </div>
               `;
               abuseWatchList.appendChild(row);
+            });
+          }
+
+          if (!overview.moderation_history?.length) {
+            moderationHistoryList.innerHTML = '<div class="label">No moderation actions logged yet.</div>';
+          } else {
+            overview.moderation_history.forEach((entry) => {
+              const row = document.createElement('div');
+              row.className = 'session';
+              row.innerHTML = `
+                <div>
+                  <strong>${formatModerationAction(entry.action)}</strong>
+                  <span>${entry.target_label || entry.target_id || entry.target_type} · ${entry.admin_email || 'admin'}</span>
+                </div>
+                <div>
+                  <strong>${entry.created_at ? new Date(entry.created_at).toLocaleDateString() : '--'}</strong>
+                </div>
+              `;
+              moderationHistoryList.appendChild(row);
             });
           }
 
@@ -2274,6 +2350,7 @@
           await paintOverview();
           await loadPacks();
           await loadRequests();
+          await loadNightRides();
           applySection(activeSection);
         } else {
           loginPanel.style.display = 'block';
@@ -2282,6 +2359,7 @@
           controlsPanel.style.display = 'none';
           sessionsPanel.style.display = 'none';
           proofsPanel.style.display = 'none';
+          nightRidesPanel.style.display = 'none';
           requestsPanel.style.display = 'none';
           quarterPanel.style.display = 'none';
           cityStudioPanel.style.display = 'none';
@@ -2380,6 +2458,9 @@
       };
       refreshProofsButton.onclick = async () => {
         try { await loadProofs(); statusEl.textContent = 'Wall of Fame reloaded.'; } catch (e) { statusEl.textContent = e.message; }
+      };
+      refreshNightRidesButton.onclick = async () => {
+        try { await loadNightRides(); statusEl.textContent = 'Night rides reloaded.'; } catch (e) { statusEl.textContent = e.message; }
       };
 
       document.querySelectorAll('.section-chip').forEach((button) => {

@@ -10,7 +10,7 @@ export async function onRequest({ request, env }) {
 
   const proofRows = await supabaseRequest(
     env,
-    `messenger_proof_posts?id=eq.${encodeURIComponent(proofId)}&select=id,storage_path`,
+    `messenger_proof_posts?id=eq.${encodeURIComponent(proofId)}&select=id,storage_path,rider_name,city_name,checkpoint_name,is_public,archived_at`,
     { method: "GET" }
   );
   const proof = proofRows?.[0] || null;
@@ -30,6 +30,28 @@ export async function onRequest({ request, env }) {
       Prefer: "return=minimal",
     },
   });
+
+  await supabaseRequest(env, "moderation_action_history", {
+    method: "POST",
+    headers: {
+      Prefer: "return=minimal",
+    },
+    body: JSON.stringify({
+      admin_user_id: admin.id || null,
+      admin_email: admin.email || "",
+      action: "proof_delete",
+      target_type: "proof",
+      target_id: proofId,
+      target_label: proof.checkpoint_name || proof.city_name || proofId,
+      details: {
+        rider_name: proof.rider_name || "",
+        city_name: proof.city_name || "",
+        checkpoint_name: proof.checkpoint_name || "",
+        was_public: proof.is_public,
+        was_archived: Boolean(proof.archived_at),
+      },
+    }),
+  }).catch(() => null);
 
   return json({ ok: true, deleted_id: proofId });
 }

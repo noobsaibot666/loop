@@ -11,8 +11,9 @@ const WallPage = lazy(() => import("./components/pages/WallPage"));
 const LeaderboardPage = lazy(() => import("./components/pages/LeaderboardPage"));
 const RiderProfilePage = lazy(() => import("./components/pages/RiderProfilePage"));
 const CitiesPage = lazy(() => import("./components/pages/CitiesPage"));
+const NightRidePage = lazy(() => import("./components/pages/NightRidePage"));
 
-export type PageView = "home" | "loop" | "messenger" | "cities" | "account" | "wall" | "leaderboard" | "rider";
+export type PageView = "home" | "loop" | "messenger" | "night" | "cities" | "account" | "wall" | "leaderboard" | "rider";
 
 type Usage = {
   free_used: number;
@@ -82,6 +83,14 @@ type MessengerProof = {
   location_label: string;
   is_public: boolean;
   created_at: string;
+};
+type ProofDraft = {
+  runId: string;
+  checkpointId: string;
+  storagePath: string;
+  publicUrl: string;
+  isPublic: boolean;
+  fileName: string;
 };
 type AlleycatChallenge = {
   id: string;
@@ -210,6 +219,30 @@ type WallPost = {
   public_url: string;
   created_at: string;
 };
+type NightRideFeedPost = {
+  id: string;
+  rider_name: string;
+  crew_name?: string | null;
+  city_name?: string | null;
+  route_title?: string | null;
+  distance_km?: number | null;
+  caption?: string | null;
+  image_url: string;
+  aspect_ratio?: string | null;
+  created_at: string;
+};
+type NightRideAccountSession = {
+  id: string;
+  title: string;
+  session_type: "single" | "crew";
+  mode: "loop" | "roulette";
+  difficulty: "easy" | "medium" | "hard";
+  distance_km: number;
+  ride_city?: string | null;
+  crew_name?: string | null;
+  crew_members?: string[] | null;
+  created_at: string;
+};
 type PublicLeaderboardEntry = {
   user_id: string;
   rider_name: string;
@@ -329,6 +362,7 @@ const LOOP_FREE_LIMIT = 3;
 const LOOP_CREDIT_COST = 1;
 const MESSENGER_CREDIT_COST = 3;
 const ALLEYCAT_STORAGE_KEY = "loop_alleycat_state";
+const ALLEYCAT_PROOF_DRAFTS_KEY = "loop_alleycat_proof_drafts";
 const LOOP_BUILDER_STORAGE_KEY = "loop_builder_state";
 const ALLEYCAT_CITY_GROUPS = [
   { label: "Americas", cities: ["Bogota", "Buenos Aires", "Chicago", "Los Angeles", "Mexico City", "New York", "Philadelphia", "San Francisco", "Santos", "Sao Paulo", "Seattle"] },
@@ -421,7 +455,10 @@ function AppShell() {
   const [isSendingFeedback, setIsSendingFeedback] = useState(false);
   const [isSendingReset, setIsSendingReset] = useState(false);
   const [wallPosts, setWallPosts] = useState<WallPost[]>([]);
+  const [nightRidePosts, setNightRidePosts] = useState<NightRideFeedPost[]>([]);
+  const [nightRideHistory, setNightRideHistory] = useState<NightRideAccountSession[]>([]);
   const [isLoadingWall, setIsLoadingWall] = useState(false);
+  const [isLoadingNightRideHistory, setIsLoadingNightRideHistory] = useState(false);
   const [selectedWallCity, setSelectedWallCity] = useState("");
   const [publicLeaderboard, setPublicLeaderboard] = useState<PublicLeaderboardEntry[]>([]);
   const [publicQuarterLabel, setPublicQuarterLabel] = useState("");
@@ -484,6 +521,7 @@ function AppShell() {
   const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
   const [proofVisibility, setProofVisibility] = useState<Record<string, boolean>>({});
   const [proofFiles, setProofFiles] = useState<Record<string, File | null>>({});
+  const [proofDrafts, setProofDrafts] = useState<Record<string, ProofDraft>>({});
   const [proofStatus, setProofStatus] = useState<Record<string, string>>({});
   const [isUploadingProof, setIsUploadingProof] = useState<Record<string, boolean>>({});
   const [expandedPanels, setExpandedPanels] = useState<Record<string, boolean>>({});
@@ -713,6 +751,25 @@ function AppShell() {
 
   useEffect(() => {
     try {
+      const raw = localStorage.getItem(ALLEYCAT_PROOF_DRAFTS_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as Record<string, ProofDraft>;
+      if (!saved || typeof saved !== "object") return;
+      setProofDrafts(saved);
+      setProofVisibility((current) => {
+        const next = { ...current };
+        Object.values(saved).forEach((draft) => {
+          next[draft.checkpointId] = draft.isPublic;
+        });
+        return next;
+      });
+    } catch {
+      localStorage.removeItem(ALLEYCAT_PROOF_DRAFTS_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
       const raw = localStorage.getItem(LOOP_BUILDER_STORAGE_KEY);
       if (!raw) return;
       const saved = JSON.parse(raw) as {
@@ -761,6 +818,14 @@ function AppShell() {
 
   useEffect(() => {
     try {
+      localStorage.setItem(ALLEYCAT_PROOF_DRAFTS_KEY, JSON.stringify(proofDrafts));
+    } catch {
+      // Ignore storage failures.
+    }
+  }, [proofDrafts]);
+
+  useEffect(() => {
+    try {
       localStorage.setItem(
         LOOP_BUILDER_STORAGE_KEY,
         JSON.stringify({
@@ -777,6 +842,22 @@ function AppShell() {
       // Ignore storage failures.
     }
   }, [loopPoint, distance, terrain, surface, vibe, unit, selectedCoords]);
+
+  useEffect(() => {
+    if (!messengerRun?.runId) return;
+    setProofDrafts((current) => {
+      const proofIds = new Set((messengerRun.proofs || []).map((proof) => proof.checkpoint_id));
+      let changed = false;
+      const next = { ...current };
+      Object.entries(current).forEach(([checkpointId, draft]) => {
+        if (draft.runId !== messengerRun.runId) return;
+        if (!proofIds.has(checkpointId)) return;
+        delete next[checkpointId];
+        changed = true;
+      });
+      return changed ? next : current;
+    });
+  }, [messengerRun?.runId, messengerRun?.proofs]);
 
   useEffect(() => {
     const nextConfig = JSON.stringify({
@@ -921,6 +1002,49 @@ function AppShell() {
       cancelled = true;
     };
   }, [pageView, selectedWallCity]);
+
+  useEffect(() => {
+    if (pageView !== "wall" && pageView !== "night") return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch(`${API_BASE}/api/night-rides/feed`, { cache: "no-store" });
+        const data = (await response.json()) as { posts: NightRideFeedPost[] };
+        if (!cancelled) setNightRidePosts(data.posts || []);
+      } catch {
+        if (!cancelled) setNightRidePosts([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pageView]);
+
+  useEffect(() => {
+    if (pageView !== "account" || !user?.id) {
+      setNightRideHistory([]);
+      return;
+    }
+    let cancelled = false;
+    setIsLoadingNightRideHistory(true);
+    (async () => {
+      try {
+        const response = await fetch(`${API_BASE}/api/night-rides/mine`, {
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+          cache: "no-store",
+        });
+        const data = (await response.json()) as { sessions: NightRideAccountSession[] };
+        if (!cancelled) setNightRideHistory(data.sessions || []);
+      } catch {
+        if (!cancelled) setNightRideHistory([]);
+      } finally {
+        if (!cancelled) setIsLoadingNightRideHistory(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pageView, user?.id]);
 
   useEffect(() => {
     if (pageView !== "leaderboard") return;
@@ -1232,6 +1356,8 @@ function AppShell() {
         ? "/loop"
         : target === "messenger"
           ? "/messenger"
+          : target === "night"
+            ? "/night"
           : target === "cities"
             ? "/cities"
           : target === "account"
@@ -1697,30 +1823,43 @@ function AppShell() {
 
   const handleProofUpload = async (checkpoint: MessengerCheckpoint) => {
     if (!supabase || !user?.id || !messengerRun?.runId) return;
+    const draft = proofDrafts[checkpoint.id]?.runId === messengerRun.runId ? proofDrafts[checkpoint.id] : null;
     const file = proofFiles[checkpoint.id];
-    if (!file) {
+    if (!file && !draft) {
       setProofStatus((current) => ({ ...current, [checkpoint.id]: "Pick a photo first." }));
       return;
     }
 
     setIsUploadingProof((current) => ({ ...current, [checkpoint.id]: true }));
     setProofStatus((current) => ({ ...current, [checkpoint.id]: "" }));
+    let stagedProof = draft;
     try {
-      const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const storagePath = `${user.id}/${messengerRun.runId}/${checkpoint.id}-${Date.now()}.${extension}`;
-      const upload = await supabase.storage.from(PROOF_BUCKET).upload(storagePath, file, {
-        cacheControl: "3600",
-        upsert: false,
-      });
-      if (upload.error) throw upload.error;
+      if (!stagedProof) {
+        const extension = file?.name.split(".").pop()?.toLowerCase() || "jpg";
+        const storagePath = `${user.id}/${messengerRun.runId}/${checkpoint.id}-${Date.now()}.${extension}`;
+        const upload = await supabase.storage.from(PROOF_BUCKET).upload(storagePath, file as File, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+        if (upload.error) throw upload.error;
 
-      const { data: publicData } = supabase.storage.from(PROOF_BUCKET).getPublicUrl(storagePath);
+        const { data: publicData } = supabase.storage.from(PROOF_BUCKET).getPublicUrl(storagePath);
+        stagedProof = {
+          runId: messengerRun.runId,
+          checkpointId: checkpoint.id,
+          storagePath,
+          publicUrl: publicData.publicUrl,
+          isPublic: proofVisibility[checkpoint.id] !== false,
+          fileName: file?.name || checkpoint.name,
+        };
+        setProofDrafts((current) => ({ ...current, [checkpoint.id]: stagedProof as ProofDraft }));
+      }
       const proofResponse = await postJSON<{ proofs: MessengerProof[] }>("/api/messenger/proof", {
         run_id: messengerRun.runId,
         checkpoint_id: checkpoint.id,
-        storage_path: storagePath,
-        public_url: publicData.publicUrl,
-        is_public: proofVisibility[checkpoint.id] !== false,
+        storage_path: stagedProof.storagePath,
+        public_url: stagedProof.publicUrl,
+        is_public: stagedProof.isPublic,
       });
 
       setMessengerRun((current) =>
@@ -1732,11 +1871,56 @@ function AppShell() {
           : current
       );
       setProofFiles((current) => ({ ...current, [checkpoint.id]: null }));
+      setProofDrafts((current) => {
+        const next = { ...current };
+        delete next[checkpoint.id];
+        return next;
+      });
       setProofStatus((current) => ({ ...current, [checkpoint.id]: "Proof posted to Wall of Fame." }));
     } catch (error) {
+      const rawMessage = error instanceof Error ? error.message : "Proof upload failed.";
+      const message = rawMessage.toLowerCase().includes("proof already uploaded")
+        ? "Proof already landed. Run state recovered."
+        : stagedProof
+          ? "Photo is staged. Post again when signal comes back."
+          : rawMessage;
+      if (rawMessage.toLowerCase().includes("proof already uploaded")) {
+        try {
+          const data = await postJSON<{
+            run: {
+              id: string;
+              status: string;
+              started_at: string;
+              finished_at: string | null;
+              finish_seconds: number | null;
+              completed_ids: string[];
+            };
+            proofs: MessengerProof[];
+          }>("/api/messenger/run-state", {
+            run_id: messengerRun.runId,
+          });
+          setMessengerRun((current) =>
+            current
+              ? {
+                  ...current,
+                  completedIds: data.run?.completed_ids || current.completedIds,
+                  proofs: data.proofs || current.proofs || [],
+                }
+              : current
+          );
+        } catch {
+          // Keep the local recovery message if refresh fails.
+        }
+        setProofDrafts((current) => {
+          const next = { ...current };
+          delete next[checkpoint.id];
+          return next;
+        });
+        setProofFiles((current) => ({ ...current, [checkpoint.id]: null }));
+      }
       setProofStatus((current) => ({
         ...current,
-        [checkpoint.id]: error instanceof Error ? error.message : "Proof upload failed.",
+        [checkpoint.id]: message,
       }));
     } finally {
       setIsUploadingProof((current) => ({ ...current, [checkpoint.id]: false }));
@@ -2023,6 +2207,7 @@ function AppShell() {
             <button className={`nav-link ${pageView === 'home' ? 'active' : ''}`} onClick={() => handleNavigate('home')}>{t("nav.home")}</button>
             <button className={`nav-link ${pageView === 'loop' ? 'active' : ''}`} onClick={() => handleNavigate('loop')}>{t("nav.loop")}</button>
             <button className={`nav-link ${pageView === 'messenger' ? 'active' : ''}`} onClick={() => handleNavigate('messenger')}>{t("nav.alleycat")}</button>
+            <button className={`nav-link ${pageView === 'night' ? 'active' : ''}`} onClick={() => handleNavigate('night')}>{t("nav.night")}</button>
             <button className={`nav-link ${pageView === 'wall' ? 'active' : ''}`} onClick={() => handleNavigate('wall')}>{t("nav.wall")}</button>
             <button className={`nav-link ${pageView === 'leaderboard' ? 'active' : ''}`} onClick={() => handleNavigate('leaderboard')}>{t("nav.leaderboard")}</button>
             <button className={`nav-link ${pageView === 'cities' ? 'active' : ''}`} onClick={() => handleNavigate('cities')}>{t("nav.cities")}</button>
@@ -2066,6 +2251,7 @@ function AppShell() {
             <button className={`nav-link ${pageView === 'home' ? 'active' : ''}`} onClick={() => handleNavigate('home')}>{t("nav.home")}</button>
             <button className={`nav-link ${pageView === 'loop' ? 'active' : ''}`} onClick={() => handleNavigate('loop')}>{t("nav.loop")}</button>
             <button className={`nav-link ${pageView === 'messenger' ? 'active' : ''}`} onClick={() => handleNavigate('messenger')}>{t("nav.alleycat")}</button>
+            <button className={`nav-link ${pageView === 'night' ? 'active' : ''}`} onClick={() => handleNavigate('night')}>{t("nav.night")}</button>
             <button className={`nav-link ${pageView === 'wall' ? 'active' : ''}`} onClick={() => handleNavigate('wall')}>{t("nav.wallShort")}</button>
             <button className={`nav-link ${pageView === 'leaderboard' ? 'active' : ''}`} onClick={() => handleNavigate('leaderboard')}>{t("nav.leaderboard")}</button>
             <button className={`nav-link ${pageView === 'cities' ? 'active' : ''}`} onClick={() => handleNavigate('cities')}>{t("nav.cities")}</button>
@@ -2204,6 +2390,17 @@ function AppShell() {
           <h3 className="cell-title">{t("home.loop.title")}</h3>
           <p className="cell-body">{t("home.loop.body")}</p>
           <button className="ghost-button small home-card-button" onClick={() => handleNavigate('loop')}>{t("home.loop.action")}</button>
+        </div>
+      </section>
+
+      <section className="modular-grid reveals home-lower-grid">
+        <div className="modular-cell home-construction-card">
+          <div className="section-eyebrow">{t("common.inConstruction")}</div>
+          <h3 className="cell-title">{t("home.night.title")}</h3>
+          <p className="cell-body">{t("home.night.body")}</p>
+          <button className="ghost-button small home-card-button" onClick={() => handleNavigate('night')}>
+            {t("home.night.action")}
+          </button>
         </div>
       </section>
     </div>
@@ -2842,6 +3039,45 @@ function AppShell() {
             )}
             {renderPanelToggle(accountSummary?.shared_riders, "shared-riders", t("account.crew.showMore"))}
           </div>
+
+          <div className="glass-card form-card account-history-card" id="account-night-rides">
+            <div className="form-title">{t("account.night.title")}</div>
+            <div className="form-subtitle">{t("account.night.subtitle")}</div>
+            {isLoadingNightRideHistory ? (
+              <div className="status-message compact-status">{t("account.night.loading")}</div>
+            ) : !nightRideHistory.length ? (
+              <div className="empty-state">
+                <div className="empty-state-body">{t("account.night.empty")}</div>
+              </div>
+            ) : (
+              <div className="history-list">
+                {nightRideHistory.map((ride) => (
+                  <div key={ride.id} className="history-row">
+                    <div>
+                      <strong>{ride.crew_name || ride.title}</strong>
+                      <span>
+                        {ride.session_type === "crew" ? t("account.night.crewLabel") : t("account.night.singleLabel")}
+                        {" · "}
+                        {ride.ride_city || t("account.common.city")}
+                        {" · "}
+                        {Number(ride.distance_km).toFixed(1)} km
+                        {" · "}
+                        {ride.mode}
+                      </span>
+                    </div>
+                    <div className="history-actions">
+                      <span>
+                        {Array.isArray(ride.crew_members) && ride.crew_members.length
+                          ? ride.crew_members.slice(0, 3).join(", ")
+                          : t("account.night.noCrewNames")}
+                      </span>
+                      <span>{formatDate(ride.created_at)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         </>
       )}
@@ -3455,6 +3691,8 @@ function AppShell() {
                     {messengerManifest.checkpoints.map((checkpoint) => {
                       const done = messengerRun?.completedIds.includes(checkpoint.id) || false;
                       const proof = messengerRun?.proofs?.find((item) => item.checkpoint_id === checkpoint.id) || null;
+                      const proofDraft =
+                        messengerRun?.runId && proofDrafts[checkpoint.id]?.runId === messengerRun.runId ? proofDrafts[checkpoint.id] : null;
                       return (
                         <div key={checkpoint.id} className={`checkpoint-card ${done ? "done" : ""}`}>
                           <div className="checkpoint-meta">
@@ -3507,6 +3745,12 @@ function AppShell() {
                                 </div>
                               ) : (
                                 <>
+                                  {proofDraft && (
+                                    <div className="proof-callout">
+                                      <strong>Photo staged.</strong>
+                                      <span>Upload landed. Hit post again to finish the proof.</span>
+                                    </div>
+                                  )}
                                   <label className="field compact-field">
                                     <span>Add photo proof</span>
                                     <input
@@ -3540,7 +3784,7 @@ function AppShell() {
                                       disabled={Boolean(isUploadingProof[checkpoint.id])}
                                       onClick={() => handleProofUpload(checkpoint)}
                                     >
-                                      {isUploadingProof[checkpoint.id] ? "Posting..." : "Post proof"}
+                                      {isUploadingProof[checkpoint.id] ? "Posting..." : proofDraft ? "Finish post" : "Post proof"}
                                     </button>
                                   </div>
                                   {proofStatus[checkpoint.id] && <div className="status-message compact-status">{proofStatus[checkpoint.id]}</div>}
@@ -3752,6 +3996,22 @@ function AppShell() {
   const renderCurrentPage = () =>
     pageView === "messenger"
       ? renderMessenger()
+      : pageView === "night"
+        ? (
+          <Suspense fallback={<div className="status-message page-loader">Loading Night Ride…</div>}>
+            <NightRidePage
+              apiBase={API_BASE}
+              user={user}
+              totalCredits={totalCredits}
+              hasUnlimitedCredits={hasUnlimitedCredits}
+              requireLogin={requireLogin}
+              handleDonate={handleDonate}
+              postJSON={postJSON}
+              formatDate={formatDate}
+              feed={nightRidePosts}
+            />
+          </Suspense>
+        )
       : pageView === "loop"
         ? renderLoop()
         : pageView === "account"
@@ -3768,6 +4028,7 @@ function AppShell() {
                   getCityLabel={getCityLabel}
                   isLoadingWall={isLoadingWall}
                   wallPosts={wallPosts}
+                  nightRidePosts={nightRidePosts}
                   onOpenRiderProfile={handleOpenRiderProfile}
                   onOpenWallCity={handleOpenWallCity}
                   onOpenLeaderboardCity={handleOpenLeaderboardCity}

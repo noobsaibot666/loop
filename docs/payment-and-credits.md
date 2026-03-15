@@ -115,6 +115,7 @@ The intended later layer is:
 - monthly access pass
 - Discord community access
 - monthly free credits
+- reserved launch invite: `https://discord.gg/2wWFKuQ7`
 
 But that is `deferred` until:
 - the Discord community is actually ready

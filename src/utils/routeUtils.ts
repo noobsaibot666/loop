@@ -4,10 +4,11 @@ export const formatDuration = (totalSeconds: number) => {
     return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 };
 
-export const getPageView = (): "home" | "loop" | "messenger" | "cities" | "account" | "wall" | "leaderboard" | "rider" => {
+export const getPageView = (): "home" | "loop" | "messenger" | "night" | "cities" | "account" | "wall" | "leaderboard" | "rider" => {
     if (typeof window === "undefined") return "home";
     if (window.location.pathname.startsWith("/loop")) return "loop";
     if (window.location.pathname.startsWith("/messenger")) return "messenger";
+    if (window.location.pathname.startsWith("/night")) return "night";
     if (window.location.pathname.startsWith("/cities")) return "cities";
     if (window.location.pathname.startsWith("/account")) return "account";
     if (window.location.pathname.startsWith("/wall")) return "wall";

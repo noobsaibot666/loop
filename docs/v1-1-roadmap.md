@@ -15,6 +15,11 @@ This roadmap should be updated when:
 For day-to-day progress tracking, use:
 - [v1-1-checklist.md](/Users/alan/_localDEV/Loop/reports/v1-1-checklist.md)
 
+Related follow-on docs:
+- [payment-and-credits.md](/Users/alan/_localDEV/Loop/docs/payment-and-credits.md)
+- [night-ride-shadow-roadmap.md](/Users/alan/_localDEV/Loop/docs/night-ride-shadow-roadmap.md)
+- [night-ride-shadow-checklist.md](/Users/alan/_localDEV/Loop/reports/night-ride-shadow-checklist.md)
+
 ## Guiding constraints
 - Keep the product testable on a lean stack.
 - Prefer image proof over video proof in the first social version.
@@ -36,6 +41,12 @@ Already live or implemented in the current product:
 - Minimal account activity summary
 
 ## V1.1 target scope
+
+Status on 2026-03-15:
+- Core V1.1 product phases are functionally covered
+- Remaining live backend gaps sit mostly inside Phase 12 membership/community rollout
+- Night Ride now exists as a hidden shadow-development track and is intentionally kept outside the public nav
+- Night Ride shadow scope now includes Single/Crew builder split plus account, wall, and admin preview surfaces
 
 ### Phase 1: Proof and social wall
 Add a public proof wall that acts as the app’s social surface.
@@ -226,7 +237,7 @@ Status on 2026-03-14:
 - Implemented as a lean moderation pass
 - Wall moderation already supports hide, archive, and delete
 - Admin overview now includes an abuse watch surface for suspicious rider proof patterns
-- Action history is still deferred until there is a proper audit table
+- Moderation actions are now logged with admin identity and surfaced back into the admin overview
 
 Scope:
 - Add stronger proof moderation states:
@@ -277,6 +288,7 @@ Status on 2026-03-14:
 - Active Alleycat recovery already persists and reloads
 - Loop builder state now persists locally too
 - Auth/session expiry and checkout cancel states now return cleaner rider-facing recovery copy
+- Proof upload now stages the uploaded image locally so riders can finish posting after refresh or a final API hiccup
 
 Scope:
 - Tighten recovery for:
@@ -294,19 +306,20 @@ Scope:
 Why this matters:
 - Edge-case recovery on mobile is now product quality, not polish.
 
-### Phase 12: Membership, community, and credit economy
-Make the paid lane clearer and connect it to community, not just top-ups.
+### Phase 12: Membership and community access
+Make the paid lane community-first. Membership should connect riders with the same culture and interests. Credit bonus value can exist, but it should not be the core reason the pass exists.
 
 Status on 2026-03-14:
 - Started
 - Community pass is intentionally hidden until the real Discord setup and recurring billing flow are ready
 - Public membership messaging has been pulled back out of the main app
+- Current server invite reserved for launch: `https://discord.gg/2wWFKuQ7`
 
 Scope:
 - Add a paid community pass:
   - 4 EUR / month
   - Discord community access
-  - monthly free credit drop
+  - monthly bonus credit drop
 - Make credit usage clearer in account:
   - Loop cost
   - Alleycat cost
@@ -314,16 +327,34 @@ Scope:
   - what paid credits cover
 - Add a dedicated community / membership surface
 - Add account entry point for community access
-- Keep the home page aware of the paid lane without turning it into a pricing page
+- Keep the home page aware of the community lane without turning it into a pricing page
 
 Open backend work:
 - recurring membership checkout flow
 - subscription state on user account
 - Discord invite / access handling
-- monthly credit grant automation
+- monthly bonus-credit grant automation
 
 Release note:
 - Keep community / Discord access hidden in the live app until the real server, invite flow, and billing logic are ready.
+
+### Shadow follow-on: Night Ride
+Night Ride is now being built as a hidden companion lane rather than as part of the live V1.1 nav.
+
+Status on 2026-03-15:
+- Hidden `/night` route is implemented
+- Night Loop and Roulette builders are implemented
+- Join-by-code and read-only feed preview are implemented
+- SQL still needs manual Supabase application before any live rollout
+
+Scope boundary:
+- keep Night Ride off the public nav
+- keep Night Ride feed separate from Wall of Fame
+- do not promote or launch until route quality, join stability, and moderation rules are ready
+
+See:
+- [night-ride-shadow-roadmap.md](/Users/alan/_localDEV/Loop/docs/night-ride-shadow-roadmap.md)
+- [night-ride-shadow-checklist.md](/Users/alan/_localDEV/Loop/reports/night-ride-shadow-checklist.md)
 
 ## Explicitly deferred
 - Live multiplayer group mode
@@ -356,6 +387,10 @@ Recommended order:
 1. Proof photo upload + public `/wall`
 2. Account history + quarterly badges
 3. Friend challenge result polish
+
+Current reading on 2026-03-15:
+- The original V1.1 implementation order has been materially completed.
+- What remains is mostly launch gating, deferred community billing/access work, and shadow follow-ons such as Night Ride.
 4. Recovery controls
 5. City content studio
 6. AI-assisted city drafting

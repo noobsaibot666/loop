@@ -21,6 +21,20 @@ import {
   checkpointDraftSchema,
   packDraftSchema,
 } from "../shared/ai.js";
+import {
+  NIGHT_RIDE_CREDIT_COST,
+  NIGHT_RIDE_CREW_BUILD_COST,
+  NIGHT_RIDE_CREW_JOIN_COST,
+  normalizeNightRideMode,
+  normalizeNightRideDifficulty,
+  normalizeNightRideSessionType,
+  createNightRideCode,
+  sampleLoopWaypoints,
+  buildNightRideMapsUrl,
+  buildRouletteWaypoint,
+  distanceBetweenKm,
+  sanitizeCrewMembers,
+} from "../shared/night-rides.js";
 
 const app = express();
 const PORT = process.env.PORT || 8787;
@@ -186,6 +200,54 @@ const getActiveMessengerRun = async (manifest_id, user_id) => {
 
 const createChallengeCode = () => Math.random().toString(36).slice(2, 8).toUpperCase();
 
+const riderLabelFromEmail = (email = "") => {
+  const [local] = String(email || "").split("@");
+  return local ? local.slice(0, 24) : "rider";
+};
+
+const consumeNightRideCredit = async (authUser, sessionType = "single") => {
+  const creditCost = sessionType === "crew" ? NIGHT_RIDE_CREW_BUILD_COST : sessionType === "join" ? NIGHT_RIDE_CREW_JOIN_COST : NIGHT_RIDE_CREDIT_COST;
+  if (isAdminEmail(authUser?.email || "")) {
+    return {
+      ok: true,
+      credits_remaining: 9999,
+      free_used: 0,
+      is_admin: true,
+      unlimited_credits: true,
+    };
+  }
+  const { data, error } = await supabase
+    .from("user_credits")
+    .select("user_id, free_used, credits")
+    .eq("user_id", authUser.id)
+    .maybeSingle();
+  if (error) throw error;
+  const usage = data || { user_id: authUser.id, free_used: 0, credits: 0 };
+  let free_used = usage.free_used || 0;
+  let credits_remaining = usage.credits || 0;
+  if ((sessionType === "single" || sessionType === "join") && free_used < 3) {
+    free_used += 1;
+  } else if (credits_remaining >= creditCost) {
+    credits_remaining -= creditCost;
+  } else {
+    return {
+      ok: false,
+      error: sessionType === "crew" ? "Crew Night Ride needs 2 credits." : sessionType === "join" ? "Joining a crew Night Ride needs 1 credit or a free loop left." : "Night Ride needs 1 credit or a free loop left.",
+    };
+  }
+  const { error: updateError } = await supabase
+    .from("user_credits")
+    .upsert({ user_id: authUser.id, free_used, credits: credits_remaining }, { onConflict: "user_id" });
+  if (updateError) throw updateError;
+  return {
+    ok: true,
+    credits_remaining,
+    free_used,
+    is_admin: false,
+    unlimited_credits: false,
+  };
+};
+
 app.use(cors({ origin: true }));
 
 app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async (req, res) => {
@@ -293,6 +355,26 @@ const requireAdmin = async (req, res, next) => {
   }
   req.adminUser = data.user;
   return next();
+};
+
+const recordModerationAction = async ({
+  adminUser,
+  action,
+  targetType,
+  targetId = null,
+  targetLabel = null,
+  details = {},
+}) => {
+  if (!adminUser?.email) return;
+  await supabase.from("moderation_action_history").insert({
+    admin_user_id: adminUser.id || null,
+    admin_email: adminUser.email,
+    action,
+    target_type: targetType,
+    target_id: targetId,
+    target_label: targetLabel,
+    details,
+  }).catch(() => null);
 };
 
 app.post("/api/admin/reset", requireAdmin, async (req, res) => {
@@ -574,6 +656,14 @@ app.post("/api/admin/proof-visibility", requireAdmin, async (req, res) => {
   const is_public = Boolean(req.body?.is_public);
   if (!proof_id) return res.status(400).json({ error: "proof_id required" });
 
+  const { data: existing, error: existingError } = await supabase
+    .from("messenger_proof_posts")
+    .select("id, rider_name, city_name, checkpoint_name, is_public")
+    .eq("id", proof_id)
+    .maybeSingle();
+  if (existingError) return res.status(500).json({ error: existingError.message });
+  if (!existing) return res.status(404).json({ error: "proof not found" });
+
   const { data, error } = await supabase
     .from("messenger_proof_posts")
     .update({ is_public })
@@ -582,6 +672,20 @@ app.post("/api/admin/proof-visibility", requireAdmin, async (req, res) => {
     .limit(1);
 
   if (error) return res.status(500).json({ error: error.message });
+  await recordModerationAction({
+    adminUser: req.adminUser,
+    action: is_public ? "proof_publish" : "proof_hide",
+    targetType: "proof",
+    targetId: proof_id,
+    targetLabel: existing.checkpoint_name || existing.city_name || proof_id,
+    details: {
+      rider_name: existing.rider_name || "",
+      city_name: existing.city_name || "",
+      checkpoint_name: existing.checkpoint_name || "",
+      previous_public: existing.is_public,
+      next_public: is_public,
+    },
+  });
   return res.json({
     ok: true,
     proof: data?.[0] || null,
@@ -594,7 +698,7 @@ app.post("/api/admin/proof-delete", requireAdmin, async (req, res) => {
 
   const { data: proof, error: proofError } = await supabase
     .from("messenger_proof_posts")
-    .select("id, storage_path")
+    .select("id, storage_path, rider_name, city_name, checkpoint_name, is_public, archived_at")
     .eq("id", proof_id)
     .maybeSingle();
   if (proofError) return res.status(500).json({ error: proofError.message });
@@ -606,6 +710,20 @@ app.post("/api/admin/proof-delete", requireAdmin, async (req, res) => {
 
   const { error } = await supabase.from("messenger_proof_posts").delete().eq("id", proof_id);
   if (error) return res.status(500).json({ error: error.message });
+  await recordModerationAction({
+    adminUser: req.adminUser,
+    action: "proof_delete",
+    targetType: "proof",
+    targetId: proof_id,
+    targetLabel: proof.checkpoint_name || proof.city_name || proof_id,
+    details: {
+      rider_name: proof.rider_name || "",
+      city_name: proof.city_name || "",
+      checkpoint_name: proof.checkpoint_name || "",
+      was_public: proof.is_public,
+      was_archived: Boolean(proof.archived_at),
+    },
+  });
   return res.json({ ok: true, deleted_id: proof_id });
 });
 
@@ -1247,6 +1365,266 @@ app.post("/api/loop-history", async (req, res) => {
 
   if (error) return res.status(500).json({ error: error.message });
   return res.json({ ok: true, loop: data?.[0] || null });
+});
+
+app.post("/api/night-rides/generate", async (req, res) => {
+  const authUser = await getAuthUser(req);
+  const user_id = authUser?.id || "";
+  if (!user_id) return res.status(401).json({ error: "login required" });
+  if (!ORS_API_KEY) return res.status(500).json({ error: "ORS_API_KEY missing" });
+
+  const session_type = normalizeNightRideSessionType(req.body?.session_type);
+  const mode = normalizeNightRideMode(req.body?.mode);
+  const difficulty = normalizeNightRideDifficulty(req.body?.difficulty);
+  const unit = req.body?.unit === "mi" ? "mi" : "km";
+  const distance_km = Number(req.body?.distance_km || 0);
+  const origin_label = String(req.body?.origin_label || "").trim();
+  const destination_label = String(req.body?.destination_label || "").trim();
+  const crew_name = String(req.body?.crew_name || "").trim().slice(0, 80);
+  const ride_city = String(req.body?.ride_city || "").trim().slice(0, 80);
+  const crew_members = sanitizeCrewMembers(req.body?.crew_members);
+  const origin = { lat: Number(req.body?.origin_lat), lng: Number(req.body?.origin_lng) };
+  const destination =
+    mode === "roulette"
+      ? { lat: Number(req.body?.destination_lat), lng: Number(req.body?.destination_lng) }
+      : null;
+
+  if (!origin_label || !Number.isFinite(origin.lat) || !Number.isFinite(origin.lng)) {
+    return res.status(400).json({ error: "origin required" });
+  }
+  if (!distance_km || !Number.isFinite(distance_km)) {
+    return res.status(400).json({ error: "distance_km required" });
+  }
+  if (mode === "roulette" && (!destination_label || !destination || !Number.isFinite(destination.lat) || !Number.isFinite(destination.lng))) {
+    return res.status(400).json({ error: "destination required for roulette" });
+  }
+  if (session_type === "crew" && !crew_name) {
+    return res.status(400).json({ error: "crew name required" });
+  }
+
+  let route_payload = null;
+  let route_url = "";
+  let title = "";
+
+  if (mode === "loop") {
+    const response = await fetch("https://api.openrouteservice.org/v2/directions/cycling-regular", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: ORS_API_KEY,
+      },
+      body: JSON.stringify({
+        coordinates: [[origin.lng, origin.lat]],
+        options: {
+          round_trip: {
+            length: Math.max(1000, distance_km * 1000),
+            points: difficulty === "hard" ? 4 : 3,
+            seed: Math.floor(Math.random() * 1000) + 1,
+          },
+        },
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) return res.status(response.status).json({ error: data?.error?.message || data?.message || "ORS error" });
+    route_payload = data;
+    const coords = data?.features?.[0]?.geometry?.coordinates || [];
+    route_url = buildNightRideMapsUrl({ origin, destination: origin, waypoints: sampleLoopWaypoints(coords) });
+    title = session_type === "crew" ? `${crew_name} · Night Loop` : `Night Loop · ${origin_label}`;
+  } else {
+    const via = buildRouletteWaypoint({ start: origin, end: destination, targetKm: distance_km, difficulty });
+    const response = await fetch("https://api.openrouteservice.org/v2/directions/cycling-regular", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: ORS_API_KEY,
+      },
+      body: JSON.stringify({
+        coordinates: [
+          [origin.lng, origin.lat],
+          [via.lng, via.lat],
+          [destination.lng, destination.lat],
+        ],
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) return res.status(response.status).json({ error: data?.error?.message || data?.message || "ORS error" });
+    route_payload = { ...data, via };
+    route_url = buildNightRideMapsUrl({ origin, destination, waypoints: [via] });
+    title = session_type === "crew"
+      ? `${crew_name} · Night Roulette`
+      : `Night Roulette · ${origin_label} to ${destination_label} · ${distanceBetweenKm(origin, destination).toFixed(1)} km direct`;
+  }
+
+  const creditResult = await consumeNightRideCredit(authUser, session_type);
+  if (!creditResult.ok) return res.status(402).json({ error: creditResult.error });
+
+  let share_code = createNightRideCode();
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const { data: existing } = await supabase.from("night_ride_sessions").select("id").eq("share_code", share_code).limit(1);
+    if (!existing?.length) break;
+    share_code = createNightRideCode();
+  }
+
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("rider_name")
+    .eq("user_id", user_id)
+    .maybeSingle()
+    .catch(() => ({ data: null }));
+
+  const { data: sessions, error } = await supabase
+    .from("night_ride_sessions")
+    .insert({
+      creator_user_id: user_id,
+      creator_email: authUser.email || "",
+      creator_rider_name: profile?.rider_name?.trim() || riderLabelFromEmail(authUser.email || ""),
+      session_type,
+      mode,
+      title,
+      difficulty,
+      unit,
+      distance_km: Number(distance_km.toFixed(2)),
+      ride_city: ride_city || null,
+      crew_name: session_type === "crew" ? crew_name : null,
+      crew_members,
+      origin_label,
+      origin_lat: origin.lat,
+      origin_lng: origin.lng,
+      destination_label: mode === "roulette" ? destination_label : null,
+      destination_lat: mode === "roulette" ? destination.lat : null,
+      destination_lng: mode === "roulette" ? destination.lng : null,
+      share_code,
+      route_url,
+      route_payload,
+      status: "open",
+    })
+    .select("*")
+    .limit(1);
+
+  if (error) return res.status(500).json({ error: error.message });
+  const session = sessions?.[0] || null;
+
+  if (session?.id) {
+    await supabase.from("night_ride_participants").insert({
+      session_id: session.id,
+      user_id,
+      rider_name: profile?.rider_name?.trim() || riderLabelFromEmail(authUser.email || ""),
+      joined_via: "creator",
+      credits_spent: session_type === "crew" ? NIGHT_RIDE_CREW_BUILD_COST : 1,
+    }).catch(() => null);
+  }
+
+  return res.json({
+    ok: true,
+    session,
+    share_code,
+    route_url,
+    credits_remaining: creditResult.credits_remaining,
+    is_admin: creditResult.is_admin,
+    unlimited_credits: creditResult.unlimited_credits,
+  });
+});
+
+app.post("/api/night-rides/join", async (req, res) => {
+  const authUser = await getAuthUser(req);
+  const user_id = authUser?.id || "";
+  if (!user_id) return res.status(401).json({ error: "login required" });
+
+  const code = String(req.body?.code || "").trim().toUpperCase();
+  if (!code) return res.status(400).json({ error: "code required" });
+
+  const { data: session, error } = await supabase
+    .from("night_ride_sessions")
+    .select("*")
+    .eq("share_code", code)
+    .maybeSingle();
+  if (error) return res.status(500).json({ error: error.message });
+  if (!session) return res.status(404).json({ error: "night ride code not found" });
+  if (session.status !== "open") return res.status(409).json({ error: "night ride is closed" });
+  if (session.session_type !== "crew") return res.status(409).json({ error: "single night rides do not take join codes" });
+
+  const { data: existing } = await supabase
+    .from("night_ride_participants")
+    .select("id")
+    .eq("session_id", session.id)
+    .eq("user_id", user_id)
+    .limit(1);
+  const already_joined = Boolean(existing?.length);
+
+  let creditResult = { credits_remaining: null, is_admin: false, unlimited_credits: false };
+  if (!already_joined) {
+    const consume = await consumeNightRideCredit(authUser, "join");
+    if (!consume.ok) return res.status(402).json({ error: consume.error });
+    creditResult = consume;
+    const { data: profile } = await supabase
+      .from("user_profiles")
+      .select("rider_name")
+      .eq("user_id", user_id)
+      .maybeSingle()
+      .catch(() => ({ data: null }));
+    await supabase.from("night_ride_participants").insert({
+      session_id: session.id,
+      user_id,
+      rider_name: profile?.rider_name?.trim() || riderLabelFromEmail(authUser.email || ""),
+      joined_via: "code",
+      credits_spent: NIGHT_RIDE_CREW_JOIN_COST,
+    });
+  }
+
+  return res.json({
+    ok: true,
+    session,
+    already_joined,
+    route_url: session.route_url,
+    credits_remaining: creditResult.credits_remaining,
+    is_admin: creditResult.is_admin,
+    unlimited_credits: creditResult.unlimited_credits,
+  });
+});
+
+app.get("/api/night-rides/feed", async (_req, res) => {
+  const { data, error } = await supabase
+    .from("night_ride_posts")
+    .select("id, session_id, rider_name, crew_name, city_name, route_title, distance_km, aspect_ratio, caption, image_url, moderation_status, created_at")
+    .eq("is_public", true)
+    .eq("moderation_status", "live")
+    .order("created_at", { ascending: false })
+    .limit(24);
+  if (error) return res.status(500).json({ error: error.message });
+  const sessionIds = Array.from(new Set((data || []).map((row) => row.session_id).filter(Boolean)));
+  let sessionsById = {};
+  if (sessionIds.length) {
+    const { data: sessions } = await supabase
+      .from("night_ride_sessions")
+      .select("id, title, ride_city, crew_name, distance_km")
+      .in("id", sessionIds);
+    sessionsById = Object.fromEntries((sessions || []).map((session) => [session.id, session]));
+  }
+  const posts = (data || []).map((row) => {
+    const session = row.session_id ? sessionsById[row.session_id] : null;
+    return {
+      ...row,
+      crew_name: row.crew_name || session?.crew_name || null,
+      city_name: row.city_name || session?.ride_city || null,
+      route_title: row.route_title || session?.title || null,
+      distance_km: row.distance_km ?? session?.distance_km ?? null,
+    };
+  });
+  return res.json({ posts });
+});
+
+app.get("/api/night-rides/mine", async (req, res) => {
+  const authUser = await getAuthUser(req);
+  const user_id = authUser?.id || "";
+  if (!user_id) return res.status(401).json({ error: "login required" });
+  const { data, error } = await supabase
+    .from("night_ride_sessions")
+    .select("id, title, session_type, mode, difficulty, distance_km, ride_city, crew_name, crew_members, created_at")
+    .eq("creator_user_id", user_id)
+    .order("created_at", { ascending: false })
+    .limit(8);
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ sessions: data || [] });
 });
 
 app.post("/api/messenger/generate", async (req, res) => {
@@ -1960,6 +2338,17 @@ app.post("/api/admin/proof-archive-month", requireAdmin, async (req, res) => {
     .is("archived_at", null)
     .select("id");
   if (error) return res.status(500).json({ error: error.message });
+  await recordModerationAction({
+    adminUser: req.adminUser,
+    action: "proof_archive_month",
+    targetType: "proof_month",
+    targetId: month,
+    targetLabel: month,
+    details: {
+      month,
+      archived_count: data?.length || 0,
+    },
+  });
   return res.json({ ok: true, month, archived: data?.length || 0 });
 });
 

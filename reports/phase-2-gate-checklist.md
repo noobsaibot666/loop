@@ -13,12 +13,12 @@ Status legend:
 ## Wall and social surface
 - [x] Wall loads correctly with mixed users and cities
 - [x] Admin hide/show for proof posts works correctly from the admin page
-- [ ] Admin delete for proof posts works correctly from the admin page
+- [x] Admin delete for proof posts works correctly from the admin page
 - [ ] Month archive works correctly in admin and archived posts disappear from the public wall
 
 ## Shared challenge flow
-- [ ] Leaderboard page and shared challenge board need final UX review on live data
-- [ ] Share code action after manifest generation needs live retest with the stronger button treatment
+- [x] Leaderboard page and shared challenge board need final UX review on live data
+- [x] Share code action after manifest generation needs live retest with the stronger button treatment
 
 ## Account data richness
 - [ ] Quarter board renders correctly on real rider data

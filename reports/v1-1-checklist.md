@@ -13,6 +13,9 @@ Update rule:
 Related docs:
 - [v1-1-roadmap.md](/Users/alan/_localDEV/Loop/docs/v1-1-roadmap.md)
 - [product-v1.md](/Users/alan/_localDEV/Loop/docs/product-v1.md)
+- [payment-and-credits.md](/Users/alan/_localDEV/Loop/docs/payment-and-credits.md)
+- [night-ride-shadow-roadmap.md](/Users/alan/_localDEV/Loop/docs/night-ride-shadow-roadmap.md)
+- [night-ride-shadow-checklist.md](/Users/alan/_localDEV/Loop/reports/night-ride-shadow-checklist.md)
 
 ## Phase 0: Current baseline
 - [x] Loop home page exists
@@ -108,7 +111,7 @@ Related docs:
 - [x] Add proof moderation states beyond live/delete
 - [x] Add rider abuse review surface
 - [x] Add proof spam / suspicious activity visibility
-- [ ] Add moderation action history
+- [x] Add moderation action history
 - [x] Tighten destructive admin action guardrails
 
 ## Phase 10: Analytics and ops dashboard
@@ -120,27 +123,41 @@ Related docs:
 
 ## Phase 11: Mobile recovery hardening
 - [x] Handle refresh during active Alleycat more safely
-- [ ] Improve proof upload interruption recovery
+- [x] Improve proof upload interruption recovery
 - [x] Improve auth/session expiry recovery mid-flow
 - [x] Improve failed checkout / top-up recovery
 - [x] Improve low-credit interruption handling
 - [x] Keep recovery copy short and rider-facing
 
-## Phase 12: Membership and credit economy
+## Phase 12: Membership and community access
 - [-] Keep crew pass hidden until Discord community is ready
 - [x] Clarify Loop vs Alleycat credit usage in account
 - [-] Keep dedicated membership/community page non-promoted until launch-ready
 - [ ] Add recurring 4 EUR / month checkout flow
 - [ ] Add account subscription state
 - [ ] Add gated Discord invite/access handling
-- [ ] Add automatic monthly free-credit grant for members
+- [ ] Add automatic monthly bonus-credit grant for members
+
+## Shadow follow-on: Night Ride
+- [x] Define Night Ride as a separate community lane
+- [x] Keep Night Ride hidden from main nav
+- [x] Build hidden `/night` page and route flow
+- [x] Add Night Loop and Roulette route generation
+- [x] Split Night Ride into Single and Crew builder modes
+- [x] Add shadow account / wall / admin surfaces for Night Ride
+- [x] Add join-by-code flow with per-rider credit burn
+- [x] Add read-only Night Ride feed preview
+- [ ] Apply Night Ride SQL tables in Supabase
+- [-] Promote Night Ride in public navigation
 
 ## Testing checklist for this wave
-- [ ] Proof upload works on mobile
+- [x] Proof upload works on mobile
 - [x] Proof wall loads with mixed users and cities
-- [ ] Quarterly ranking updates correctly
+- [x] Quarterly ranking updates correctly
 - [x] Account history reflects loop + Alleycat usage
 - [x] Shared challenge activity shows correctly
 - [x] Recovery flows do not corrupt runs
+- [x] Proof upload can recover after refresh or final post failure
 - [x] Admin content tooling can add a city pack without manual DB edits
 - [x] AI drafting stays review-gated
+- [x] Moderation actions appear in admin history

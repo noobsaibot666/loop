@@ -20,7 +20,7 @@ export async function onRequest({ request, env }) {
   const last7 = new Date(now - 7 * 24 * 60 * 60 * 1000);
   const last30 = new Date(now - 30 * 24 * 60 * 60 * 1000);
 
-  const [credits, stripeSessions, manifests, runs, challenges, recentProofs, allProofs, quarterProofs, quarterRuns, packs, checkpoints] = await Promise.all([
+  const [credits, stripeSessions, manifests, runs, challenges, recentProofs, allProofs, quarterProofs, quarterRuns, packs, checkpoints, moderationHistory] = await Promise.all([
     supabaseRequest(env, "user_credits?select=user_id,credits,free_used", { method: "GET" }),
     supabaseRequest(env, "stripe_sessions?select=session_id,status,amount_cents,created_at&order=created_at.desc&limit=20", { method: "GET" }),
     supabaseRequest(env, "messenger_manifests?select=id,city_name,created_at", { method: "GET" }),
@@ -48,6 +48,11 @@ export async function onRequest({ request, env }) {
     ),
     supabaseRequest(env, "city_packs?select=id,name,is_active,route_note,finish_label,safety_note", { method: "GET" }).catch(() => []),
     supabaseRequest(env, "city_checkpoints?select=pack_id,is_active,district", { method: "GET" }).catch(() => []),
+    supabaseRequest(
+      env,
+      "moderation_action_history?select=id,admin_email,action,target_type,target_id,target_label,details,created_at&order=created_at.desc&limit=12",
+      { method: "GET" }
+    ).catch(() => []),
   ]);
   const quarterLeaderboard = buildQuarterLeaderboard({
     proofs: quarterProofs || [],
@@ -163,6 +168,7 @@ export async function onRequest({ request, env }) {
     recent_proofs: recentProofs || [],
     city_pulse: cityPulse,
     abuse_watch: abuseWatch,
+    moderation_history: moderationHistory || [],
     ops_snapshots: snapshots,
     failure_signals: [
       { label: "Runs still active", value: activeRuns },
