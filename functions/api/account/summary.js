@@ -7,7 +7,7 @@ export async function onRequest({ request, env }) {
   if (!user?.id) return json({ error: "login required" }, { status: 401 });
 
   const quarter = getQuarterWindow();
-  const [profileRows, purchases, loopHistory, manifests, runs, challengeEntries, proofs, quarterProofs, quarterRuns] = await Promise.all([
+  const [profileRows, purchases, loopHistory, manifests, runs, challengeEntries, proofs, quarterProofs, quarterRuns, communityMembershipRows] = await Promise.all([
     supabaseRequest(
       env,
       `user_profiles?user_id=eq.${encodeURIComponent(user.id)}&select=user_id,rider_name,home_location,bike_name,bike_ratio`,
@@ -53,6 +53,11 @@ export async function onRequest({ request, env }) {
       `messenger_runs?status=eq.finished&finished_at=gte.${encodeURIComponent(quarter.start.toISOString())}&finished_at=lt.${encodeURIComponent(quarter.end.toISOString())}&select=user_id,finished_at`,
       { method: "GET" }
     ),
+    supabaseRequest(
+      env,
+      `community_memberships?user_id=eq.${encodeURIComponent(user.id)}&select=user_id,plan_code,status,price_cents,currency,interval,current_period_end,cancel_at_period_end,discord_invite_url&limit=1`,
+      { method: "GET" }
+    ).catch(() => []),
   ]);
 
   const userProofs = proofs || [];
@@ -163,6 +168,7 @@ export async function onRequest({ request, env }) {
       bike_ratio: "",
     },
     purchases: purchases || [],
+    community_membership: communityMembershipRows?.[0] || null,
     alleycat: {
       manifests: userManifests.length,
       runs: userRuns.length,

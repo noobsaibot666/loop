@@ -25,6 +25,12 @@ const hmacSha256 = async (secret, payload) => {
   return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
 };
 
+const toIsoOrNull = (value) => {
+  if (!value) return null;
+  const date = new Date(Number(value) * 1000);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+};
+
 export async function onRequest({ request, env }) {
   const secret = requireEnv(env, "STRIPE_WEBHOOK_SECRET");
   const signature = request.headers.get("stripe-signature");
@@ -74,6 +80,38 @@ export async function onRequest({ request, env }) {
     const session = event.data.object;
     const user_id = session.metadata?.user_id;
     const sessionId = session.id;
+    const isMembership = session.mode === "subscription" || session.metadata?.plan_code === "discord_access";
+    if (isMembership && user_id && sessionId) {
+      const stripeSecret = requireEnv(env, "STRIPE_SECRET_KEY");
+      let subscription = null;
+      if (session.subscription) {
+        const subscriptionRes = await fetch(`https://api.stripe.com/v1/subscriptions/${encodeURIComponent(session.subscription)}`, {
+          headers: { Authorization: `Bearer ${stripeSecret}` },
+        });
+        subscription = await subscriptionRes.json().catch(() => null);
+      }
+      await supabaseRequest(env, "community_memberships", {
+        method: "POST",
+        headers: { Prefer: "resolution=merge-duplicates" },
+        body: JSON.stringify({
+          user_id,
+          stripe_customer_id: session.customer || null,
+          stripe_subscription_id: session.subscription || null,
+          stripe_checkout_session_id: sessionId,
+          plan_code: session.metadata?.plan_code || "discord_access",
+          status: subscription?.status || "active",
+          price_cents: 500,
+          currency: "usd",
+          interval: "month",
+          discord_invite_url: session.metadata?.discord_invite_url || "https://discord.gg/2wWFKuQ7",
+          current_period_start: toIsoOrNull(subscription?.current_period_start),
+          current_period_end: toIsoOrNull(subscription?.current_period_end),
+          cancel_at_period_end: Boolean(subscription?.cancel_at_period_end),
+        }),
+      }).catch(() => null);
+      return json({ received: true });
+    }
+
     const amount = session.amount_total || 0;
     const creditAdd = Math.max(1, Math.floor(amount / 50));
 

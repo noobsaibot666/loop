@@ -317,7 +317,7 @@ Status on 2026-03-14:
 
 Scope:
 - Add a paid community pass:
-  - 4 EUR / month
+  - 5 USD / month
   - Discord community access
   - monthly bonus credit drop
 - Make credit usage clearer in account:

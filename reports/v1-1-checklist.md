@@ -133,7 +133,7 @@ Related docs:
 - [-] Keep crew pass hidden until Discord community is ready
 - [x] Clarify Loop vs Alleycat credit usage in account
 - [-] Keep dedicated membership/community page non-promoted until launch-ready
-- [ ] Add recurring 4 EUR / month checkout flow
+- [ ] Add recurring 5 USD / month checkout flow
 - [ ] Add account subscription state
 - [ ] Add gated Discord invite/access handling
 - [ ] Add automatic monthly bonus-credit grant for members

@@ -9,7 +9,7 @@ This file is the compact source of truth for how payments, credits, and usage wo
 - The live provider is `Stripe Checkout`.
 - The live top-up currency is `USD`.
 - There is `no live recurring subscription` yet.
-- There is `no live monthly membership tier` yet.
+- The next prepared membership tier is `5 USD / month`.
 - Discord/community access is `not live` yet.
 
 ## Credit types
@@ -105,7 +105,7 @@ Current relevant data storage:
 These are intentionally not active in production right now:
 
 - monthly recurring membership
-- EUR subscription billing
+- USD subscription billing for community access
 - Discord access gating
 - automatic monthly free-credit drops for members
 - subscription tiers
@@ -113,13 +113,14 @@ These are intentionally not active in production right now:
 ## Deferred membership plan
 The intended later layer is:
 - monthly access pass
+- prepared Stripe subscription price: `5 USD / month`
 - Discord community access
 - monthly free credits
 - reserved launch invite: `https://discord.gg/2wWFKuQ7`
 
 But that is `deferred` until:
 - the Discord community is actually ready
-- recurring billing is wired
+- recurring billing is fully wired and tested
 - account subscription state exists
 - monthly credit grants are automated
 
