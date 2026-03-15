@@ -144,14 +144,14 @@ export async function onRequest({ request, env }) {
     const creditAdd = Math.max(1, Math.floor(amount / 50));
 
     if (user_id && creditAdd > 0 && sessionId) {
-      // Session-level dedupe fallback: if we've already logged this Stripe session in donations, skip.
+      // Session-level dedupe: prefer stripe_sessions over legacy donations.
       try {
-        const existingDonation = await supabaseRequest(
+        const existingSession = await supabaseRequest(
           env,
-          `donations?stripe_session_id=eq.${encodeURIComponent(sessionId)}&select=stripe_session_id&limit=1`,
+          `stripe_sessions?session_id=eq.${encodeURIComponent(sessionId)}&select=session_id,status&limit=1`,
           { method: "GET" }
         );
-        if (Array.isArray(existingDonation) && existingDonation.length > 0) {
+        if (Array.isArray(existingSession) && existingSession[0]?.status === "credited") {
           return json({ received: true, duplicate: true });
         }
       } catch {}

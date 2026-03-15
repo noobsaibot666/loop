@@ -291,6 +291,16 @@ app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async
     const creditAdd = creditsFromAmount(amount);
 
     if (user_id) {
+      const { data: existingSession } = await supabase
+        .from("stripe_sessions")
+        .select("session_id, status")
+        .eq("session_id", session.id)
+        .maybeSingle()
+        .catch(() => ({ data: null }));
+      if (existingSession?.status === "credited") {
+        return res.json({ received: true, duplicate: true });
+      }
+
       const { data } = await supabase
         .from("user_credits")
         .select("user_id, credits, free_used")
@@ -301,6 +311,14 @@ app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async
       await supabase
         .from("user_credits")
         .upsert({ user_id, credits: currentCredits + creditAdd }, { onConflict: "user_id" });
+
+      await supabase.from("stripe_sessions").upsert({
+        session_id: session.id,
+        user_id,
+        amount_cents: amount,
+        credits_to_grant: creditAdd,
+        status: "credited",
+      }, { onConflict: "session_id" }).catch(() => null);
 
       await supabase.from("donations").insert({
         user_id,
@@ -1337,10 +1355,11 @@ app.post("/api/create-checkout-session", async (req, res) => {
   if (!user_id) return res.status(401).json({ error: "auth required" });
 
   const amountInCents = Math.max(500, Number(amount || 500));
+  const creditsToGrant = creditsFromAmount(amountInCents);
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
-    success_url: `${APP_URL}/?donation=success`,
+    success_url: `${APP_URL}/?donation=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${APP_URL}/?donation=cancel`,
     line_items: [
       {
@@ -1354,6 +1373,14 @@ app.post("/api/create-checkout-session", async (req, res) => {
     ],
     metadata: { user_id },
   });
+
+  await supabase.from("stripe_sessions").upsert({
+    session_id: session.id,
+    user_id,
+    amount_cents: amountInCents,
+    credits_to_grant: creditsToGrant,
+    status: "checkout_created",
+  }, { onConflict: "session_id" }).catch(() => null);
 
   res.json({ url: session.url });
 });
@@ -1407,6 +1434,62 @@ app.post("/api/create-membership-session", async (req, res) => {
   }, { onConflict: "user_id" }).catch(() => null);
 
   res.json({ url: session.url });
+});
+
+app.post("/api/stripe/verify-session", async (req, res) => {
+  const authUser = await getAuthUser(req);
+  const user_id = authUser?.id || "";
+  const session_id = String(req.body?.session_id || "").trim();
+  if (!user_id) return res.status(401).json({ error: "auth required" });
+  if (!session_id) return res.status(400).json({ error: "session_id required" });
+
+  const { data: existingSession } = await supabase
+    .from("stripe_sessions")
+    .select("session_id,user_id,status,credits_to_grant")
+    .eq("session_id", session_id)
+    .maybeSingle()
+    .catch(() => ({ data: null }));
+  if (existingSession?.user_id && existingSession.user_id !== user_id) {
+    return res.status(403).json({ error: "session mismatch" });
+  }
+  if (existingSession?.status === "credited") {
+    return res.json({ ok: true, credited: true, duplicate: true });
+  }
+
+  const session = await stripe.checkout.sessions.retrieve(session_id);
+  if (session.metadata?.user_id !== user_id) return res.status(403).json({ error: "session mismatch" });
+  if (!(session.payment_status === "paid" || session.status === "complete")) {
+    return res.json({ ok: true, credited: false, status: session.payment_status || session.status || "unknown" });
+  }
+
+  const amount = Number(session.amount_total || 0);
+  const creditAdd = existingSession?.credits_to_grant || creditsFromAmount(amount);
+  const { data } = await supabase
+    .from("user_credits")
+    .select("user_id, credits")
+    .eq("user_id", user_id)
+    .maybeSingle();
+  const currentCredits = data?.credits || 0;
+
+  await supabase
+    .from("user_credits")
+    .upsert({ user_id, credits: currentCredits + creditAdd }, { onConflict: "user_id" });
+
+  await supabase.from("stripe_sessions").upsert({
+    session_id,
+    user_id,
+    amount_cents: amount,
+    credits_to_grant: creditAdd,
+    status: "credited",
+  }, { onConflict: "session_id" }).catch(() => null);
+
+  await supabase.from("donations").insert({
+    user_id,
+    amount,
+    stripe_session_id: session_id,
+  }).catch(() => null);
+
+  res.json({ ok: true, credited: true, credits_added: creditAdd });
 });
 
 app.post("/api/stripe/verify-membership-session", async (req, res) => {
@@ -1811,18 +1894,105 @@ app.get("/api/night-rides/feed", async (_req, res) => {
   return res.json({ posts });
 });
 
+app.post("/api/night-rides/post", async (req, res) => {
+  const authUser = await getAuthUser(req);
+  const user_id = authUser?.id || "";
+  if (!user_id) return res.status(401).json({ error: "auth required" });
+
+  const sessionId = String(req.body?.session_id || "").trim();
+  const imageUrl = String(req.body?.image_url || "").trim();
+  const storagePath = String(req.body?.storage_path || "").trim();
+  const aspectRatio = String(req.body?.aspect_ratio || "1:1").trim() === "16:9" ? "16:9" : "1:1";
+  const caption = String(req.body?.caption || "").trim().slice(0, 280);
+  const isPublic = req.body?.is_public !== false;
+  if (!sessionId || !imageUrl || !storagePath) {
+    return res.status(400).json({ error: "session_id, image_url, and storage_path required" });
+  }
+
+  const { data: session } = await supabase
+    .from("night_ride_sessions")
+    .select("*")
+    .eq("id", sessionId)
+    .maybeSingle();
+  if (!session) return res.status(404).json({ error: "night ride session not found" });
+
+  const isCreator = session.creator_user_id === user_id;
+  let isParticipant = false;
+  if (!isCreator) {
+    const { data: participant } = await supabase
+      .from("night_ride_participants")
+      .select("id")
+      .eq("session_id", sessionId)
+      .eq("user_id", user_id)
+      .maybeSingle();
+    isParticipant = Boolean(participant?.id);
+  }
+  if (!isCreator && !isParticipant) {
+    return res.status(403).json({ error: "not part of this night ride" });
+  }
+
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("rider_name")
+    .eq("user_id", user_id)
+    .maybeSingle();
+  const riderName = profile?.rider_name?.trim() || riderLabelFromEmail(authUser?.email || "");
+
+  const { data, error } = await supabase
+    .from("night_ride_posts")
+    .insert({
+      session_id: session.id,
+      user_id,
+      rider_name: riderName,
+      crew_name: session.crew_name || null,
+      city_name: session.ride_city || null,
+      route_title: session.title || null,
+      distance_km: session.distance_km ?? null,
+      caption: caption || null,
+      storage_path: storagePath,
+      image_url: imageUrl,
+      aspect_ratio: aspectRatio,
+      is_public: isPublic,
+      moderation_status: "live",
+    })
+    .select("*")
+    .limit(1);
+
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ ok: true, post: data?.[0] || null });
+});
+
 app.get("/api/night-rides/mine", async (req, res) => {
   const authUser = await getAuthUser(req);
   const user_id = authUser?.id || "";
   if (!user_id) return res.status(401).json({ error: "login required" });
-  const { data, error } = await supabase
+  const { data: owned, error } = await supabase
     .from("night_ride_sessions")
     .select("id, title, session_type, mode, difficulty, distance_km, ride_city, crew_name, crew_members, created_at")
     .eq("creator_user_id", user_id)
     .order("created_at", { ascending: false })
     .limit(8);
   if (error) return res.status(500).json({ error: error.message });
-  return res.json({ sessions: data || [] });
+  const { data: joined } = await supabase
+    .from("night_ride_participants")
+    .select("session_id, created_at")
+    .eq("user_id", user_id)
+    .order("created_at", { ascending: false })
+    .limit(12);
+  const joinedIds = Array.from(new Set((joined || []).map((row) => row.session_id).filter(Boolean)));
+  let joinedSessions = [];
+  if (joinedIds.length) {
+    const { data } = await supabase
+      .from("night_ride_sessions")
+      .select("id, title, session_type, mode, difficulty, distance_km, ride_city, crew_name, crew_members, created_at")
+      .in("id", joinedIds);
+    joinedSessions = data || [];
+  }
+  const merged = [...(owned || []), ...joinedSessions];
+  const deduped = Array.from(new Map(merged.map((session) => [session.id, session])).values())
+    .sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || "")))
+    .slice(0, 12);
+  return res.json({ sessions: deduped });
 });
 
 app.post("/api/messenger/generate", async (req, res) => {

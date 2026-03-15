@@ -3,58 +3,228 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Community Access · GIMMETHELOOP</title>
+    <title>Community Pass · GIMME THE LOOP</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zalando+Sans+Expanded:ital,wght@0,200..900;1,200..900&display=swap" />
     <style>
+      :root {
+        color-scheme: dark;
+        --bg: #080808;
+        --panel: rgba(255, 255, 255, 0.04);
+        --panel-strong: rgba(255, 255, 255, 0.06);
+        --border: rgba(255, 255, 255, 0.12);
+        --text: #f4f2ef;
+        --muted: rgba(244, 242, 239, 0.72);
+        --soft: rgba(244, 242, 239, 0.52);
+        --accent: #1f6bff;
+      }
+      * { box-sizing: border-box; }
       body {
         margin: 0;
         min-height: 100vh;
-        display: grid;
-        place-items: center;
-        padding: 24px;
-        background: #090909;
-        color: #f4f2ef;
+        padding: 28px;
+        background:
+          radial-gradient(circle at top, rgba(31, 107, 255, 0.12), transparent 34%),
+          linear-gradient(180deg, #0a0a0a, var(--bg));
+        color: var(--text);
         font-family: "Zalando Sans Expanded", sans-serif;
       }
-      .card {
-        width: min(680px, 100%);
+      main {
+        width: min(1040px, 100%);
+        margin: 0 auto;
+        display: grid;
+        gap: 18px;
+      }
+      .hero,
+      .grid-card {
+        border: 1px solid var(--border);
+        border-radius: 28px;
+        background: var(--panel);
+        backdrop-filter: blur(14px);
+      }
+      .hero {
         padding: 28px;
-        border-radius: 24px;
-        border: 1px solid rgba(255,255,255,0.12);
-        background: rgba(255,255,255,0.04);
       }
       .eyebrow {
-        color: #ff5a1f;
-        font-size: 0.78rem;
+        margin: 0 0 10px;
+        color: var(--accent);
+        font-size: 0.72rem;
         text-transform: uppercase;
-        letter-spacing: 0.14em;
-        margin-bottom: 10px;
+        letter-spacing: 0.16em;
       }
       h1 {
-        margin: 0 0 12px;
+        margin: 0 0 14px;
+        font-size: clamp(2.2rem, 7vw, 4.6rem);
+        line-height: 0.95;
         text-transform: uppercase;
-        font-size: clamp(1.8rem, 5vw, 3rem);
       }
-      p {
+      .hero p {
         margin: 0;
-        color: rgba(244,242,239,0.72);
-        line-height: 1.6;
-        max-width: 34rem;
+        max-width: 40rem;
+        color: var(--muted);
+        line-height: 1.7;
       }
-      a {
-        display: inline-flex;
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
         margin-top: 20px;
-        color: #f4f2ef;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        color: var(--text);
+        background: var(--panel-strong);
+        font-size: 0.78rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: #38d96e;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+      }
+      .grid-card {
+        padding: 22px;
+      }
+      .grid-card h2 {
+        margin: 0 0 14px;
+        font-size: 1rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .grid-card p,
+      .grid-card li {
+        color: var(--muted);
+        line-height: 1.65;
+      }
+      ul {
+        padding-left: 18px;
+        margin: 0;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 24px;
+      }
+      .button,
+      .link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 46px;
+        padding: 0 18px;
+        border-radius: 14px;
         text-decoration: none;
+        font-size: 0.86rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .button {
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: var(--text);
+        color: #0b0b0b;
+        font-weight: 700;
+      }
+      .link {
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text);
+      }
+      .foot {
+        color: var(--soft);
+        font-size: 0.88rem;
+      }
+      @media (max-width: 860px) {
+        body { padding: 18px; }
+        .grid { grid-template-columns: 1fr; }
+        .hero,
+        .grid-card { border-radius: 22px; }
       }
     </style>
   </head>
   <body>
-    <main class="card">
-      <div class="eyebrow">Hold</div>
-      <h1>Community access is not live yet.</h1>
-      <p>The Discord lane and the prepared 5 USD monthly pass are still being held back until the community setup is ready. Keep testing the app and we will open this again when the real flow is wired. Launch invite on hold: https://discord.gg/2wWFKuQ7</p>
-      <a href="/">Back to loop</a>
+    <main>
+      <section class="hero">
+        <p class="eyebrow">V1.2 Community Lane</p>
+        <h1>Community Pass</h1>
+        <p>
+          This is the rider-side membership lane for people who want a closer link to the project, direct Discord access,
+          and a tighter way to stay around the same culture. The point is community first. Credits stay secondary.
+        </p>
+        <div class="meta">
+          <span class="pill"><span class="dot"></span>5 USD / month</span>
+          <span class="pill">Discord access</span>
+          <span class="pill">Credits stay bonus</span>
+        </div>
+        <div class="actions">
+          <a class="button" href="/">Back to app</a>
+          <a class="link" href="https://discord.gg/2wWFKuQ7" target="_blank" rel="noreferrer">Launch invite</a>
+        </div>
+      </section>
+
+      <section class="grid">
+        <article class="grid-card">
+          <h2>What It Is</h2>
+          <p>
+            A monthly pass for riders who want to stay close to the project, the Discord server, and the broader crew lane
+            around the app as it grows.
+          </p>
+        </article>
+
+        <article class="grid-card">
+          <h2>What You Get</h2>
+          <ul>
+            <li>Discord server access</li>
+            <li>Direct community lane around tests and launches</li>
+            <li>Optional credits later as a bonus, not the main reason to join</li>
+          </ul>
+        </article>
+
+        <article class="grid-card">
+          <h2>How Access Works</h2>
+          <ul>
+            <li>Start checkout from your account page</li>
+            <li>Return to the app after Stripe confirms</li>
+            <li>Open the invite from the gated account action</li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="grid">
+        <article class="grid-card">
+          <h2>Current Status</h2>
+          <p>
+            The billing and entitlement layer is being wired in V1.2. The launch lane is still controlled. This page is now
+            the stable reference surface for that pass.
+          </p>
+        </article>
+
+        <article class="grid-card">
+          <h2>Guardrail</h2>
+          <p>
+            Community access stays separate from one-time credit top-ups. It should never read like a credit bundle or a
+            disguised product upsell.
+          </p>
+        </article>
+
+        <article class="grid-card">
+          <h2>Operator Note</h2>
+          <p class="foot">
+            Reserved launch invite: <a href="https://discord.gg/2wWFKuQ7" style="color:inherit">https://discord.gg/2wWFKuQ7</a>
+          </p>
+        </article>
+      </section>
     </main>
   </body>
 </html>

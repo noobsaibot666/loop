@@ -16,6 +16,7 @@ export async function onRequest({ request, env }) {
   const appUrl = new URL(request.url).origin;
 
   const amountInCents = Math.max(500, Number(amount || 500));
+  const creditsToGrant = Math.max(1, Math.floor(amountInCents / 50));
 
   const payload = {
     mode: "payment",
@@ -43,7 +44,6 @@ export async function onRequest({ request, env }) {
 
   // Best-effort audit trail for checkout starts. Safe to skip if table is not created yet.
   try {
-    const creditsToGrant = Math.max(1, Math.floor(amountInCents / 50));
     await supabaseRequest(env, "stripe_sessions", {
       method: "POST",
       headers: { Prefer: "resolution=merge-duplicates" },

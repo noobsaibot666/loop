@@ -14,14 +14,18 @@ export async function onRequest({ request, env }) {
   if (!user_id) return json({ error: "login required" }, { status: 401 });
   if (!session_id || typeof session_id !== "string") return json({ error: "session_id required" }, { status: 400 });
 
-  // If we've already credited this session, do nothing.
+  let existingSession = null;
   try {
-    const existingDonation = await supabaseRequest(
+    const sessions = await supabaseRequest(
       env,
-      `donations?stripe_session_id=eq.${encodeURIComponent(session_id)}&select=stripe_session_id&limit=1`,
+      `stripe_sessions?session_id=eq.${encodeURIComponent(session_id)}&select=session_id,user_id,status,amount_cents,credits_to_grant&limit=1`,
       { method: "GET" }
     );
-    if (Array.isArray(existingDonation) && existingDonation.length > 0) {
+    existingSession = Array.isArray(sessions) && sessions.length > 0 ? sessions[0] : null;
+    if (existingSession?.user_id && existingSession.user_id !== user_id) {
+      return json({ error: "session mismatch" }, { status: 403 });
+    }
+    if (existingSession?.status === "credited") {
       return json({ ok: true, credited: true, duplicate: true });
     }
   } catch {}
@@ -40,7 +44,7 @@ export async function onRequest({ request, env }) {
   if (!paid) return json({ ok: true, credited: false, status: session?.payment_status || session?.status || "unknown" });
 
   const amount = Number(session?.amount_total || 0);
-  const creditAdd = creditsFromAmount(amount);
+  const creditAdd = existingSession?.credits_to_grant || creditsFromAmount(amount);
 
   // Apply credits idempotently.
   const rows = await supabaseRequest(
@@ -84,4 +88,3 @@ export async function onRequest({ request, env }) {
 
   return json({ ok: true, credited: true, credits_added: creditAdd });
 }
-

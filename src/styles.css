@@ -974,6 +974,23 @@ p {
   justify-items: flex-start;
 }
 
+.section-eyebrow-accent {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(31, 107, 255, 0.3);
+  background: rgba(31, 107, 255, 0.12);
+  color: #8fb5ff;
+}
+
+.home-community-list {
+  display: grid;
+  gap: 6px;
+  margin: 2px 0 2px;
+  color: var(--text-soft);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
 .suggestion-stack {
   display: grid;
   gap: 8px;
@@ -2265,6 +2282,12 @@ input[type="range"]::-moz-range-thumb {
   border-color: rgba(191, 122, 77, 0.42);
 }
 
+.leaderboard-community-note {
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
 .leaderboard-summary-grid {
   margin-top: 0;
 }
@@ -2612,6 +2635,26 @@ input[type="range"]::-moz-range-thumb {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.loop-community-card {
+  display: grid;
+  gap: 6px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.loop-community-card strong {
+  font-family: var(--font-header);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.loop-community-card span {
+  color: var(--text-muted);
+  line-height: 1.5;
 }
 
 .city-preset-group {
@@ -3698,6 +3741,7 @@ input[type="range"]::-moz-range-thumb {
 
 .account-summary-card,
 .account-credits-card,
+.account-community-hero-card,
 .account-community-card,
 .account-stats-card,
 .account-quarter-card,
@@ -3711,6 +3755,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .account-summary-card,
+.account-community-hero-card,
 .account-community-card,
 .account-quarter-card,
 .account-purchases-card,
@@ -3727,6 +3772,10 @@ input[type="range"]::-moz-range-thumb {
 .account-note {
   color: var(--text-muted);
   line-height: 1.6;
+}
+
+.account-community-hero-card {
+  gap: 18px;
 }
 
 .profile-grid {

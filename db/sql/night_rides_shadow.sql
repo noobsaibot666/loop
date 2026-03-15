@@ -69,6 +69,7 @@ create table if not exists public.night_ride_posts (
   route_title text,
   distance_km numeric(6,2),
   caption text,
+  storage_path text,
   image_url text not null,
   aspect_ratio text not null default '1:1',
   is_public boolean not null default true,
@@ -89,7 +90,42 @@ alter table public.night_ride_posts
   add column if not exists distance_km numeric(6,2);
 
 alter table public.night_ride_posts
+  add column if not exists storage_path text;
+
+alter table public.night_ride_posts
   add column if not exists aspect_ratio text not null default '1:1';
 
 alter table public.night_ride_posts
   add column if not exists moderation_status text not null default 'live';
+
+insert into storage.buckets (id, name, public)
+values ('night-ride-posts', 'night-ride-posts', true)
+on conflict (id) do nothing;
+
+drop policy if exists "night ride posts public read" on storage.objects;
+create policy "night ride posts public read"
+on storage.objects
+for select
+using (bucket_id = 'night-ride-posts');
+
+drop policy if exists "night ride posts auth upload" on storage.objects;
+create policy "night ride posts auth upload"
+on storage.objects
+for insert
+to authenticated
+with check (bucket_id = 'night-ride-posts');
+
+drop policy if exists "night ride posts auth update own" on storage.objects;
+create policy "night ride posts auth update own"
+on storage.objects
+for update
+to authenticated
+using (bucket_id = 'night-ride-posts' and owner = auth.uid())
+with check (bucket_id = 'night-ride-posts' and owner = auth.uid());
+
+drop policy if exists "night ride posts auth delete own" on storage.objects;
+create policy "night ride posts auth delete own"
+on storage.objects
+for delete
+to authenticated
+using (bucket_id = 'night-ride-posts' and owner = auth.uid());

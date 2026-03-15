@@ -384,6 +384,7 @@ const ALLEYCAT_CITY_GROUPS = [
 ];
 const ALLEYCAT_CITY_PRESETS = ALLEYCAT_CITY_GROUPS.flatMap((group) => group.cities);
 const PROOF_BUCKET = "alleycat-proofs";
+const NIGHT_RIDE_BUCKET = "night-ride-posts";
 const toCitySlug = (value = "") => value.trim().toLowerCase().replace(/\s+/g, "");
 const getCityLabel = (value = "") => ALLEYCAT_CITY_PRESETS.find((city) => toCitySlug(city) === toCitySlug(value)) || value;
 
@@ -1082,7 +1083,7 @@ function AppShell() {
   }, [pageView]);
 
   useEffect(() => {
-    if (pageView !== "account" || !user?.id) {
+    if ((pageView !== "account" && pageView !== "night") || !user?.id) {
       setNightRideHistory([]);
       return;
     }
@@ -1105,7 +1106,7 @@ function AppShell() {
     return () => {
       cancelled = true;
     };
-  }, [pageView, user?.id]);
+  }, [pageView, user?.id, accessToken]);
 
   useEffect(() => {
     if (pageView !== "leaderboard") return;
@@ -2500,6 +2501,19 @@ function AppShell() {
             {t("home.night.action")}
           </button>
         </div>
+        <div className="modular-cell modular-cell-community home-construction-card">
+          <div className="section-eyebrow section-eyebrow-accent">{t("home.community.pill")}</div>
+          <h3 className="cell-title">{t("home.community.header")}</h3>
+          <div className="home-community-list">
+            <span>{t("home.community.line1")}</span>
+            <span>{t("home.community.line2")}</span>
+            <span>{t("home.community.line3")}</span>
+            <span>{t("home.community.line4")}</span>
+          </div>
+          <a className="ghost-button small home-card-button" href="/membership.html">
+            {t("home.community.action")}
+          </a>
+        </div>
       </section>
     </div>
   );
@@ -2728,6 +2742,36 @@ function AppShell() {
       {user && (
         <>
           <div className="builder-grid single">
+            <div className="glass-card form-card account-community-hero-card">
+              <div className="form-title">{t("account.community.heroTitle")}</div>
+              <div className="form-subtitle">{t("account.community.heroSubtitle")}</div>
+              <div className="form-actions">
+                <button
+                  className="primary-button"
+                  type="button"
+                  onClick={accountSummary?.community_membership?.access_active ? handleOpenCommunityInvite : handleStartMembership}
+                  disabled={accountSummary?.community_membership?.access_active ? isOpeningCommunityInvite : isStartingMembership}
+                >
+                  {accountSummary?.community_membership?.access_active
+                    ? (isOpeningCommunityInvite ? t("account.community.openingInvite") : t("account.community.openInvite"))
+                    : (isStartingMembership ? t("account.community.loading") : t("account.community.joinCrew"))}
+                </button>
+                <a className="ghost-button" href="/membership.html">
+                  {t("account.community.details")}
+                </a>
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={handleOpenCommunityInvite}
+                  disabled={!accountSummary?.community_membership?.access_active || isOpeningCommunityInvite}
+                >
+                  {isOpeningCommunityInvite ? t("account.community.openingInvite") : t("account.community.openInvite")}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="builder-grid single">
             <div className="glass-card form-card account-feedback-card">
               <div className="form-title">{t("account.feedback.title")}</div>
               <div className="form-subtitle">{t("account.feedback.subtitle")}</div>
@@ -2934,6 +2978,9 @@ function AppShell() {
               <button className="primary-button" type="button" onClick={handleStartMembership} disabled={isStartingMembership}>
                 {isStartingMembership ? t("account.community.loading") : t("account.community.action")}
               </button>
+              <a className="ghost-button" href="/membership.html">
+                {t("account.community.details")}
+              </a>
               <button
                 className="ghost-button"
                 type="button"
@@ -3448,6 +3495,14 @@ function AppShell() {
                     </button>
                     <a className="primary-button small" href={lastRouteUrl} target="_blank" rel="noreferrer">
                       {t("loop.openMaps")}
+                    </a>
+                  </div>
+                  <div className="loop-community-card">
+                    <strong>{t("account.community.finishTitle")}</strong>
+                    <span>{t("account.community.finishPrompt")}</span>
+                    <span>{t("account.community.heroTitle")}</span>
+                    <a className="ghost-button small" href="/membership.html">
+                      {t("account.community.joinCrew")}
                     </a>
                   </div>
                 </div>
@@ -4143,6 +4198,8 @@ function AppShell() {
             <NightRidePage
               apiBase={API_BASE}
               user={user}
+              supabase={supabase}
+              bucketName={NIGHT_RIDE_BUCKET}
               totalCredits={totalCredits}
               hasUnlimitedCredits={hasUnlimitedCredits}
               requireLogin={requireLogin}
@@ -4150,6 +4207,10 @@ function AppShell() {
               postJSON={postJSON}
               formatDate={formatDate}
               feed={nightRidePosts}
+              history={nightRideHistory}
+              onPostCreated={(post) =>
+                setNightRidePosts((current) => [post, ...current.filter((item) => item.id !== post.id)].slice(0, 24))
+              }
             />
           </Suspense>
         )

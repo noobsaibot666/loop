@@ -33,11 +33,27 @@ type NightRideSession = {
   ride_city?: string | null;
   crew_name?: string | null;
   crew_members?: string[] | null;
+  created_at?: string;
+};
+
+type NightRideHistorySession = {
+  id: string;
+  title: string;
+  session_type: "single" | "crew";
+  mode: "loop" | "roulette";
+  difficulty: "easy" | "medium" | "hard";
+  distance_km: number;
+  ride_city?: string | null;
+  crew_name?: string | null;
+  crew_members?: string[] | null;
+  created_at: string;
 };
 
 type Props = {
   apiBase: string;
   user: { id: string; email?: string } | null;
+  supabase: any;
+  bucketName: string;
   totalCredits: number;
   hasUnlimitedCredits: boolean;
   requireLogin: (message: string) => void;
@@ -45,11 +61,15 @@ type Props = {
   postJSON: <T>(path: string, body: Record<string, unknown>) => Promise<T>;
   formatDate: (value?: string | null) => string;
   feed: NightRidePost[];
+  history: NightRideHistorySession[];
+  onPostCreated: (post: NightRidePost) => void;
 };
 
 const NightRidePage = ({
   apiBase,
   user,
+  supabase,
+  bucketName,
   totalCredits,
   hasUnlimitedCredits,
   requireLogin,
@@ -57,6 +77,8 @@ const NightRidePage = ({
   postJSON,
   formatDate,
   feed,
+  history,
+  onPostCreated,
 }: Props) => {
   const [sessionType, setSessionType] = useState<"single" | "crew">("single");
   const [mode, setMode] = useState<"loop" | "roulette">("loop");
@@ -77,6 +99,12 @@ const NightRidePage = ({
   const [shareInput, setShareInput] = useState("");
   const [isBuilding, setIsBuilding] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
+  const [postSessionId, setPostSessionId] = useState("");
+  const [postCaption, setPostCaption] = useState("");
+  const [postAspectRatio, setPostAspectRatio] = useState<"1:1" | "16:9">("1:1");
+  const [postFile, setPostFile] = useState<File | null>(null);
+  const [postStatus, setPostStatus] = useState("");
+  const [isPosting, setIsPosting] = useState(false);
 
   const distanceKm = unit === "km" ? distance : distance * 1.60934;
   const crewMembers = useMemo(
@@ -163,6 +191,18 @@ const NightRidePage = ({
     []
   );
 
+  const postableSessions = useMemo(() => {
+    const merged = [...(session ? [session] : []), ...history];
+    return Array.from(new Map(merged.map((item) => [item.id, item])).values())
+      .sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || "")));
+  }, [history, session]);
+
+  useEffect(() => {
+    if (!postSessionId && postableSessions.length) {
+      setPostSessionId(postableSessions[0].id);
+    }
+  }, [postableSessions, postSessionId]);
+
   const handleBuild = async () => {
     if (!user?.id) {
       requireLogin("Log in to build a Night Ride.");
@@ -233,6 +273,55 @@ const NightRidePage = ({
       setStatus(error instanceof Error ? error.message : "Could not join Crew Night Ride.");
     } finally {
       setIsJoining(false);
+    }
+  };
+
+  const handlePost = async () => {
+    if (!user?.id) {
+      requireLogin("Log in to post a Night Ride shot.");
+      return;
+    }
+    if (!supabase) {
+      setPostStatus("Night Ride upload is not ready in this browser.");
+      return;
+    }
+    if (!postSessionId) {
+      setPostStatus("Pick a Night Ride session first.");
+      return;
+    }
+    if (!postFile) {
+      setPostStatus("Pick a photo first.");
+      return;
+    }
+
+    setIsPosting(true);
+    setPostStatus("");
+    try {
+      const extension = postFile.name.split(".").pop()?.toLowerCase() || "jpg";
+      const storagePath = `${user.id}/${postSessionId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`;
+      const upload = await supabase.storage.from(bucketName).upload(storagePath, postFile, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+      if (upload.error) throw upload.error;
+      const { data: publicData } = supabase.storage.from(bucketName).getPublicUrl(storagePath);
+
+      const response = await postJSON<{ post: NightRidePost }>("/api/night-rides/post", {
+        session_id: postSessionId,
+        image_url: publicData.publicUrl,
+        storage_path: storagePath,
+        aspect_ratio: postAspectRatio,
+        caption: postCaption.trim(),
+      });
+
+      if (response?.post) onPostCreated(response.post);
+      setPostCaption("");
+      setPostFile(null);
+      setPostStatus("Night Ride post landed on the night wall.");
+    } catch (error) {
+      setPostStatus(error instanceof Error ? error.message : "Could not post Night Ride shot.");
+    } finally {
+      setIsPosting(false);
     }
   };
 
@@ -506,8 +595,81 @@ const NightRidePage = ({
                   </button>
                 )}
               </div>
+              <div className="loop-community-card night-community-card">
+                <strong>Ride completed.</strong>
+                <span>Want to connect with riders in your city?</span>
+                <span>Join the Hard Chain Crew Discord.</span>
+                <a className="ghost-button small" href="/membership.html">
+                  Join the Crew
+                </a>
+              </div>
             </div>
           )}
+        </div>
+      </section>
+
+      <section className="split-module reveals">
+        <div className="builder-grid single">
+          <div className="glass-card form-card night-ride-shell">
+            <div className="builder-head">
+              <div>
+                <h2 className="form-title">Post to Night Wall</h2>
+                <p className="form-subtitle">Drop the group shot or the solo frame tied to a real Night Ride session.</p>
+              </div>
+            </div>
+
+            <div className="form-section section-block">
+              <label className="field">
+                <span>Session</span>
+                <select value={postSessionId} onChange={(event) => setPostSessionId(event.target.value)}>
+                  <option value="">Pick a Night Ride</option>
+                  {postableSessions.map((ride) => (
+                    <option key={ride.id} value={ride.id}>
+                      {(ride.crew_name || ride.title)} · {ride.ride_city || "Night city"}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="field">
+                <span>Frame</span>
+                <div className="unit-toggle loop-centered-pills">
+                  <button className={`pill ${postAspectRatio === "1:1" ? "active" : ""}`} type="button" onClick={() => setPostAspectRatio("1:1")}>
+                    1:1
+                  </button>
+                  <button className={`pill ${postAspectRatio === "16:9" ? "active" : ""}`} type="button" onClick={() => setPostAspectRatio("16:9")}>
+                    16:9
+                  </button>
+                </div>
+              </label>
+
+              <label className="field">
+                <span>Caption</span>
+                <textarea
+                  value={postCaption}
+                  onChange={(event) => setPostCaption(event.target.value.slice(0, 280))}
+                  placeholder="Crew out in Mooca, wet streets, bridge wind, still smiling."
+                  rows={3}
+                />
+              </label>
+
+              <label className="field">
+                <span>Photo</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) => setPostFile(event.target.files?.[0] || null)}
+                />
+              </label>
+            </div>
+
+            <div className="form-actions">
+              <button className="primary-button primary-button-flat" type="button" onClick={handlePost} disabled={isPosting}>
+                {isPosting ? "Posting..." : "Post night shot"}
+              </button>
+            </div>
+            {postStatus ? <div className="status-message compact-status">{postStatus}</div> : null}
+          </div>
         </div>
       </section>
 

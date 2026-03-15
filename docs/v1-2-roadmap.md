@@ -37,7 +37,7 @@ Scope:
 
 ## Phase 2: Night Ride posting
 Status on 2026-03-15:
-- Not started
+- Initial pass implemented
 
 Scope:
 - upload crew/single ride photo after ride
@@ -70,6 +70,7 @@ Scope:
 - webhook + verify fallback
 - Discord invite gated entitlement flow
 - subscription lifecycle sync on update/cancel
+- Stripe session reliability for one-time credits and subscription returns
 
 Important:
 - membership remains non-promoted until the community lane is operational
@@ -77,13 +78,20 @@ Important:
 
 ## Phase 5: Community launch surfaces
 Status on 2026-03-15:
-- Not started
+- Partially implemented
 
 Scope:
 - membership page copy for launch
 - account membership section
+- top account community card
 - controlled home promotion
 - Discord access instructions
+- completion-state community offers on Loop and Night Ride
+- leaderboard recognition line tied to the community lane
+- Community funnel card:
+  - highlighted `Community` pill
+  - `Join the Hard Chain Crew Discord` header
+  - ride / bikes / parts / worldwide connection bullets
 
 ## Phase 6: Mobile navigation rethink
 Status on 2026-03-15:
@@ -95,7 +103,19 @@ Scope:
 - keep language switcher stable
 - avoid hero overlap and page jump
 
+## Phase 7: V1.2.1 leaderboard riders
+Status on 2026-03-15:
+- Planned
+
+Scope:
+- leaderboard rider badges:
+  - `🥇 Loop Leader`
+  - `🏁 Alleycat Winner`
+- Discord honorable mention for top riders
+- awards and recognition copy tied to community status
+
 ## Required SQL for V1.2
 - [night_rides_shadow.sql](/Users/alan/_localDEV/Loop/db/sql/night_rides_shadow.sql)
 - [community_memberships.sql](/Users/alan/_localDEV/Loop/db/sql/community_memberships.sql)
+- [stripe_reliability.sql](/Users/alan/_localDEV/Loop/db/sql/stripe_reliability.sql)
 - [moderation_action_history.sql](/Users/alan/_localDEV/Loop/db/sql/moderation_action_history.sql)

@@ -27,10 +27,10 @@ Related docs:
 - [x] Add home construction promo
 
 ## Phase 2: Night Ride posting
-- [ ] Add Night Ride photo upload flow
-- [ ] Add crop ratio choice
-- [ ] Save route metadata with posts
-- [ ] Render post cards with clean hierarchy on wall
+- [x] Add Night Ride photo upload flow
+- [x] Add crop ratio choice
+- [x] Save route metadata with posts
+- [x] Render post cards with clean hierarchy on wall
 
 ## Phase 3: Night Ride moderation
 - [ ] Add Night Ride moderation actions
@@ -39,11 +39,13 @@ Related docs:
 - [ ] Add Night Ride moderation action logging
 
 ## Phase 4: Community membership billing
+- [x] Add Stripe session reliability SQL
 - [x] Add community membership SQL model
 - [x] Add Stripe subscription checkout endpoint
 - [x] Add Stripe membership verify endpoint
 - [x] Add webhook membership activation handling
 - [x] Add subscription update/cancel sync handling
+- [x] Add one-time Stripe verify reliability path
 - [x] Add local server mirror for membership checkout
 - [x] Add account summary membership state
 - [x] Add launch-ready account membership UI
@@ -51,12 +53,24 @@ Related docs:
 - [-] Promote membership publicly before Discord/community is ready
 
 ## Phase 5: Community launch surfaces
-- [ ] Add live membership page copy
-- [ ] Add account entry point for Discord access
-- [ ] Add controlled home promotion
+- [x] Add live membership page copy
+- [x] Add account entry point for Discord access
+- [x] Add controlled home promotion
 - [x] Add Discord invite release flow
+- [x] Add website funnel card copy for Community / Hard Chain Crew Discord
+- [x] Add top account community card: `Join the Hard Chain Crew Discord.`
+- [x] Add Loop completion community offer
+- [x] Add Night Ride completion community offer
+- [x] Add leaderboard community recognition note
 
 ## Phase 6: Mobile navigation rethink
 - [ ] Replace current mobile nav with burger-first layout
 - [ ] Keep language switcher stable in the new header
 - [ ] Make added sections fit without crowding hero space
+
+## Phase 7: V1.2.1 leaderboard riders
+- [ ] Add rider badges in leaderboard:
+  - `🥇 Loop Leader`
+  - `🏁 Alleycat Winner`
+- [ ] Add Discord honorable mention flow for top riders
+- [ ] Add awards callout tied to Discord recognition

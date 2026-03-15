@@ -177,6 +177,7 @@ export default function LeaderboardPage({
               </div>
             </div>
           )}
+          <div className="leaderboard-community-note">{t("leaderboard.communityNote")}</div>
           {publicLeaderboard.length > 0 && (
             <div className="winner-callout leaderboard-hero">
               <div className="leaderboard-hero-copy">
