@@ -12,6 +12,8 @@ type PublicLeaderboardEntry = {
 
 type LeaderboardPageProps = {
   publicQuarterLabel: string;
+  selectedLeaderboardCountry: string;
+  setSelectedLeaderboardCountry: (value: string) => void;
   selectedLeaderboardCity: string;
   setSelectedLeaderboardCity: (value: string) => void;
   cityPresets: string[];
@@ -22,8 +24,38 @@ type LeaderboardPageProps = {
   onOpenRiderProfile: (userId?: string) => void;
 };
 
+const CITY_COUNTRY_MAP: Record<string, string> = {
+  amsterdam: "Netherlands",
+  bangkok: "Thailand",
+  barcelona: "Spain",
+  berlin: "Germany",
+  bogota: "Colombia",
+  buenosaires: "Argentina",
+  chicago: "United States",
+  krakow: "Poland",
+  london: "United Kingdom",
+  losangeles: "United States",
+  mexico: "Mexico",
+  mexicocity: "Mexico",
+  milan: "Italy",
+  newyork: "United States",
+  paris: "France",
+  philadelphia: "United States",
+  sanfrancisco: "United States",
+  santos: "Brazil",
+  saopaulo: "Brazil",
+  seattle: "United States",
+  seoul: "South Korea",
+  taipei: "Taiwan",
+  tokyo: "Japan",
+  vienna: "Austria",
+  warsaw: "Poland",
+};
+
 export default function LeaderboardPage({
   publicQuarterLabel,
+  selectedLeaderboardCountry,
+  setSelectedLeaderboardCountry,
   selectedLeaderboardCity,
   setSelectedLeaderboardCity,
   cityPresets,
@@ -35,29 +67,52 @@ export default function LeaderboardPage({
 }: LeaderboardPageProps) {
   const { t } = useI18n();
   const [showCityPicker, setShowCityPicker] = useState(false);
+  const countryOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          cityPresets
+            .map((city) => CITY_COUNTRY_MAP[toCitySlug(city)] || "")
+            .filter(Boolean)
+        )
+      ).sort((a, b) => a.localeCompare(b)),
+    [cityPresets, toCitySlug]
+  );
+  const filteredCityPresets = useMemo(
+    () =>
+      selectedLeaderboardCountry
+        ? cityPresets.filter((city) => CITY_COUNTRY_MAP[toCitySlug(city)] === selectedLeaderboardCountry)
+        : cityPresets,
+    [cityPresets, selectedLeaderboardCountry, toCitySlug]
+  );
   const cityGroups = useMemo(() => [
     {
       label: t("continent.americas"),
-      cities: cityPresets
+      cities: filteredCityPresets
         .filter((city) => ["Bogota", "Buenos Aires", "Chicago", "Los Angeles", "Mexico City", "New York", "Philadelphia", "San Francisco", "Santos", "Sao Paulo", "Seattle"].includes(city))
         .sort((a, b) => a.localeCompare(b)),
       anchor: "leaderboard-city-group-americas",
     },
     {
       label: t("continent.europe"),
-      cities: cityPresets
+      cities: filteredCityPresets
         .filter((city) => ["Amsterdam", "Barcelona", "Berlin", "Krakow", "London", "Milan", "Paris", "Vienna", "Warsaw"].includes(city))
         .sort((a, b) => a.localeCompare(b)),
       anchor: "leaderboard-city-group-europe",
     },
     {
       label: t("continent.asia"),
-      cities: cityPresets
+      cities: filteredCityPresets
         .filter((city) => ["Bangkok", "Seoul", "Taipei", "Tokyo"].includes(city))
         .sort((a, b) => a.localeCompare(b)),
       anchor: "leaderboard-city-group-asia",
     },
-  ].filter((group) => group.cities.length > 0), [cityPresets]);
+  ].filter((group) => group.cities.length > 0), [filteredCityPresets, t]);
+  const leaderboardProofs = publicLeaderboard.reduce((sum, entry) => sum + entry.public_proofs, 0);
+  const leaderboardFinishes = publicLeaderboard.reduce((sum, entry) => sum + entry.finished_runs, 0);
+  const activeScopeLabel = selectedLeaderboardCity
+    ? getCityLabel(selectedLeaderboardCity)
+    : selectedLeaderboardCountry || t("leaderboard.allCitiesLower");
 
   return (
     <div className="sequential-layout sub-page">
@@ -66,69 +121,80 @@ export default function LeaderboardPage({
       </section>
 
       <section className="builder-grid single reveals">
-        <div className="glass-card form-card">
+        <div className="glass-card form-card leaderboard-shell">
           <div className="leaderboard-public-head" id="leaderboard-filter">
-            <div className="form-title">{publicQuarterLabel || t("leaderboard.currentQuarter")}</div>
+            <div className="leaderboard-head-copy">
+              <div className="form-title">{publicQuarterLabel || t("leaderboard.currentQuarter")}</div>
+              <div className="leaderboard-head-scope">
+                <span>{t("leaderboard.currentFilter")}</span>
+                <strong>{activeScopeLabel}</strong>
+              </div>
+            </div>
             <button type="button" className="inline-link-button wall-filter-link" onClick={() => setShowCityPicker(true)}>
               {selectedLeaderboardCity ? getCityLabel(selectedLeaderboardCity) : t("leaderboard.allCities")}
             </button>
+          </div>
+          <div className="leaderboard-country-strip">
+            <button
+              type="button"
+              className={`mini-chip ${selectedLeaderboardCountry === "" ? "active" : ""}`}
+              onClick={() => {
+                setSelectedLeaderboardCountry("");
+                setSelectedLeaderboardCity("");
+              }}
+            >
+              {t("leaderboard.allCountries")}
+            </button>
+            {countryOptions.map((country) => (
+              <button
+                key={country}
+                type="button"
+                className={`mini-chip ${selectedLeaderboardCountry === country ? "active" : ""}`}
+                onClick={() => {
+                  setSelectedLeaderboardCountry(country);
+                  setSelectedLeaderboardCity("");
+                }}
+              >
+                {country}
+              </button>
+            ))}
           </div>
           {isLoadingPublicLeaderboard && <div className="status-message">{t("leaderboard.loading")}</div>}
           {!isLoadingPublicLeaderboard && publicLeaderboard.length === 0 && <div className="empty-state" />}
           {publicLeaderboard.length > 0 && (
             <div className="result-grid result-grid-three leaderboard-summary-grid">
-              <div>
+              <div className="leaderboard-stat-card">
                 <span>{t("leaderboard.rankedRiders")}</span>
                 <strong>{publicLeaderboard.length}</strong>
               </div>
-              <div>
+              <div className="leaderboard-stat-card leaderboard-stat-card-accent">
                 <span>{t("leaderboard.totalProofs")}</span>
-                <strong>{publicLeaderboard.reduce((sum, entry) => sum + entry.public_proofs, 0)}</strong>
+                <strong>{leaderboardProofs}</strong>
               </div>
-              <div>
+              <div className="leaderboard-stat-card">
                 <span>{t("leaderboard.totalFinishes")}</span>
-                <strong>{publicLeaderboard.reduce((sum, entry) => sum + entry.finished_runs, 0)}</strong>
+                <strong>{leaderboardFinishes}</strong>
               </div>
             </div>
           )}
           {publicLeaderboard.length > 0 && (
-            <div className="winner-callout">
-              <span className="winner-label">{t("leaderboard.quarterLeader")}</span>
-              <strong>{publicLeaderboard[0].rider_name}</strong>
-              <span>{t("leaderboard.proofsFinishes", { proofs: publicLeaderboard[0].public_proofs, finishes: publicLeaderboard[0].finished_runs })}</span>
-            </div>
-          )}
-          {publicLeaderboard.length > 0 && (
-            <div className="result-grid result-grid-three leaderboard-glance-grid">
-              <div>
-                <span>{t("leaderboard.currentFilter")}</span>
-                <strong>{selectedLeaderboardCity ? getCityLabel(selectedLeaderboardCity) : t("leaderboard.allCitiesLower")}</strong>
+            <div className="winner-callout leaderboard-hero">
+              <div className="leaderboard-hero-copy">
+                <span className="winner-label">{t("leaderboard.quarterLeader")}</span>
+                <strong>{publicLeaderboard[0].rider_name}</strong>
+                <span>{t("leaderboard.proofsFinishes", { proofs: publicLeaderboard[0].public_proofs, finishes: publicLeaderboard[0].finished_runs })}</span>
               </div>
-              <div>
-                <span>{t("leaderboard.leaderShare")}</span>
-                <strong>
-                  {Math.max(
-                    1,
-                    Math.round(
-                      (publicLeaderboard[0].public_proofs /
-                        Math.max(
-                          1,
-                          publicLeaderboard.reduce((sum, entry) => sum + entry.public_proofs, 0)
-                        )) *
-                        100
-                    )
-                  )}
-                  %
-                </strong>
-              </div>
-              <div>
-                <span>{t("leaderboard.avgProofs")}</span>
-                <strong>
-                  {(
-                    publicLeaderboard.reduce((sum, entry) => sum + entry.public_proofs, 0) /
-                    Math.max(1, publicLeaderboard.length)
-                  ).toFixed(1)}
-                </strong>
+              <div className="leaderboard-hero-stats">
+                <div className="leaderboard-hero-chip">
+                  <span>{t("leaderboard.leaderShare")}</span>
+                  <strong>
+                    {Math.max(1, Math.round((publicLeaderboard[0].public_proofs / Math.max(1, leaderboardProofs)) * 100))}%
+                  </strong>
+                </div>
+                <div className="leaderboard-hero-chip">
+                  <span>{t("leaderboard.avgProofs")}</span>
+                  <strong>{(leaderboardProofs / Math.max(1, publicLeaderboard.length)).toFixed(1)}</strong>
+                </div>
               </div>
             </div>
           )}
@@ -210,6 +276,8 @@ export default function LeaderboardPage({
                         className={`ghost-button ${selectedLeaderboardCity === toCitySlug(city) ? "active-filter-button" : ""}`}
                         type="button"
                         onClick={() => {
+                          const country = CITY_COUNTRY_MAP[toCitySlug(city)] || "";
+                          setSelectedLeaderboardCountry(country);
                           setSelectedLeaderboardCity(toCitySlug(city));
                           setShowCityPicker(false);
                         }}

@@ -1965,6 +1965,38 @@ app.post("/api/admin/proof-archive-month", requireAdmin, async (req, res) => {
 
 app.get("/api/leaderboard", async (req, res) => {
   const city = String(req.query.city || "").trim().toLowerCase();
+  const country = String(req.query.country || "").trim().toLowerCase();
+  const cityCountryMap = {
+    amsterdam: "netherlands",
+    bangkok: "thailand",
+    barcelona: "spain",
+    berlin: "germany",
+    bogota: "colombia",
+    buenosaires: "argentina",
+    chicago: "united states",
+    krakow: "poland",
+    london: "united kingdom",
+    losangeles: "united states",
+    mexicocity: "mexico",
+    milan: "italy",
+    newyork: "united states",
+    paris: "france",
+    philadelphia: "united states",
+    sanfrancisco: "united states",
+    santos: "brazil",
+    saopaulo: "brazil",
+    seattle: "united states",
+    seoul: "south korea",
+    taipei: "taiwan",
+    tokyo: "japan",
+    vienna: "austria",
+    warsaw: "poland",
+  };
+  const cityScope = country
+    ? Object.entries(cityCountryMap)
+        .filter(([, mappedCountry]) => mappedCountry === country)
+        .map(([slug]) => slug)
+    : [];
   const quarter = getQuarterWindow();
   const proofsQuery = supabase
     .from("messenger_proof_posts")
@@ -1973,10 +2005,14 @@ app.get("/api/leaderboard", async (req, res) => {
     .gte("created_at", quarter.start.toISOString())
     .lt("created_at", quarter.end.toISOString());
   if (city) proofsQuery.eq("city_slug", city);
+  if (!city && country && cityScope.length) proofsQuery.in("city_slug", cityScope);
   const proofsRes = await proofsQuery;
   let runsRes;
-  if (city) {
-    const manifestsRes = await supabase.from("messenger_manifests").select("id").eq("city_slug", city);
+  if (city || (country && cityScope.length)) {
+    const manifestsQuery = supabase.from("messenger_manifests").select("id");
+    if (city) manifestsQuery.eq("city_slug", city);
+    else manifestsQuery.in("city_slug", cityScope);
+    const manifestsRes = await manifestsQuery;
     if (manifestsRes.error) return res.status(500).json({ error: manifestsRes.error.message });
     const manifestIds = (manifestsRes.data || []).map((item) => item.id).filter(Boolean);
     if (!manifestIds.length) {
@@ -1984,6 +2020,7 @@ app.get("/api/leaderboard", async (req, res) => {
         quarter: {
           label: quarter.label,
           city,
+          country,
           leaders: [],
         },
       });
@@ -2009,6 +2046,7 @@ app.get("/api/leaderboard", async (req, res) => {
     quarter: {
       label: quarter.label,
       city,
+      country,
       leaders: buildQuarterLeaderboard({ proofs: proofsRes.data || [], finishedRuns: runsRes.data || [] }).slice(0, 25),
     },
   });

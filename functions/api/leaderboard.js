@@ -2,24 +2,65 @@ import { json, supabaseRequest } from "../_utils.js";
 import { buildQuarterLeaderboard, getQuarterWindow } from "../../shared/quarterly.js";
 
 const normalizeCitySlug = (value = "") => String(value).trim().toLowerCase().replace(/\s+/g, "");
+const normalizeCountry = (value = "") => String(value).trim().toLowerCase();
+const CITY_COUNTRY_MAP = {
+  amsterdam: "netherlands",
+  bangkok: "thailand",
+  barcelona: "spain",
+  berlin: "germany",
+  bogota: "colombia",
+  buenosaires: "argentina",
+  chicago: "united states",
+  krakow: "poland",
+  london: "united kingdom",
+  losangeles: "united states",
+  mexicocity: "mexico",
+  milan: "italy",
+  newyork: "united states",
+  paris: "france",
+  philadelphia: "united states",
+  sanfrancisco: "united states",
+  santos: "brazil",
+  saopaulo: "brazil",
+  seattle: "united states",
+  seoul: "south korea",
+  taipei: "taiwan",
+  tokyo: "japan",
+  vienna: "austria",
+  warsaw: "poland",
+ };
 
 export async function onRequest({ request, env }) {
   const url = new URL(request.url);
   const city = normalizeCitySlug(url.searchParams.get("city") || "");
+  const country = normalizeCountry(url.searchParams.get("country") || "");
   const quarter = getQuarterWindow();
+  const cityScope = country
+    ? Object.entries(CITY_COUNTRY_MAP)
+        .filter(([, mappedCountry]) => mappedCountry === country)
+        .map(([slug]) => slug)
+    : [];
   const proofs = await supabaseRequest(
     env,
     `messenger_proof_posts?is_public=eq.true&created_at=gte.${encodeURIComponent(quarter.start.toISOString())}&created_at=lt.${encodeURIComponent(
       quarter.end.toISOString()
-    )}${city ? `&city_slug=eq.${encodeURIComponent(city)}` : ""}&select=user_id,rider_name,city_name,created_at`,
+    )}${
+      city
+        ? `&city_slug=eq.${encodeURIComponent(city)}`
+        : country && cityScope.length
+          ? `&city_slug=in.(${cityScope.map((slug) => encodeURIComponent(slug)).join(",")})`
+          : ""
+    }&select=user_id,rider_name,city_name,created_at`,
     { method: "GET" }
   ).catch(() => []);
 
   let runs = [];
-  if (city) {
+  if (city || (country && cityScope.length)) {
     const manifests = await supabaseRequest(
       env,
-      `messenger_manifests?city_slug=eq.${encodeURIComponent(city)}&select=id`,
+      city
+        ? `messenger_manifests?city_slug=eq.${encodeURIComponent(city)}&select=id`
+        : `messenger_manifests?city_slug=in.(${cityScope.map((slug) => encodeURIComponent(slug)).join(",")})&select=id`,
       { method: "GET" }
     ).catch(() => []);
     const manifestIds = (manifests || []).map((item) => item.id).filter(Boolean);
@@ -46,6 +87,7 @@ export async function onRequest({ request, env }) {
     quarter: {
       label: quarter.label,
       city: city || "",
+      country: country || "",
       leaders: buildQuarterLeaderboard({ proofs: proofs || [], finishedRuns: runs || [] }).slice(0, 25),
     },
   });

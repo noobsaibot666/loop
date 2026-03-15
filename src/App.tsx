@@ -426,6 +426,7 @@ function AppShell() {
   const [publicLeaderboard, setPublicLeaderboard] = useState<PublicLeaderboardEntry[]>([]);
   const [publicQuarterLabel, setPublicQuarterLabel] = useState("");
   const [isLoadingPublicLeaderboard, setIsLoadingPublicLeaderboard] = useState(false);
+  const [selectedLeaderboardCountry, setSelectedLeaderboardCountry] = useState("");
   const [selectedLeaderboardCity, setSelectedLeaderboardCity] = useState("");
   const [publicRiderProfile, setPublicRiderProfile] = useState<PublicRiderProfile | null>(null);
   const [isLoadingPublicRiderProfile, setIsLoadingPublicRiderProfile] = useState(false);
@@ -927,7 +928,11 @@ function AppShell() {
     setIsLoadingPublicLeaderboard(true);
     (async () => {
       try {
-        const response = await fetch(`${API_BASE}/api/leaderboard${selectedLeaderboardCity ? `?city=${encodeURIComponent(selectedLeaderboardCity)}` : ""}`, { cache: "no-store" });
+        const params = new URLSearchParams();
+        if (selectedLeaderboardCountry) params.set("country", selectedLeaderboardCountry);
+        if (selectedLeaderboardCity) params.set("city", selectedLeaderboardCity);
+        const query = params.toString();
+        const response = await fetch(`${API_BASE}/api/leaderboard${query ? `?${query}` : ""}`, { cache: "no-store" });
         const data = (await response.json()) as { quarter?: { label?: string; leaders?: PublicLeaderboardEntry[] } };
         if (cancelled) return;
         setPublicQuarterLabel(data.quarter?.label || "");
@@ -944,7 +949,7 @@ function AppShell() {
     return () => {
       cancelled = true;
     };
-  }, [pageView, selectedLeaderboardCity]);
+  }, [pageView, selectedLeaderboardCity, selectedLeaderboardCountry]);
 
   useEffect(() => {
     if (pageView !== "rider") return;
@@ -1109,6 +1114,7 @@ function AppShell() {
       { number: "01", title: t("alleycat.step1.title"), body: t("alleycat.step1.body") },
       { number: "02", title: t("alleycat.step2.title"), body: t("alleycat.step2.body") },
       { number: "03", title: t("alleycat.step3.title"), body: t("alleycat.step3.body") },
+      { number: "04", title: t("alleycat.step4.title"), body: t("alleycat.step4.body") },
     ],
     [t]
   );
@@ -1487,7 +1493,7 @@ function AppShell() {
       Climb: 220,
     };
     const origin = parseLatLng(loopPoint);
-    const distanceKm = Math.max(3, (unit === "km" ? distance : distance * 1.60934) * 0.55);
+    const distanceKm = Math.max(3, (unit === "km" ? distance : distance * 1.60934) * 0.24);
     const waypoint = origin
       ? computeWaypointFromOrigin(origin, bearingMap[variant] ?? 90, distanceKm)
       : null;
@@ -1782,24 +1788,29 @@ function AppShell() {
       });
 
       const coords = loop?.features?.[0]?.geometry?.coordinates || [];
+      const sampleLoopWaypoints = (routeCoords: [number, number][]) => {
+        if (routeCoords.length < 6) return [];
+        const ratios = [0.33, 0.66];
+        return ratios
+          .map((ratio) => routeCoords[Math.min(routeCoords.length - 1, Math.floor(routeCoords.length * ratio))])
+          .filter(Boolean)
+          .map((point) => `via:${point[1]},${point[0]}`);
+      };
       const params = new URLSearchParams();
       params.set("api", "1");
       params.set("origin", `${origin.lat},${origin.lng}`);
       params.set("destination", `${origin.lat},${origin.lng}`);
       params.set("travelmode", "bicycling");
 
-      if (coords.length > 6) {
-        const pick = (ratio: number) => coords[Math.floor(coords.length * ratio)];
-        const p1 = pick(0.25);
-        const p2 = pick(0.5);
-        const p3 = pick(0.75);
-        params.set("waypoints", [`${p1[1]},${p1[0]}`, `${p2[1]},${p2[0]}`, `${p3[1]},${p3[0]}`].join("|"));
+      const sampledWaypoints = sampleLoopWaypoints(coords);
+      if (sampledWaypoints.length) {
+        params.set("waypoints", sampledWaypoints.join("|"));
       } else {
-        const fallbackDistanceKm = Math.max(2, distanceKm * 0.4);
-        const bearings = [40, 160, 260];
+        const fallbackDistanceKm = Math.max(1.2, distanceKm * 0.18);
+        const bearings = [55, 235];
         const waypoints = bearings
           .map((bearing) => computeWaypointFromOrigin(origin, bearing, fallbackDistanceKm))
-          .map((point) => `${point.lat.toFixed(6)},${point.lng.toFixed(6)}`);
+          .map((point) => `via:${point.lat.toFixed(6)},${point.lng.toFixed(6)}`);
         if (waypoints.length) params.set("waypoints", waypoints.join("|"));
       }
 
@@ -1991,8 +2002,8 @@ function AppShell() {
   );
 
   const renderHeader = () => (
-    <header className="site-header">
-      <div className={`nav-container ${menuOpen ? "menu-open" : ""}`}>
+    <header className={`site-header ${user ? "user-logged" : ""}`}>
+      <div className={`nav-container ${menuOpen ? "menu-open" : ""} ${user ? "user-logged" : ""}`}>
         {/* Corner Accents */}
         <div className="nav-viewfinder">
           <div className="corner top-left" />
@@ -2005,7 +2016,7 @@ function AppShell() {
           <div className="brand" onClick={() => handleNavigate('home')}>
             <div className="brand-mark" />
             <div className="brand-text">
-              <div className="brand-title">GIMMETHELOOP</div>
+              <div className="brand-title">GIMME THE LOOP</div>
             </div>
           </div>
           <nav className="header-nav">
@@ -2041,12 +2052,21 @@ function AppShell() {
           {menuOpen ? t("nav.close") : t("nav.menu")}
         </button>
 
+        <div className="mobile-header-actions">
+          {renderLanguageSwitcher()}
+          {!user && (
+            <button className="ghost-button small mobile-login-button" type="button" onClick={() => openAuth("login")}>
+              {t("nav.logIn")}
+            </button>
+          )}
+        </div>
+
         <div className={`mobile-nav-sheet ${menuOpen ? "open" : ""}`}>
           <div className="mobile-nav-links">
             <button className={`nav-link ${pageView === 'home' ? 'active' : ''}`} onClick={() => handleNavigate('home')}>{t("nav.home")}</button>
             <button className={`nav-link ${pageView === 'loop' ? 'active' : ''}`} onClick={() => handleNavigate('loop')}>{t("nav.loop")}</button>
             <button className={`nav-link ${pageView === 'messenger' ? 'active' : ''}`} onClick={() => handleNavigate('messenger')}>{t("nav.alleycat")}</button>
-            <button className={`nav-link ${pageView === 'wall' ? 'active' : ''}`} onClick={() => handleNavigate('wall')}>{t("nav.wall")}</button>
+            <button className={`nav-link ${pageView === 'wall' ? 'active' : ''}`} onClick={() => handleNavigate('wall')}>{t("nav.wallShort")}</button>
             <button className={`nav-link ${pageView === 'leaderboard' ? 'active' : ''}`} onClick={() => handleNavigate('leaderboard')}>{t("nav.leaderboard")}</button>
             <button className={`nav-link ${pageView === 'cities' ? 'active' : ''}`} onClick={() => handleNavigate('cities')}>{t("nav.cities")}</button>
             {user && <button className={`nav-link ${pageView === 'account' ? 'active' : ''}`} onClick={() => handleNavigate('account')}>{t("nav.accountShort")}</button>}
@@ -2059,7 +2079,6 @@ function AppShell() {
               </>
             ) : (
               <>
-                <button className="ghost-button small" onClick={() => openAuth("login")}>{t("nav.logIn")}</button>
                 <button className="primary-button small" onClick={() => openAuth("signup")}>{t("nav.getStartedShort")}</button>
               </>
             )}
@@ -2070,7 +2089,7 @@ function AppShell() {
   );
 
   const renderMobileDock = () => (
-    <nav className="mobile-quickbar" aria-label="Quick navigation">
+    <nav className={`mobile-quickbar ${!user ? "guest" : ""}`} aria-label="Quick navigation">
       <button className={`quickbar-link ${pageView === "home" ? "active" : ""}`} type="button" onClick={() => handleNavigate("home")}>
         <span>{t("nav.home")}</span>
       </button>
@@ -2083,13 +2102,15 @@ function AppShell() {
       <button className={`quickbar-link ${pageView === "wall" ? "active" : ""}`} type="button" onClick={() => handleNavigate("wall")}>
         <span>{t("nav.wallShort")}</span>
       </button>
-      <button
-        className={`quickbar-link ${pageView === "account" ? "active" : ""}`}
-        type="button"
-        onClick={() => (user ? handleNavigate("account") : openAuth("login"))}
-      >
-        <span>{user ? t("dock.me") : t("nav.logIn")}</span>
-      </button>
+      {user && (
+        <button
+          className={`quickbar-link ${pageView === "account" ? "active" : ""}`}
+          type="button"
+          onClick={() => handleNavigate("account")}
+        >
+          <span>{t("dock.me")}</span>
+        </button>
+      )}
     </nav>
   );
 
@@ -3071,7 +3092,7 @@ function AppShell() {
         </div>
       </section>
 
-      <section className="modular-grid flow-grid reveals">
+      <section className="modular-grid flow-grid flow-grid-four reveals">
         {messengerFlow.map((step, index) => (
           <div key={step.number} className="module-card">
             <div className="module-header">
@@ -3774,6 +3795,8 @@ function AppShell() {
               <Suspense fallback={<div className="status-message page-loader">{t("leaderboard.loading")}</div>}>
                   <LeaderboardPage
                     publicQuarterLabel={publicQuarterLabel}
+                    selectedLeaderboardCountry={selectedLeaderboardCountry}
+                    setSelectedLeaderboardCountry={setSelectedLeaderboardCountry}
                     selectedLeaderboardCity={selectedLeaderboardCity}
                     setSelectedLeaderboardCity={setSelectedLeaderboardCity}
                     cityPresets={ALLEYCAT_CITY_PRESETS}

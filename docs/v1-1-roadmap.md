@@ -249,6 +249,8 @@ Make release health, usage, and failure patterns visible without opening a full 
 Status on 2026-03-14:
 - Implemented
 - Admin overview now exposes proof volume, active runs, checkout failures, city pulse, abuse watch, and weekly / monthly snapshots
+- Public leaderboard now supports country filtering and cleaner visual hierarchy for broader tester use
+- Admin ops surface has also been hardened for mobile so key sections remain usable on phones
 
 Scope:
 - Add a clearer admin ops dashboard for:

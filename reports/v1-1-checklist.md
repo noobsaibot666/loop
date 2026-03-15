@@ -137,7 +137,7 @@ Related docs:
 
 ## Testing checklist for this wave
 - [ ] Proof upload works on mobile
-- [ ] Proof wall loads with mixed users and cities
+- [x] Proof wall loads with mixed users and cities
 - [ ] Quarterly ranking updates correctly
 - [x] Account history reflects loop + Alleycat usage
 - [x] Shared challenge activity shows correctly
