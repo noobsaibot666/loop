@@ -1,4 +1,11 @@
 import { json, requireEnv, getAuthUser, supabaseRequest } from "../_utils.js";
+import {
+  COMMUNITY_CURRENCY,
+  COMMUNITY_INTERVAL,
+  COMMUNITY_INVITE_URL,
+  COMMUNITY_PLAN_CODE,
+  COMMUNITY_PRICE_CENTS,
+} from "../../shared/community-membership.js";
 
 const toForm = (data) =>
   Object.entries(data)
@@ -13,25 +20,23 @@ export async function onRequest({ request, env }) {
 
   const secret = requireEnv(env, "STRIPE_SECRET_KEY");
   const appUrl = new URL(request.url).origin;
-  const priceCents = 500;
-  const inviteUrl = "https://discord.gg/2wWFKuQ7";
 
   const payload = {
     mode: "subscription",
     success_url: `${appUrl}/?membership=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${appUrl}/?membership=cancel`,
-    "line_items[0][price_data][currency]": "usd",
+    "line_items[0][price_data][currency]": COMMUNITY_CURRENCY,
     "line_items[0][price_data][product_data][name]": "Loop community access",
     "line_items[0][price_data][product_data][description]": "Discord community access with optional bonus credits later.",
-    "line_items[0][price_data][unit_amount]": priceCents,
-    "line_items[0][price_data][recurring][interval]": "month",
+    "line_items[0][price_data][unit_amount]": COMMUNITY_PRICE_CENTS,
+    "line_items[0][price_data][recurring][interval]": COMMUNITY_INTERVAL,
     "line_items[0][quantity]": 1,
     "metadata[user_id]": authUser.id,
-    "metadata[plan_code]": "discord_access",
-    "metadata[discord_invite_url]": inviteUrl,
+    "metadata[plan_code]": COMMUNITY_PLAN_CODE,
+    "metadata[discord_invite_url]": COMMUNITY_INVITE_URL,
     "subscription_data[metadata][user_id]": authUser.id,
-    "subscription_data[metadata][plan_code]": "discord_access",
-    "subscription_data[metadata][discord_invite_url]": inviteUrl,
+    "subscription_data[metadata][plan_code]": COMMUNITY_PLAN_CODE,
+    "subscription_data[metadata][discord_invite_url]": COMMUNITY_INVITE_URL,
   };
 
   const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
@@ -53,12 +58,12 @@ export async function onRequest({ request, env }) {
       body: JSON.stringify({
         user_id: authUser.id,
         stripe_checkout_session_id: data.id,
-        plan_code: "discord_access",
+        plan_code: COMMUNITY_PLAN_CODE,
         status: "checkout_created",
-        price_cents: priceCents,
-        currency: "usd",
-        interval: "month",
-        discord_invite_url: inviteUrl,
+        price_cents: COMMUNITY_PRICE_CENTS,
+        currency: COMMUNITY_CURRENCY,
+        interval: COMMUNITY_INTERVAL,
+        discord_invite_url: COMMUNITY_INVITE_URL,
       }),
     });
   } catch {}

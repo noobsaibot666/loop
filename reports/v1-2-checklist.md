@@ -43,16 +43,18 @@ Related docs:
 - [x] Add Stripe subscription checkout endpoint
 - [x] Add Stripe membership verify endpoint
 - [x] Add webhook membership activation handling
+- [x] Add subscription update/cancel sync handling
 - [x] Add local server mirror for membership checkout
 - [x] Add account summary membership state
-- [ ] Add launch-ready account membership UI
+- [x] Add launch-ready account membership UI
+- [x] Add gated Discord invite access endpoint
 - [-] Promote membership publicly before Discord/community is ready
 
 ## Phase 5: Community launch surfaces
 - [ ] Add live membership page copy
 - [ ] Add account entry point for Discord access
 - [ ] Add controlled home promotion
-- [ ] Add Discord invite release flow
+- [x] Add Discord invite release flow
 
 ## Phase 6: Mobile navigation rethink
 - [ ] Replace current mobile nav with burger-first layout

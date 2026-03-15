@@ -106,7 +106,7 @@ These are intentionally not active in production right now:
 
 - monthly recurring membership
 - USD subscription billing for community access
-- Discord access gating
+- Discord access gating beyond the gated invite endpoint
 - automatic monthly free-credit drops for members
 - subscription tiers
 
@@ -121,7 +121,7 @@ The intended later layer is:
 But that is `deferred` until:
 - the Discord community is actually ready
 - recurring billing is fully wired and tested
-- account subscription state exists
+- account subscription state and gated invite access exist
 - monthly credit grants are automated
 
 ## Operator summary

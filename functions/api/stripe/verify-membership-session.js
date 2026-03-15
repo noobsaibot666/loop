@@ -1,10 +1,11 @@
 import { json, parseJSON, requireEnv, getAuthUser, supabaseRequest } from "../../_utils.js";
-
-const toIsoOrNull = (value) => {
-  if (!value) return null;
-  const date = new Date(Number(value) * 1000);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
-};
+import {
+  buildMembershipUpsert,
+  COMMUNITY_INVITE_URL,
+  COMMUNITY_PLAN_CODE,
+  deriveMembershipAccessState,
+  sanitizeMembershipForClient,
+} from "../../../shared/community-membership.js";
 
 export async function onRequest({ request, env }) {
   if (request.method !== "POST") return json({ error: "method not allowed" }, { status: 405 });
@@ -31,25 +32,30 @@ export async function onRequest({ request, env }) {
     return json({ ok: true, activated: false, status: session?.payment_status || session?.status || "unknown" });
   }
 
+  const membership = buildMembershipUpsert({
+    userId: authUser.id,
+    checkoutSession: {
+      ...session,
+      metadata: {
+        ...session?.metadata,
+        plan_code: session?.metadata?.plan_code || COMMUNITY_PLAN_CODE,
+        discord_invite_url: session?.metadata?.discord_invite_url || COMMUNITY_INVITE_URL,
+      },
+    },
+    subscription,
+  });
+
   await supabaseRequest(env, "community_memberships", {
     method: "POST",
     headers: { Prefer: "resolution=merge-duplicates" },
-    body: JSON.stringify({
-      user_id: authUser.id,
-      stripe_customer_id: session.customer || null,
-      stripe_subscription_id: subscription.id,
-      stripe_checkout_session_id: session.id,
-      plan_code: session?.metadata?.plan_code || "discord_access",
-      status: subscription.status || "active",
-      price_cents: 500,
-      currency: "usd",
-      interval: "month",
-      discord_invite_url: session?.metadata?.discord_invite_url || "https://discord.gg/2wWFKuQ7",
-      current_period_start: toIsoOrNull(subscription.current_period_start),
-      current_period_end: toIsoOrNull(subscription.current_period_end),
-      cancel_at_period_end: Boolean(subscription.cancel_at_period_end),
-    }),
+    body: JSON.stringify(membership),
   });
 
-  return json({ ok: true, activated: true, status: subscription.status || "active" });
+  return json({
+    ok: true,
+    activated: true,
+    status: membership.status || "active",
+    access_state: deriveMembershipAccessState(membership),
+    community_membership: sanitizeMembershipForClient(membership),
+  });
 }

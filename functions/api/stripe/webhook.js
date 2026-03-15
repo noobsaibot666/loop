@@ -1,4 +1,10 @@
 import { json, requireEnv, supabaseRequest } from "../../_utils.js";
+import {
+  buildMembershipUpsert,
+  COMMUNITY_INVITE_URL,
+  COMMUNITY_PLAN_CODE,
+  COMMUNITY_PRICE_CENTS,
+} from "../../../shared/community-membership.js";
 
 const textBuffer = async (request) => {
   const buf = await request.arrayBuffer();
@@ -25,10 +31,41 @@ const hmacSha256 = async (secret, payload) => {
   return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
 };
 
-const toIsoOrNull = (value) => {
-  if (!value) return null;
-  const date = new Date(Number(value) * 1000);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+const updateMembershipBySubscription = async (env, subscription, overrides = {}) => {
+  const subscriptionId = subscription?.id;
+  if (!subscriptionId) return;
+  const rows = await supabaseRequest(
+    env,
+    `community_memberships?stripe_subscription_id=eq.${encodeURIComponent(subscriptionId)}&select=user_id,stripe_checkout_session_id`,
+    { method: "GET" }
+  ).catch(() => []);
+  const current = rows?.[0];
+  if (!current?.user_id) return;
+  const membership = buildMembershipUpsert({
+    userId: current.user_id,
+    checkoutSession: {
+      id: current.stripe_checkout_session_id || null,
+      customer: subscription.customer || null,
+      subscription: subscriptionId,
+      metadata: {
+        plan_code: subscription?.metadata?.plan_code || COMMUNITY_PLAN_CODE,
+        discord_invite_url: subscription?.metadata?.discord_invite_url || COMMUNITY_INVITE_URL,
+      },
+    },
+    subscription,
+  });
+  await supabaseRequest(env, "community_memberships", {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates" },
+    body: JSON.stringify({
+      ...membership,
+      ...overrides,
+      user_id: current.user_id,
+      stripe_subscription_id: subscriptionId,
+      stripe_checkout_session_id: current.stripe_checkout_session_id || membership.stripe_checkout_session_id,
+      price_cents: overrides.price_cents ?? membership.price_cents ?? COMMUNITY_PRICE_CENTS,
+    }),
+  }).catch(() => null);
 };
 
 export async function onRequest({ request, env }) {
@@ -90,24 +127,15 @@ export async function onRequest({ request, env }) {
         });
         subscription = await subscriptionRes.json().catch(() => null);
       }
+      const membership = buildMembershipUpsert({
+        userId: user_id,
+        checkoutSession: session,
+        subscription,
+      });
       await supabaseRequest(env, "community_memberships", {
         method: "POST",
         headers: { Prefer: "resolution=merge-duplicates" },
-        body: JSON.stringify({
-          user_id,
-          stripe_customer_id: session.customer || null,
-          stripe_subscription_id: session.subscription || null,
-          stripe_checkout_session_id: sessionId,
-          plan_code: session.metadata?.plan_code || "discord_access",
-          status: subscription?.status || "active",
-          price_cents: 500,
-          currency: "usd",
-          interval: "month",
-          discord_invite_url: session.metadata?.discord_invite_url || "https://discord.gg/2wWFKuQ7",
-          current_period_start: toIsoOrNull(subscription?.current_period_start),
-          current_period_end: toIsoOrNull(subscription?.current_period_end),
-          cancel_at_period_end: Boolean(subscription?.cancel_at_period_end),
-        }),
+        body: JSON.stringify(membership),
       }).catch(() => null);
       return json({ received: true });
     }
@@ -166,6 +194,17 @@ export async function onRequest({ request, env }) {
         });
       } catch {}
     }
+  }
+
+  if (event.type === "customer.subscription.updated") {
+    await updateMembershipBySubscription(env, event.data.object);
+  }
+
+  if (event.type === "customer.subscription.deleted") {
+    await updateMembershipBySubscription(env, event.data.object, {
+      status: "canceled",
+      cancel_at_period_end: false,
+    });
   }
 
   return json({ received: true });

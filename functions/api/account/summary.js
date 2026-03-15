@@ -1,6 +1,7 @@
 import { getAuthUser, json, supabaseRequest } from "../../_utils.js";
 import { buildAlleycatHistory, buildChallengeHistory, buildSharedRiders } from "../../../shared/account.js";
 import { buildQuarterLeaderboard, deriveBadges, getQuarterWindow, isInWindow } from "../../../shared/quarterly.js";
+import { sanitizeMembershipForClient } from "../../../shared/community-membership.js";
 
 export async function onRequest({ request, env }) {
   const user = await getAuthUser(env, request);
@@ -168,7 +169,7 @@ export async function onRequest({ request, env }) {
       bike_ratio: "",
     },
     purchases: purchases || [],
-    community_membership: communityMembershipRows?.[0] || null,
+    community_membership: sanitizeMembershipForClient(communityMembershipRows?.[0] || null),
     alleycat: {
       manifests: userManifests.length,
       runs: userRuns.length,

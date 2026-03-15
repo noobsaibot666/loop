@@ -61,14 +61,15 @@ Scope:
 
 ## Phase 4: Community membership billing
 Status on 2026-03-15:
-- Backend prep started
+- Billing and entitlement backend started
 
 Scope:
 - Stripe monthly subscription checkout
 - fixed price: `5 USD / month`
 - account subscription state
 - webhook + verify fallback
-- Discord invite reservation tracking
+- Discord invite gated entitlement flow
+- subscription lifecycle sync on update/cancel
 
 Important:
 - membership remains non-promoted until the community lane is operational

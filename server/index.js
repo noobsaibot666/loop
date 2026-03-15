@@ -35,6 +35,18 @@ import {
   distanceBetweenKm,
   sanitizeCrewMembers,
 } from "../shared/night-rides.js";
+import {
+  buildMembershipUpsert,
+  COMMUNITY_CURRENCY,
+  COMMUNITY_INTERVAL,
+  COMMUNITY_INVITE_URL,
+  COMMUNITY_PLAN_CODE,
+  COMMUNITY_PRICE_CENTS,
+  deriveMembershipAccessState,
+  isMembershipActive,
+  sanitizeMembershipForClient,
+  toIsoOrNull,
+} from "../shared/community-membership.js";
 
 const app = express();
 const PORT = process.env.PORT || 8787;
@@ -57,12 +69,6 @@ const OPENAI_MODEL = process.env.OPENAI_MODEL || undefined;
 const creditsFromAmount = (amountInCents = 0) => {
   const credits = Math.floor(Number(amountInCents || 0) / 50);
   return Math.max(1, credits);
-};
-
-const toIsoOrNull = (value) => {
-  if (!value) return null;
-  const date = new Date(Number(value) * 1000);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
 };
 
 const isAdminEmail = (email = "") => {
@@ -275,21 +281,9 @@ app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async
           subscription = await stripe.subscriptions.retrieve(session.subscription);
         } catch {}
       }
-      await supabase.from("community_memberships").upsert({
-        user_id,
-        stripe_customer_id: session.customer || null,
-        stripe_subscription_id: session.subscription || null,
-        stripe_checkout_session_id: session.id,
-        plan_code: session.metadata?.plan_code || "discord_access",
-        status: subscription?.status || "active",
-        price_cents: 500,
-        currency: "usd",
-        interval: "month",
-        discord_invite_url: session.metadata?.discord_invite_url || "https://discord.gg/2wWFKuQ7",
-        current_period_start: toIsoOrNull(subscription?.current_period_start),
-        current_period_end: toIsoOrNull(subscription?.current_period_end),
-        cancel_at_period_end: Boolean(subscription?.cancel_at_period_end),
-      }, { onConflict: "user_id" });
+      await supabase
+        .from("community_memberships")
+        .upsert(buildMembershipUpsert({ userId: user_id, checkoutSession: session, subscription }), { onConflict: "user_id" });
       return res.json({ received: true });
     }
 
@@ -313,6 +307,40 @@ app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async
         amount,
         stripe_session_id: session.id,
       });
+    }
+  }
+
+  if (event.type === "customer.subscription.updated" || event.type === "customer.subscription.deleted") {
+    const subscription = event.data.object;
+    const { data: membership } = await supabase
+      .from("community_memberships")
+      .select("user_id, stripe_checkout_session_id")
+      .eq("stripe_subscription_id", subscription.id)
+      .maybeSingle()
+      .catch(() => ({ data: null }));
+    if (membership?.user_id) {
+      await supabase
+        .from("community_memberships")
+        .upsert(
+          {
+            ...buildMembershipUpsert({
+              userId: membership.user_id,
+              checkoutSession: {
+                id: membership.stripe_checkout_session_id || null,
+                customer: subscription.customer || null,
+                subscription: subscription.id,
+                metadata: {
+                  plan_code: subscription?.metadata?.plan_code || COMMUNITY_PLAN_CODE,
+                  discord_invite_url: subscription?.metadata?.discord_invite_url || COMMUNITY_INVITE_URL,
+                },
+              },
+              subscription,
+            }),
+            status: event.type === "customer.subscription.deleted" ? "canceled" : subscription.status || "active",
+            cancel_at_period_end: event.type === "customer.subscription.deleted" ? false : Boolean(subscription.cancel_at_period_end),
+          },
+          { onConflict: "user_id" }
+        );
     }
   }
 
@@ -1073,7 +1101,7 @@ app.post("/api/account/summary", async (req, res) => {
       bike_ratio: "",
     },
     purchases: purchases || [],
-    community_membership: communityMembership || null,
+    community_membership: sanitizeMembershipForClient(communityMembership || null),
     alleycat: {
       manifests: userManifests.length,
       runs: userRuns.length,
@@ -1335,8 +1363,6 @@ app.post("/api/create-membership-session", async (req, res) => {
   const user_id = authUser?.id || "";
   if (!user_id) return res.status(401).json({ error: "auth required" });
 
-  const priceCents = 500;
-  const inviteUrl = "https://discord.gg/2wWFKuQ7";
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     success_url: `${APP_URL}/?membership=success&session_id={CHECKOUT_SESSION_ID}`,
@@ -1344,27 +1370,27 @@ app.post("/api/create-membership-session", async (req, res) => {
     line_items: [
       {
         price_data: {
-          currency: "usd",
+          currency: COMMUNITY_CURRENCY,
           product_data: {
             name: "Loop community access",
             description: "Discord community access with optional bonus credits later.",
           },
-          unit_amount: priceCents,
-          recurring: { interval: "month" },
+          unit_amount: COMMUNITY_PRICE_CENTS,
+          recurring: { interval: COMMUNITY_INTERVAL },
         },
         quantity: 1,
       },
     ],
     metadata: {
       user_id,
-      plan_code: "discord_access",
-      discord_invite_url: inviteUrl,
+      plan_code: COMMUNITY_PLAN_CODE,
+      discord_invite_url: COMMUNITY_INVITE_URL,
     },
     subscription_data: {
       metadata: {
         user_id,
-        plan_code: "discord_access",
-        discord_invite_url: inviteUrl,
+        plan_code: COMMUNITY_PLAN_CODE,
+        discord_invite_url: COMMUNITY_INVITE_URL,
       },
     },
   });
@@ -1372,12 +1398,12 @@ app.post("/api/create-membership-session", async (req, res) => {
   await supabase.from("community_memberships").upsert({
     user_id,
     stripe_checkout_session_id: session.id,
-    plan_code: "discord_access",
+    plan_code: COMMUNITY_PLAN_CODE,
     status: "checkout_created",
-    price_cents: priceCents,
-    currency: "usd",
-    interval: "month",
-    discord_invite_url: inviteUrl,
+    price_cents: COMMUNITY_PRICE_CENTS,
+    currency: COMMUNITY_CURRENCY,
+    interval: COMMUNITY_INTERVAL,
+    discord_invite_url: COMMUNITY_INVITE_URL,
   }, { onConflict: "user_id" }).catch(() => null);
 
   res.json({ url: session.url });
@@ -1396,23 +1422,69 @@ app.post("/api/stripe/verify-membership-session", async (req, res) => {
     return res.json({ ok: true, activated: false, status: session.payment_status || session.status || "unknown" });
   }
   const subscription = typeof session.subscription === "string" ? await stripe.subscriptions.retrieve(session.subscription) : session.subscription;
-  await supabase.from("community_memberships").upsert({
-    user_id,
-    stripe_customer_id: session.customer || null,
-    stripe_subscription_id: subscription?.id || null,
-    stripe_checkout_session_id: session.id,
-    plan_code: session.metadata?.plan_code || "discord_access",
-    status: subscription?.status || "active",
-    price_cents: 500,
-    currency: "usd",
-    interval: "month",
-    discord_invite_url: session.metadata?.discord_invite_url || "https://discord.gg/2wWFKuQ7",
-    current_period_start: toIsoOrNull(subscription?.current_period_start),
-    current_period_end: toIsoOrNull(subscription?.current_period_end),
-    cancel_at_period_end: Boolean(subscription?.cancel_at_period_end),
-  }, { onConflict: "user_id" });
+  const membership = buildMembershipUpsert({
+    userId: user_id,
+    checkoutSession: {
+      ...session,
+      metadata: {
+        ...session.metadata,
+        plan_code: session.metadata?.plan_code || COMMUNITY_PLAN_CODE,
+        discord_invite_url: session.metadata?.discord_invite_url || COMMUNITY_INVITE_URL,
+      },
+    },
+    subscription,
+  });
+  await supabase.from("community_memberships").upsert(membership, { onConflict: "user_id" });
 
-  res.json({ ok: true, activated: true, status: subscription?.status || "active" });
+  res.json({
+    ok: true,
+    activated: true,
+    status: membership.status || "active",
+    access_state: deriveMembershipAccessState(membership),
+    community_membership: sanitizeMembershipForClient(membership),
+  });
+});
+
+app.post("/api/community-membership/access", async (req, res) => {
+  const authUser = await getAuthUser(req);
+  const user_id = authUser?.id || "";
+  if (!user_id) return res.status(401).json({ error: "auth required" });
+
+  const { data: membership } = await supabase
+    .from("community_memberships")
+    .select("*")
+    .eq("user_id", user_id)
+    .maybeSingle()
+    .catch(() => ({ data: null }));
+  if (!membership) return res.status(404).json({ error: "membership not found", access_state: "inactive" });
+
+  let currentMembership = membership;
+  if (membership.stripe_subscription_id) {
+    try {
+      const subscription = await stripe.subscriptions.retrieve(membership.stripe_subscription_id);
+      currentMembership = {
+        ...membership,
+        stripe_customer_id: subscription.customer || membership.stripe_customer_id || null,
+        status: subscription.status || membership.status,
+        current_period_start: toIsoOrNull(subscription.current_period_start),
+        current_period_end: toIsoOrNull(subscription.current_period_end),
+        cancel_at_period_end: Boolean(subscription.cancel_at_period_end),
+        discord_invite_url: subscription?.metadata?.discord_invite_url || membership.discord_invite_url || COMMUNITY_INVITE_URL,
+      };
+      await supabase.from("community_memberships").upsert(currentMembership, { onConflict: "user_id" }).catch(() => null);
+    } catch {}
+  }
+
+  const accessState = deriveMembershipAccessState(currentMembership);
+  if (!isMembershipActive(currentMembership)) {
+    return res.status(403).json({ error: "membership inactive", access_state: accessState });
+  }
+
+  return res.json({
+    ok: true,
+    access_state: accessState,
+    url: currentMembership.discord_invite_url || COMMUNITY_INVITE_URL,
+  });
 });
 
 app.post("/api/geocode", async (req, res) => {

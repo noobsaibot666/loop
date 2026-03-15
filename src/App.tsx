@@ -122,6 +122,19 @@ type AlleycatChallengeSummary = {
 type AccountSummary = {
   is_admin?: boolean;
   unlimited_credits?: boolean;
+  community_membership?: {
+    user_id: string;
+    plan_code: string;
+    status: string;
+    price_cents: number;
+    currency: string;
+    interval: string;
+    current_period_end?: string | null;
+    cancel_at_period_end?: boolean;
+    access_state?: string;
+    access_active?: boolean;
+    has_invite?: boolean;
+  } | null;
   profile: {
     user_id: string;
     rider_name: string;
@@ -453,6 +466,8 @@ function AppShell() {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [isSendingFeedback, setIsSendingFeedback] = useState(false);
+  const [isStartingMembership, setIsStartingMembership] = useState(false);
+  const [isOpeningCommunityInvite, setIsOpeningCommunityInvite] = useState(false);
   const [isSendingReset, setIsSendingReset] = useState(false);
   const [wallPosts, setWallPosts] = useState<WallPost[]>([]);
   const [nightRidePosts, setNightRidePosts] = useState<NightRideFeedPost[]>([]);
@@ -651,12 +666,58 @@ function AppShell() {
   }, [user?.id, deviceId]);
 
   useEffect(() => {
+    if (!user?.id) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("membership") !== "success") return;
+    const sessionId = params.get("session_id");
+    if (!sessionId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await postJSON("/api/stripe/verify-membership-session", { session_id: sessionId });
+        const refreshed = await postJSON<AccountSummary>("/api/account/summary", {});
+        if (!cancelled) {
+          setAccountSummary(refreshed);
+          setStatusMessage("Community access is active.");
+        }
+      } catch {
+        if (!cancelled) setStatusMessage("Membership return landed, but activation still needs a retry.");
+      } finally {
+        try {
+          const url = new URL(window.location.href);
+          url.searchParams.delete("membership");
+          url.searchParams.delete("session_id");
+          window.history.replaceState({}, "", url.toString());
+        } catch {
+          // Ignore.
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("donation") !== "cancel") return;
     setStatusMessage("Checkout was closed. No credits were taken.");
     try {
       const url = new URL(window.location.href);
       url.searchParams.delete("donation");
+      window.history.replaceState({}, "", url.toString());
+    } catch {
+      // Ignore.
+    }
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("membership") !== "cancel") return;
+    setStatusMessage("Community checkout was closed.");
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("membership");
       window.history.replaceState({}, "", url.toString());
     } catch {
       // Ignore.
@@ -1665,6 +1726,43 @@ function AppShell() {
       return;
     }
     setShowCredits(true);
+  };
+
+  const handleStartMembership = async () => {
+    if (!user?.id) {
+      requireLogin("Log in first to start community access.");
+      return;
+    }
+    setIsStartingMembership(true);
+    try {
+      const data = await postJSON<{ url: string }>("/api/create-membership-session", {});
+      if (data?.url) window.location.href = data.url;
+    } catch {
+      setStatusMessage("Community checkout link is not ready yet.");
+    } finally {
+      setIsStartingMembership(false);
+    }
+  };
+
+  const handleOpenCommunityInvite = async () => {
+    if (!user?.id) {
+      requireLogin("Log in first to open community access.");
+      return;
+    }
+    setIsOpeningCommunityInvite(true);
+    try {
+      const data = await postJSON<{ url?: string; access_state?: string }>("/api/community-membership/access", {});
+      if (data?.url) {
+        window.open(data.url, "_blank", "noopener,noreferrer");
+        setStatusMessage("Community invite is ready.");
+      } else {
+        setStatusMessage("Community access is not active yet.");
+      }
+    } catch {
+      setStatusMessage("Community access is not active yet.");
+    } finally {
+      setIsOpeningCommunityInvite(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -2801,6 +2899,49 @@ function AppShell() {
               {hasUnlimitedCredits
                 ? t("account.credits.adminNote")
                 : t("account.credits.note", { loop: LOOP_CREDIT_COST, alleycat: MESSENGER_CREDIT_COST })}
+            </div>
+          </div>
+
+          <div className="glass-card form-card account-community-card" id="account-community">
+            <div className="form-title">{t("account.community.title")}</div>
+            <div className="form-subtitle">{t("account.community.subtitle")}</div>
+            <div className="result-grid result-grid-two account-credit-grid">
+              <div>
+                <span>{t("account.community.plan")}</span>
+                <strong>{t("account.community.planName")}</strong>
+              </div>
+              <div>
+                <span>{t("account.community.price")}</span>
+                <strong>$5 / month</strong>
+              </div>
+              <div>
+                <span>{t("account.community.status")}</span>
+                <strong>{accountSummary?.community_membership?.status || t("account.community.statusInactive")}</strong>
+              </div>
+              <div>
+                <span>{t("account.community.access")}</span>
+                <strong>{t("account.community.discord")}</strong>
+              </div>
+            </div>
+            {accountSummary?.community_membership?.current_period_end ? (
+              <div className="account-note">
+                {t("account.community.renews", { date: formatDate(accountSummary.community_membership.current_period_end) })}
+              </div>
+            ) : (
+              <div className="account-note">{t("account.community.note")}</div>
+            )}
+            <div className="form-actions" style={{ marginTop: "16px" }}>
+              <button className="primary-button" type="button" onClick={handleStartMembership} disabled={isStartingMembership}>
+                {isStartingMembership ? t("account.community.loading") : t("account.community.action")}
+              </button>
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={handleOpenCommunityInvite}
+                disabled={!accountSummary?.community_membership?.access_active || isOpeningCommunityInvite}
+              >
+                {isOpeningCommunityInvite ? t("account.community.openingInvite") : t("account.community.openInvite")}
+              </button>
             </div>
           </div>
 
