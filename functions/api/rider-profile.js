@@ -226,6 +226,12 @@ export async function onRequest({ request, env }) {
     };
   }
 
+  const membership = await supabaseRequest(
+    env,
+    `community_memberships?user_id=eq.${encodeURIComponent(userId)}&status=eq.active&select=status`,
+    { method: "GET" }
+  ).catch(() => []);
+
   return json({
     profile: {
       user_id: userId,
@@ -233,6 +239,7 @@ export async function onRequest({ request, env }) {
       home_location: profile?.home_location || proofs[0]?.city_name || "",
       bike_name: profile?.bike_name || proofs[0]?.bike_name || "",
       bike_ratio: profile?.bike_ratio || proofs[0]?.bike_ratio || "",
+      is_community_member: (membership || []).length > 0,
     },
     stats: {
       public_proofs: proofs.length,

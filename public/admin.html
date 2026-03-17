@@ -1209,7 +1209,7 @@
         <div class="section-title">
           <div class="eyebrow">Night Ride</div>
           <h2>Shadow feed</h2>
-          <p class="mini-note">Read surface for crew/night posts. Keep an eye on names, captions, and image tone before public launch.</p>
+          <p class="mini-note">Read surface for crew/night posts. Keep an eye on names, captions, and image tone.</p>
         </div>
         <button id="refreshNightRides" class="secondary">Refresh night rides</button>
       </div>
@@ -1818,12 +1818,40 @@
         });
       };
 
+      const moderateNightRide = async (postId, status) => {
+        statusEl.textContent = `Moderating night ride (${status})...`;
+        try {
+          await post('/api/admin/night-ride-moderation', {
+            post_id: postId,
+            moderation_status: status,
+            is_public: status === 'live'
+          });
+          statusEl.textContent = `Night ride marked as ${status}.`;
+          await loadNightRides();
+        } catch (error) {
+          statusEl.textContent = error.message;
+        }
+      };
+
+      const deleteNightRide = async (postId) => {
+        const confirmed = window.confirm('Delete this Night Ride post forever? This cannot be undone.');
+        if (!confirmed) return;
+        statusEl.textContent = 'Deleting night ride...';
+        try {
+          await post('/api/admin/night-ride-delete', {
+            post_id: postId
+          });
+          statusEl.textContent = 'Night ride deleted.';
+          await loadNightRides();
+        } catch (error) {
+          statusEl.textContent = error.message;
+        }
+      };
+
       const loadNightRides = async () => {
         nightRidesList.innerHTML = '';
-        const response = await fetch(`${apiBase}/api/night-rides/feed`, {
-          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {}
-        });
-        const data = await response.json().catch(() => ({ posts: [] }));
+        requestsSummary.innerHTML = '';
+        const data = await post('/api/admin/night-rides', {});
         const posts = data.posts || [];
         if (!posts.length) {
           nightRidesList.innerHTML = '<div class="label">No night ride posts yet.</div>';
@@ -1832,15 +1860,28 @@
         posts.forEach((post) => {
           const tile = document.createElement('article');
           tile.className = 'proof-tile';
+          const isPending = post.moderation_status === 'pending';
+          const isLive = post.moderation_status === 'live';
           tile.innerHTML = `
             <img src="${post.image_url}" alt="${post.route_title || post.crew_name || post.rider_name || 'Night ride post'}" />
             <div>
               <strong>${post.crew_name || post.rider_name || 'Night rider'}</strong>
               <span>${post.route_title || 'Night route'}</span>
               <span>${post.city_name || 'Night city'}${post.distance_km ? ` · ${Number(post.distance_km).toFixed(1)} km` : ''}</span>
-              <span>${new Date(post.created_at).toLocaleDateString()}</span>
+              <span>${new Date(post.created_at).toLocaleDateString()} · ${post.moderation_status}</span>
+            </div>
+            <div class="proof-actions">
+              ${!isLive ? `<button class="secondary" data-night-approve="${post.id}">Approve</button>` : ''}
+              ${isLive ? `<button class="secondary" data-night-hide="${post.id}">Hide</button>` : ''}
+              <button class="secondary danger" data-night-delete="${post.id}">Delete</button>
             </div>
           `;
+          const approveBtn = tile.querySelector('[data-night-approve]');
+          const hideBtn = tile.querySelector('[data-night-hide]');
+          const deleteBtn = tile.querySelector('[data-night-delete]');
+          if (approveBtn) approveBtn.onclick = () => moderateNightRide(post.id, 'live');
+          if (hideBtn) hideBtn.onclick = () => moderateNightRide(post.id, 'hidden');
+          deleteBtn.onclick = () => deleteNightRide(post.id);
           nightRidesList.appendChild(tile);
         });
       };

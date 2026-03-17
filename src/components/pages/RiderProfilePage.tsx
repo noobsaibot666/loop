@@ -20,6 +20,7 @@ type PublicRiderProfile = {
     home_location: string;
     bike_name: string;
     bike_ratio: string;
+    is_community_member?: boolean;
   };
   stats: {
     public_proofs: number;
@@ -124,10 +125,29 @@ export default function RiderProfilePage({
             <>
               <div className="rider-profile-hero">
                 <div className="rider-profile-head">
-                  <div>
-                    <div className="form-title">{publicRiderProfile.profile.rider_name}</div>
-                    <div className="form-subtitle">
-                      {publicRiderProfile.profile.home_location || publicRiderProfile.stats.top_city || t("rider.noCityTag")}
+                  <div className="rider-profile-title-row">
+                    <div>
+                      <div className="form-title">{publicRiderProfile.profile.rider_name}</div>
+                      <div className="form-subtitle">
+                        {publicRiderProfile.profile.home_location || publicRiderProfile.stats.top_city || t("rider.noCityTag")}
+                      </div>
+                    </div>
+                    <div className="rider-profile-status-badges">
+                      {publicRiderProfile.stats.quarter_rank === 1 && (
+                        <div className="achievement-badge gold">
+                          🥇 {t("leaderboard.loopLeader")}
+                        </div>
+                      )}
+                      {publicRiderProfile.stats.finished_runs > 0 && (
+                        <div className="achievement-badge silver">
+                          🏁 {t("leaderboard.alleycatWinner")}
+                        </div>
+                      )}
+                      {publicRiderProfile.profile.is_community_member && (
+                        <div className="achievement-badge community">
+                          ⛓️ {t("leaderboard.hardChainCrew")}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="rider-bike-tag">

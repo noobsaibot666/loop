@@ -35,11 +35,14 @@ Use this file to track:
 - Seattle
 - Buenos Aires
 - Krakow
+- Guarulhos
 
 ## Current smoke read
 - Smoke report:
   - [city-batch-2026-03-smoke.md](/Users/alan/_localDEV/Loop/reports/city-batch-2026-03-smoke.md)
   - [city-batch-2026-04-smoke.md](/Users/alan/_localDEV/Loop/reports/city-batch-2026-04-smoke.md)
+  - [city-batch-guarulhos-smoke.md](/Users/alan/_localDEV/Loop/reports/city-batch-guarulhos-smoke.md)
+  - [saopaulo-expansion-smoke.md](/Users/alan/_localDEV/Loop/reports/saopaulo-expansion-smoke.md)
 - Current read:
   - the full 2026-03 batch passes the fallback tester smoke matrix
   - central density was tightened for:
@@ -169,4 +172,6 @@ Before a city is marked live, it should have:
 - `Seoul` is explicit, not a hub proxy.
 - The 2026-03 batch is live for tester use in code.
 - The 2026-04 batch is live for tester use in code.
+- `Guarulhos` is active as a major logistics and industrial tier expansion (24 checkpoints).
+- `Sao Paulo` has been extended for deeper urban coverage (19 checkpoints).
 - keep using batch SQL for city rollout from this point onward.

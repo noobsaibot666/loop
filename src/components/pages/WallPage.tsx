@@ -143,6 +143,12 @@ export default function WallPage({
             ))}
           </div>
         )}
+        {!isLoadingWall && wallPosts.length === 0 && (
+          <div className="empty-state">
+            <div className="empty-state-icon">🖼️</div>
+            <div className="empty-state-text">{t("wall.empty")}</div>
+          </div>
+        )}
       </section>
 
       <section className="wall-section reveals" id="night-wall-feed">
@@ -165,6 +171,12 @@ export default function WallPage({
                 </div>
               </article>
             ))}
+          </div>
+        )}
+        {!isLoadingWall && nightRidePosts.length === 0 && (
+          <div className="empty-state">
+            <div className="empty-state-icon">🌃</div>
+            <div className="empty-state-text">{t("wall.nightEmpty")}</div>
           </div>
         )}
       </section>

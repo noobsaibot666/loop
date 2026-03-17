@@ -1,6 +1,9 @@
 const json = (data, init = {}) => {
   const headers = new Headers(init.headers || {});
   headers.set("Content-Type", "application/json");
+  headers.set("Access-Control-Allow-Origin", "*");
+  headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, apikey");
   return new Response(JSON.stringify(data), { ...init, headers });
 };
 

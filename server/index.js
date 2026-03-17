@@ -2589,7 +2589,7 @@ app.get("/api/rider-profile", async (req, res) => {
   if (!userId) return res.status(400).json({ error: "user_id required" });
 
   const quarter = getQuarterWindow();
-  const [profileRes, proofsRes, runsRes, quarterProofsRes, quarterRunsRes] = await Promise.all([
+  const [profileRes, proofsRes, runsRes, quarterProofsRes, quarterRunsRes, communityRes] = await Promise.all([
     supabase
       .from("user_profiles")
       .select("user_id, rider_name, home_location, bike_name, bike_ratio")
@@ -2621,6 +2621,12 @@ app.get("/api/rider-profile", async (req, res) => {
       .eq("status", "finished")
       .gte("finished_at", quarter.start.toISOString())
       .lt("finished_at", quarter.end.toISOString()),
+    supabase
+      .from("community_memberships")
+      .select("status")
+      .eq("user_id", userId)
+      .eq("status", "active")
+      .maybeSingle(),
   ]);
 
   if (proofsRes.error) return res.status(500).json({ error: proofsRes.error.message });
@@ -2645,6 +2651,8 @@ app.get("/api/rider-profile", async (req, res) => {
     .filter((value) => value > 0)
     .sort((a, b) => a - b)[0] || null;
 
+  const isCommunityMember = !!communityRes?.data;
+
   return res.json({
     profile: {
       user_id: userId,
@@ -2652,6 +2660,7 @@ app.get("/api/rider-profile", async (req, res) => {
       home_location: profileRes.data?.home_location || proofs[0]?.city_name || "",
       bike_name: profileRes.data?.bike_name || proofs[0]?.bike_name || "",
       bike_ratio: profileRes.data?.bike_ratio || proofs[0]?.bike_ratio || "",
+      is_community_member: isCommunityMember,
     },
     stats: {
       public_proofs: proofs.length,
@@ -2799,12 +2808,31 @@ app.get("/api/leaderboard", async (req, res) => {
   }
   if (proofsRes.error) return res.status(500).json({ error: proofsRes.error.message });
   if (runsRes.error) return res.status(500).json({ error: runsRes.error.message });
+
+  const leaders = buildQuarterLeaderboard({ proofs: proofsRes.data || [], finishedRuns: runsRes.data || [] }).slice(0, 25);
+  const userIds = leaders.map((l) => l.user_id).filter(Boolean);
+
+  let memberships = [];
+  if (userIds.length) {
+    const { data: mData } = await supabase
+      .from("community_memberships")
+      .select("user_id")
+      .in("user_id", userIds)
+      .eq("status", "active");
+    memberships = mData || [];
+  }
+
+  const memberSet = new Set(memberships.map((m) => m.user_id));
+
   return res.json({
     quarter: {
       label: quarter.label,
       city,
       country,
-      leaders: buildQuarterLeaderboard({ proofs: proofsRes.data || [], finishedRuns: runsRes.data || [] }).slice(0, 25),
+      leaders: leaders.map((l) => ({
+        ...l,
+        is_community_member: memberSet.has(l.user_id),
+      })),
     },
   });
 });

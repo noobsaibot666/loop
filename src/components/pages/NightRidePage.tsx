@@ -8,6 +8,8 @@ type Suggestion = {
 
 type NightRidePost = {
   id: string;
+  user_id?: string | null;
+  moderation_status?: string | null;
   rider_name: string;
   crew_name?: string | null;
   city_name?: string | null;
@@ -678,23 +680,31 @@ const NightRidePage = ({
         <div className="form-subtitle">Crew shots and after-dark proof stay separate from Wall of Fame.</div>
         {feed.length ? (
           <div className="night-feed-grid">
-            {feed.map((post) => (
-              <article key={post.id} className="night-feed-card">
+            {feed.filter(post => post.moderation_status === 'live' || (user && post.user_id === user.id)).map((post) => (
+              <article key={post.id} className={`night-feed-card ${post.moderation_status === 'pending' ? 'post-pending' : ''}`}>
                 <img src={post.image_url} alt={post.caption || post.route_title || "Night ride post"} loading="lazy" decoding="async" />
                 <div className="night-feed-meta">
-                  <strong>{post.crew_name || post.rider_name}</strong>
+                  <div className="meta-header">
+                    <strong>{post.crew_name || post.rider_name}</strong>
+                    {post.moderation_status === 'pending' && (
+                      <span className="pending-badge">Pending Review</span>
+                    )}
+                  </div>
                   <span>
                     {(post.route_title || "Night route")}
                     {post.distance_km ? ` · ${Number(post.distance_km).toFixed(1)} km` : ""}
                   </span>
                   <span>{post.city_name || "Night lane"} · {formatDate(post.created_at)}</span>
+                  {post.moderation_status === 'pending' && (
+                    <p className="pending-note">Only you can see this until it's approved.</p>
+                  )}
                 </div>
               </article>
             ))}
           </div>
         ) : (
           <div className="empty-state">
-            <div className="empty-state-body">Night wall is wired, but posting stays on hold until the upload and moderation pass lands.</div>
+            <div className="empty-state-body">Night wall is wired. Build a ride and drop your first shot to start the line.</div>
           </div>
         )}
       </section>

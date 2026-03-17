@@ -73,7 +73,7 @@ export async function onRequest({ request, env }) {
       image_url: imageUrl,
       aspect_ratio: aspectRatio,
       is_public: isPublic,
-      moderation_status: "live",
+      moderation_status: "pending",
     }),
   });
 

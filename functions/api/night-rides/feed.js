@@ -4,7 +4,7 @@ export async function onRequest({ request, env }) {
   if (request.method !== "GET") return json({ error: "method not allowed" }, { status: 405 });
   const rows = await supabaseRequest(
     env,
-    "night_ride_posts?is_public=eq.true&moderation_status=eq.live&select=id,session_id,rider_name,crew_name,city_name,route_title,distance_km,aspect_ratio,caption,image_url,created_at&order=created_at.desc&limit=24",
+    "night_ride_posts?is_public=eq.true&moderation_status=in.(live,pending)&select=id,user_id,moderation_status,session_id,rider_name,crew_name,city_name,route_title,distance_km,aspect_ratio,caption,image_url,created_at&order=created_at.desc&limit=32",
     { method: "GET" }
   ).catch(() => []);
   const sessionIds = Array.from(new Set((rows || []).map((row) => row.session_id).filter(Boolean)));

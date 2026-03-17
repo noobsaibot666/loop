@@ -83,12 +83,29 @@ export async function onRequest({ request, env }) {
     ).catch(() => []);
   }
 
+  const leaders = buildQuarterLeaderboard({ proofs: proofs || [], finishedRuns: runs || [] }).slice(0, 25);
+  const userIds = leaders.map((l) => l.user_id).filter(Boolean);
+
+  let memberships = [];
+  if (userIds.length) {
+    memberships = await supabaseRequest(
+      env,
+      `community_memberships?user_id=in.(${userIds.map((id) => encodeURIComponent(id)).join(",")})&status=eq.active&select=user_id`,
+      { method: "GET" }
+    ).catch(() => []);
+  }
+
+  const memberSet = new Set((memberships || []).map((m) => m.user_id));
+
   return json({
     quarter: {
       label: quarter.label,
       city: city || "",
       country: country || "",
-      leaders: buildQuarterLeaderboard({ proofs: proofs || [], finishedRuns: runs || [] }).slice(0, 25),
+      leaders: leaders.map((l) => ({
+        ...l,
+        is_community_member: memberSet.has(l.user_id),
+      })),
     },
   });
 }

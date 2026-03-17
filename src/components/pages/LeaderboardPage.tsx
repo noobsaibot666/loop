@@ -8,6 +8,7 @@ type PublicLeaderboardEntry = {
   public_proofs: number;
   finished_runs: number;
   rank: number;
+  is_community_member?: boolean;
 };
 
 type LeaderboardPageProps = {
@@ -160,7 +161,12 @@ export default function LeaderboardPage({
             ))}
           </div>
           {isLoadingPublicLeaderboard && <div className="status-message">{t("leaderboard.loading")}</div>}
-          {!isLoadingPublicLeaderboard && publicLeaderboard.length === 0 && <div className="empty-state" />}
+          {!isLoadingPublicLeaderboard && publicLeaderboard.length === 0 && (
+            <div className="empty-state">
+              <div className="empty-state-icon">🏁</div>
+              <div className="empty-state-text">{t("leaderboard.empty")}</div>
+            </div>
+          )}
           {publicLeaderboard.length > 0 && (
             <div className="result-grid result-grid-three leaderboard-summary-grid">
               <div className="leaderboard-stat-card">
@@ -182,7 +188,12 @@ export default function LeaderboardPage({
             <div className="winner-callout leaderboard-hero">
               <div className="leaderboard-hero-copy">
                 <span className="winner-label">{t("leaderboard.quarterLeader")}</span>
-                <strong>{publicLeaderboard[0].rider_name}</strong>
+                <div className="leaderboard-hero-name">
+                  <strong>{publicLeaderboard[0].rider_name}</strong>
+                  <div className="achievement-badge gold">
+                    <span>🥇 {t("leaderboard.loopLeader")}</span>
+                  </div>
+                </div>
                 <span>{t("leaderboard.proofsFinishes", { proofs: publicLeaderboard[0].public_proofs, finishes: publicLeaderboard[0].finished_runs })}</span>
               </div>
               <div className="leaderboard-hero-stats">
@@ -228,6 +239,21 @@ export default function LeaderboardPage({
                     </strong>
                     <span>{t("leaderboard.proofsFinishes", { proofs: entry.public_proofs, finishes: entry.finished_runs })}</span>
                     <div className="leaderboard-meta-chips">
+                      {entry.rank === 1 && (
+                        <span className="achievement-badge gold">
+                          🥇 {t("leaderboard.loopLeader")}
+                        </span>
+                      )}
+                      {entry.finished_runs > 0 && (
+                        <span className="achievement-badge silver">
+                          🏁 {t("leaderboard.alleycatWinner")}
+                        </span>
+                      )}
+                      {entry.is_community_member && (
+                        <span className="achievement-badge community">
+                          ⛓️ {t("leaderboard.hardChainCrew")}
+                        </span>
+                      )}
                       <span className="mini-chip active">{t("leaderboard.top", { rank: entry.rank })}</span>
                       {entry.finished_runs > 0 && <span className="mini-chip">{t("leaderboard.closed", { count: entry.finished_runs })}</span>}
                       {entry.public_proofs > 0 && <span className="mini-chip">{t("leaderboard.posted", { count: entry.public_proofs })}</span>}
