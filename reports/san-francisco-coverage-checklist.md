@@ -3,21 +3,25 @@
 Date: 2026-03-13
 
 ## Planning
-- [ ] Lock district map for San Francisco rollout
-- [ ] Set launch checkpoint target
+
+- [x] Lock district map for San Francisco rollout
+- [x] Set launch checkpoint target
 
 ## Content
-- [ ] Draft core checkpoints across main SF lanes
-- [ ] Add hill / bridge / waterfront route variety
-- [ ] Remove weak tourist-only picks
-- [ ] Tighten task tone for SF
+
+- [x] Draft core checkpoints across main SF lanes
+- [x] Add hill / bridge / waterfront route variety
+- [x] Remove weak tourist-only picks
+- [x] Tighten task tone for SF
 
 ## Generator quality
-- [ ] Test tight downtown spreads
-- [ ] Test Mission / SoMa starts
-- [ ] Test bridge-edge starts
+
+- [x] Test tight downtown spreads
+- [x] Test Mission / SoMa starts
+- [x] Test bridge-edge starts
 
 ## Release
-- [ ] Add San Francisco fallback pack
-- [ ] Seed San Francisco into Supabase
-- [ ] Verify it appears across Alleycat / Cities / Wall / Board flows
+
+- [x] Add San Francisco fallback pack
+- [x] Seed San Francisco into Supabase
+- [x] Verify it appears across Alleycat / Cities / Wall / Board flows

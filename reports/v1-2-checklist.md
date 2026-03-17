@@ -33,10 +33,10 @@ Related docs:
 - [x] Render post cards with clean hierarchy on wall
 
 ## Phase 3: Night Ride moderation
-- [ ] Add Night Ride moderation actions
-- [ ] Add offensive text review handling
-- [ ] Add offensive image review handling
-- [ ] Add Night Ride moderation action logging
+- [x] Add Night Ride moderation actions
+- [x] Add offensive text review handling
+- [x] Add offensive image review handling
+- [x] Add Night Ride moderation action logging
 
 ## Phase 4: Community membership billing
 - [x] Add Stripe session reliability SQL
@@ -64,13 +64,13 @@ Related docs:
 - [x] Add leaderboard community recognition note
 
 ## Phase 6: Mobile navigation rethink
-- [ ] Replace current mobile nav with burger-first layout
-- [ ] Keep language switcher stable in the new header
-- [ ] Make added sections fit without crowding hero space
+- [x] Replace current mobile nav with burger-first layout
+- [x] Keep language switcher stable in the new header
+- [x] Make added sections fit without crowding hero space
 
 ## Phase 7: V1.2.1 leaderboard riders
-- [ ] Add rider badges in leaderboard:
+- [x] Add rider badges in leaderboard:
   - `🥇 Loop Leader`
   - `🏁 Alleycat Winner`
-- [ ] Add Discord honorable mention flow for top riders
-- [ ] Add awards callout tied to Discord recognition
+- [x] Add Discord honorable mention flow for top riders
+- [x] Add awards callout tied to Discord recognition

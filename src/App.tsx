@@ -234,6 +234,8 @@ type WallPost = {
 };
 type NightRideFeedPost = {
   id: string;
+  user_id?: string | null;
+  moderation_status?: string | null;
   rider_name: string;
   crew_name?: string | null;
   city_name?: string | null;
@@ -2332,39 +2334,58 @@ function AppShell() {
           )}
         </div>
 
-        <button className="menu-toggle" type="button" onClick={() => setMenuOpen((prev) => !prev)} aria-expanded={menuOpen}>
-          {menuOpen ? t("nav.close") : t("nav.menu")}
+        <button
+          className={`menu-toggle ${menuOpen ? "active" : ""}`}
+          type="button"
+          onClick={() => setMenuOpen((prev) => !prev)}
+          aria-expanded={menuOpen}
+          aria-label={t("nav.menu")}
+        >
+          <div className="burger-icon">
+            <span />
+            <span />
+            <span />
+          </div>
         </button>
 
+        {/* Mobile Header Actions (Placeholder for future quick-actions if needed) */}
         <div className="mobile-header-actions">
-          {renderLanguageSwitcher()}
-          {!user && (
-            <button className="ghost-button small mobile-login-button" type="button" onClick={() => openAuth("login")}>
-              {t("nav.logIn")}
-            </button>
-          )}
         </div>
 
         <div className={`mobile-nav-sheet ${menuOpen ? "open" : ""}`}>
+          <div className="mobile-nav-top">
+            <div className="mobile-nav-brand">
+              <div className="brand-markSmall" />
+              <span>{t("nav.menu")}</span>
+            </div>
+            {renderLanguageSwitcher()}
+          </div>
+          
           <div className="mobile-nav-links">
             <button className={`nav-link ${pageView === 'home' ? 'active' : ''}`} onClick={() => handleNavigate('home')}>{t("nav.home")}</button>
-            <button className={`nav-link ${pageView === 'loop' ? 'active' : ''}`} onClick={() => handleNavigate('loop')}>{t("nav.loop")}</button>
             <button className={`nav-link ${pageView === 'messenger' ? 'active' : ''}`} onClick={() => handleNavigate('messenger')}>{t("nav.alleycat")}</button>
+            <button className={`nav-link ${pageView === 'loop' ? 'active' : ''}`} onClick={() => handleNavigate('loop')}>{t("nav.loop")}</button>
             <button className={`nav-link ${pageView === 'night' ? 'active' : ''}`} onClick={() => handleNavigate('night')}>{t("nav.night")}</button>
             <button className={`nav-link ${pageView === 'wall' ? 'active' : ''}`} onClick={() => handleNavigate('wall')}>{t("nav.wallShort")}</button>
             <button className={`nav-link ${pageView === 'leaderboard' ? 'active' : ''}`} onClick={() => handleNavigate('leaderboard')}>{t("nav.leaderboard")}</button>
             <button className={`nav-link ${pageView === 'cities' ? 'active' : ''}`} onClick={() => handleNavigate('cities')}>{t("nav.cities")}</button>
-            {user && <button className={`nav-link ${pageView === 'account' ? 'active' : ''}`} onClick={() => handleNavigate('account')}>{t("nav.accountShort")}</button>}
+            <button className={`nav-link ${pageView === 'account' ? 'active' : ''}`} onClick={() => handleNavigate('account')}>{t("nav.accountShort")}</button>
           </div>
+          
           <div className="mobile-nav-actions">
             {user ? (
               <>
-                <button className="ghost-button small" onClick={handleDonate}>{t("nav.credits")}</button>
-                <button className="primary-button small" onClick={handleLogout}>{t("nav.out")}</button>
+                <div className="mobile-user-brief">
+                  <div className="user-email-tiny">{user.email}</div>
+                  <div className="user-credits-tiny">{totalCredits} credits</div>
+                </div>
+                <button className="ghost-button small" onClick={handleDonate}>{t("nav.addCredits")}</button>
+                <button className="primary-button small logout-button" onClick={handleLogout}>{t("nav.out")}</button>
               </>
             ) : (
               <>
                 <button className="primary-button small" onClick={() => openAuth("signup")}>{t("nav.getStartedShort")}</button>
+                <button className="ghost-button small" onClick={() => openAuth("login")}>{t("nav.logIn")}</button>
               </>
             )}
           </div>
@@ -2383,6 +2404,9 @@ function AppShell() {
       </button>
       <button className={`quickbar-link ${pageView === "loop" ? "active" : ""}`} type="button" onClick={() => handleNavigate("loop")}>
         <span>{t("nav.loop")}</span>
+      </button>
+      <button className={`quickbar-link ${pageView === "night" ? "active" : ""}`} type="button" onClick={() => handleNavigate("night")}>
+        <span>{t("nav.night")}</span>
       </button>
       <button className={`quickbar-link ${pageView === "wall" ? "active" : ""}`} type="button" onClick={() => handleNavigate("wall")}>
         <span>{t("nav.wallShort")}</span>
@@ -2493,11 +2517,10 @@ function AppShell() {
       </section>
 
       <section className="modular-grid reveals home-lower-grid">
-        <div className="modular-cell home-construction-card">
-          <div className="section-eyebrow">{t("common.inConstruction")}</div>
+        <div className="modular-cell modular-cell-night">
           <h3 className="cell-title">{t("home.night.title")}</h3>
           <p className="cell-body">{t("home.night.body")}</p>
-          <button className="ghost-button small home-card-button" onClick={() => handleNavigate('night')}>
+          <button className="primary-button primary-button-flat small home-card-button" onClick={() => handleNavigate('night')}>
             {t("home.night.action")}
           </button>
         </div>
@@ -3760,8 +3783,8 @@ function AppShell() {
 
             {messengerManifest && (
               <div className="glass-card form-card sequential-card">
-                <div className="form-title">Run panel</div>
-                {isHydratingRun && <div className="status-message">Reloading your live run…</div>}
+                <div className="form-title">{t("form.runPanel")}</div>
+                {isHydratingRun && <div className="status-message">{t("status.reloadingLiveRun")}</div>}
                 <div className="messenger-output">
                   <div className="manifest-brief">
                     <div>
@@ -3774,49 +3797,49 @@ function AppShell() {
                     </div>
                     <div className="manifest-metrics">
                       <div>
-                        <span>{messengerManifest.ghost_label || "Ghost"}</span>
+                        <span>{t("alleycat.run.ghost")}</span>
                         <strong>{formatDuration(messengerManifest.ghost_seconds)}</strong>
                       </div>
                       <div>
-                        <span>Format</span>
-                        <strong>Any order</strong>
+                        <span>{t("alleycat.run.format")}</span>
+                        <strong>{t("alleycat.run.formatAny")}</strong>
                       </div>
                     </div>
                   </div>
 
                   <div className="manifest-notes">
                     <div className="manifest-note-card">
-                      <span>Route line</span>
+                      <span>{t("alleycat.run.routeLine")}</span>
                       <strong>{messengerManifest.route_note}</strong>
                     </div>
                     {messengerManifest.task_mix ? (
                       <div className="manifest-note-card">
-                        <span>Task mix</span>
+                        <span>{t("alleycat.run.taskMix")}</span>
                         <strong>{messengerManifest.task_mix}</strong>
                       </div>
                     ) : null}
                     {messengerManifest.range_km ? (
                       <div className="manifest-note-card">
-                        <span>Spread lock</span>
+                        <span>{t("alleycat.run.spreadLock")}</span>
                         <strong>
-                          Locked to {messengerManifest.range_km} km from your start area
+                          {t("alleycat.run.spreadRange", { range: messengerManifest.range_km })}
                           {messengerManifest.effective_range_km
-                            ? ` · tighter street-fit ${messengerManifest.effective_range_km} km`
+                            ? t("alleycat.run.spreadEffective", { effective: messengerManifest.effective_range_km })
                             : ""}
                           {messengerManifest.max_distance_km
-                            ? ` · farthest stop ${messengerManifest.max_distance_km} km`
+                            ? t("alleycat.run.spreadFarthest", { max: messengerManifest.max_distance_km })
                             : ""}
                           .
                         </strong>
                       </div>
                     ) : null}
                     <div className="manifest-note-card">
-                      <span>Finish call</span>
+                      <span>{t("alleycat.run.finishCall")}</span>
                       <strong>{messengerManifest.finish_label}</strong>
                     </div>
                     {messengerManifest.replay_hook ? (
                       <div className="manifest-note-card">
-                        <span>Replay hook</span>
+                        <span>{t("alleycat.run.replayHook")}</span>
                         <strong>{messengerManifest.replay_hook}</strong>
                       </div>
                     ) : null}
@@ -3824,37 +3847,37 @@ function AppShell() {
 
                   <div className="manifest-actions">
                     <div className="run-progress">
-                      <span>Progress</span>
+                      <span>{t("alleycat.run.progress")}</span>
                       <strong>
-                        {completedCount}/{totalCheckpoints} cleared
+                        {t("alleycat.run.cleared", { completed: completedCount, total: totalCheckpoints })}
                       </strong>
-                      <em>{remainingCount} left</em>
+                      <em>{t("alleycat.run.leftCount", { count: remainingCount })}</em>
                     </div>
                     {shareCode && (
                       <div className="run-progress share-code-box">
-                        <span>Share code</span>
+                        <span>{t("alleycat.run.shareCode")}</span>
                         <strong>{shareCode}</strong>
-                        <em>Same list. Head to head.</em>
+                        <em>{t("alleycat.run.shareInvite")}</em>
                       </div>
                     )}
                     <div className="run-progress">
-                      <span>Score line</span>
-                      <strong>{messengerManifest.total_score || 0} pts max</strong>
-                      <em>{districtCoverage || messengerManifest.district_count || 0} districts in play</em>
+                      <span>{t("alleycat.run.scoreLine")}</span>
+                      <strong>{t("alleycat.run.ptsMax", { count: messengerManifest.total_score || 0 })}</strong>
+                      <em>{t("alleycat.run.districtsInPlay", { count: districtCoverage || messengerManifest.district_count || 0 })}</em>
                     </div>
                     {!messengerRun ? (
                       <div className="manifest-action-buttons">
                         <button className="primary-button" type="button" onClick={handleStartMessenger}>
-                          Start run
+                          {t("alleycat.run.start")}
                         </button>
                         <button className="ghost-button" type="button" onClick={handleStartMessenger}>
-                          Resume run
+                          {t("alleycat.run.resume")}
                         </button>
                       </div>
                     ) : (
                       <>
                         <div className="run-clock">
-                          <span>Elapsed</span>
+                          <span>{t("alleycat.run.elapsed")}</span>
                           <strong>{formatDuration(currentElapsed)}</strong>
                         </div>
                         <div className="manifest-action-buttons">
@@ -3868,15 +3891,15 @@ function AppShell() {
                               messengerRun.status === "abandoned"
                             }
                           >
-                            {messengerRun.finishedAt ? "Run finished" : "Finish run"}
+                            {messengerRun.finishedAt ? t("alleycat.run.finished") : t("alleycat.run.finish")}
                           </button>
                           {!messengerRun.finishedAt && messengerRun.status === "active" && (
                             <button className="ghost-button" type="button" onClick={handleAbandonMessenger}>
-                              Bail run
+                              {t("alleycat.run.bail")}
                             </button>
                           )}
                           <button className="ghost-button" type="button" onClick={handleRestartMessenger}>
-                            Restart
+                            {t("alleycat.run.restart")}
                           </button>
                         </div>
                       </>
@@ -3892,14 +3915,14 @@ function AppShell() {
                       return (
                         <div key={checkpoint.id} className={`checkpoint-card ${done ? "done" : ""}`}>
                           <div className="checkpoint-meta">
-                            <span>CP {checkpoint.order}</span>
-                            {done && <span className="checkpoint-done">✓ Clear</span>}
+                            <span>{t("alleycat.run.cp", { order: checkpoint.order })}</span>
+                            {done && <span className="checkpoint-done">{t("alleycat.run.clear")}</span>}
                           </div>
                           <div className="checkpoint-name">{checkpoint.name}</div>
                           <div className="mini-chip-row compact checkpoint-chip-row">
                             {checkpoint.task_type ? <div className="mini-chip">{checkpoint.task_type}</div> : null}
-                            {checkpoint.task_pressure ? <div className="mini-chip">{checkpoint.task_pressure} pressure</div> : null}
-                            {checkpoint.score_points ? <div className="mini-chip">{checkpoint.score_points} pts</div> : null}
+                            {checkpoint.task_pressure ? <div className="mini-chip">{t("alleycat.run.pressure", { type: checkpoint.task_pressure })}</div> : null}
+                            {checkpoint.score_points ? <div className="mini-chip">{t("alleycat.run.pts", { count: checkpoint.score_points })}</div> : null}
                             {checkpoint.district ? <div className="mini-chip">{checkpoint.district}</div> : null}
                           </div>
                           <div className="checkpoint-task">{checkpoint.task}</div>
@@ -3911,7 +3934,7 @@ function AppShell() {
                               target="_blank"
                               rel="noreferrer"
                             >
-                              Open in Maps
+                              {t("alleycat.run.openMaps")}
                             </a>
                             {messengerRun && !messengerRun.finishedAt && (
                               <button
@@ -3919,7 +3942,7 @@ function AppShell() {
                                 type="button"
                                 onClick={() => handleCheckInMessenger(checkpoint.id)}
                               >
-                                {done ? "Checked in" : "Check in"}
+                                {done ? t("alleycat.run.checkedIn") : t("alleycat.run.checkIn")}
                               </button>
                             )}
                           </div>
@@ -3927,15 +3950,15 @@ function AppShell() {
                             <div className="proof-panel">
                               {!proof && (
                                 <div className="proof-callout">
-                                  <strong>Checkpoint cleared.</strong>
-                                  <span>Add one photo if you want this stop on Wall of Fame.</span>
+                                  <strong>{t("alleycat.run.cpCleared")}</strong>
+                                  <span>{t("alleycat.run.addPhotoWall")}</span>
                                 </div>
                               )}
                               {proof ? (
                                 <div className="proof-preview">
                                   <img src={proof.public_url} alt={`${checkpoint.name} proof`} loading="lazy" decoding="async" />
                                   <div className="proof-meta">
-                                    <span>Posted</span>
+                                    <span>{t("alleycat.run.posted")}</span>
                                     <strong>{proof.location_label}</strong>
                                   </div>
                                 </div>
@@ -3948,7 +3971,7 @@ function AppShell() {
                                     </div>
                                   )}
                                   <label className="field compact-field">
-                                    <span>Add photo proof</span>
+                                    <span>{t("alleycat.run.addPhoto")}</span>
                                     <input
                                       type="file"
                                       accept="image/jpeg,image/png,image/webp"
@@ -3971,7 +3994,7 @@ function AppShell() {
                                         }))
                                       }
                                     />
-                                    <span>Post to Wall of Fame</span>
+                                    <span>{t("alleycat.run.postWall")}</span>
                                   </label>
                                   <div className="checkpoint-actions">
                                     <button
@@ -3980,7 +4003,7 @@ function AppShell() {
                                       disabled={Boolean(isUploadingProof[checkpoint.id])}
                                       onClick={() => handleProofUpload(checkpoint)}
                                     >
-                                      {isUploadingProof[checkpoint.id] ? "Posting..." : proofDraft ? "Finish post" : "Post proof"}
+                                      {isUploadingProof[checkpoint.id] ? t("alleycat.run.posting") : proofDraft ? t("alleycat.run.finishPost") : t("alleycat.run.postProof")}
                                     </button>
                                   </div>
                                   {proofStatus[checkpoint.id] && <div className="status-message compact-status">{proofStatus[checkpoint.id]}</div>}
@@ -3995,19 +4018,19 @@ function AppShell() {
 
                   {messengerRun?.finishedAt && (
                     <div className="result-card">
-                      <div className="result-title">Run closed</div>
+                      <div className="result-title">{t("alleycat.run.closed")}</div>
                       <div className="result-card-copy">{finishStory}</div>
                       <div className="result-grid result-grid-three">
                         <div>
-                          <span>Your time</span>
+                          <span>{t("alleycat.run.yourTime")}</span>
                           <strong>{formatDuration(messengerRun.finishSeconds || 0)}</strong>
                         </div>
                         <div>
-                          <span>Ghost</span>
+                          <span>{t("alleycat.run.ghost")}</span>
                           <strong>{formatDuration(messengerManifest.ghost_seconds)}</strong>
                         </div>
                         <div>
-                          <span>Difference</span>
+                          <span>{t("alleycat.run.difference")}</span>
                           <strong className={ghostDelta !== null && ghostDelta <= 0 ? "good-time" : "slow-time"}>
                             {ghostDelta !== null
                               ? `${ghostDelta <= 0 ? "-" : "+"}${formatDuration(Math.abs(ghostDelta))}`
@@ -4017,46 +4040,46 @@ function AppShell() {
                       </div>
                       <div className="result-grid result-grid-three">
                         <div>
-                          <span>Run grade</span>
+                          <span>{t("alleycat.run.grade")}</span>
                           <strong>{runGrade}</strong>
                         </div>
                         <div>
-                          <span>Proofs</span>
+                          <span>{t("alleycat.run.proofs")}</span>
                           <strong>
-                            {proofCount}/{messengerManifest.checkpoints.length}
+                            {t("alleycat.run.cleared", { completed: proofCount, total: messengerManifest.checkpoints.length })}
                           </strong>
                         </div>
                         <div>
-                          <span>Score</span>
+                          <span>{t("alleycat.run.score")}</span>
                           <strong>{runScore}</strong>
                         </div>
                       </div>
                       {messengerRun.proofs && messengerRun.proofs.length > 0 && (
                         <div className="manifest-note-card">
-                          <span>Proof summary</span>
+                          <span>{t("alleycat.run.proofSummary")}</span>
                           <strong>
                             {messengerRun.proofs
                               .map((proof) => proof.checkpoint_name)
                               .slice(0, 4)
                               .join(" · ")}
-                            {messengerRun.proofs.length > 4 ? ` · +${messengerRun.proofs.length - 4} more` : ""}
+                            {messengerRun.proofs.length > 4 ? t("alleycat.run.more", { count: messengerRun.proofs.length - 4 }) : ""}
                           </strong>
                         </div>
                       )}
                       <div className="challenge-rivalry-card result-bridge-card">
-                        <span>Run recap</span>
+                        <span>{t("alleycat.run.recap")}</span>
                         <strong>{finishBridgeLabel}</strong>
-                        <em>{messengerManifest.replay_hook || "Run it back or push the cleanest proof to the wall."}</em>
+                        <em>{messengerManifest.replay_hook || t("alleycat.run.replayNote")}</em>
                         <div className="challenge-rivalry-actions">
                           <button className="ghost-button small" type="button" onClick={() => handleOpenWallCity(messengerManifest.city)}>
-                            {messengerManifest.city} wall
+                            {t("alleycat.run.wallButton", { city: messengerManifest.city })}
                           </button>
                           <button className="ghost-button small" type="button" onClick={() => handleOpenLeaderboardCity(messengerManifest.city)}>
-                            {messengerManifest.city} board
+                            {t("alleycat.run.boardButton", { city: messengerManifest.city })}
                           </button>
                           {user?.id && (
                             <button className="ghost-button small" type="button" onClick={() => handleOpenRiderProfile(user.id)}>
-                              Your rider page
+                              {t("alleycat.run.riderPage")}
                             </button>
                           )}
                         </div>
@@ -4068,12 +4091,12 @@ function AppShell() {
                     <section className="challenge-board-shell" id="challenge-board">
                       <div className="challenge-board-header">
                         <div>
-                          <div className="section-label">Challenge board</div>
-                          <div className="result-title">Shared standings</div>
+                          <div className="section-label">{t("alleycat.run.challengeBoard")}</div>
+                          <div className="result-title">{t("alleycat.run.sharedStandings")}</div>
                         </div>
                         {challenge && (
                           <div className="challenge-board-code">
-                            <span>Code {challenge.code}</span>
+                            <span>{t("alleycat.run.code", { code: challenge.code })}</span>
                             <span className={`status-chip ${challengeSummary?.status || "open"}`}>{challengeStatusLabel}</span>
                           </div>
                         )}
@@ -4194,7 +4217,12 @@ function AppShell() {
       ? renderMessenger()
       : pageView === "night"
         ? (
-          <Suspense fallback={<div className="status-message page-loader">Loading Night Ride…</div>}>
+          <Suspense fallback={
+            <div className="status-message page-loader">
+              <span className="loader-dot"></span>
+              Loading Night Ride…
+            </div>
+          }>
             <NightRidePage
               apiBase={API_BASE}
               user={user}
@@ -4220,7 +4248,12 @@ function AppShell() {
           ? renderAccount()
             : pageView === "wall"
             ? (
-              <Suspense fallback={<div className="status-message page-loader">{t("wall.loading")}</div>}>
+              <Suspense fallback={
+                <div className="status-message page-loader">
+                  <span className="loader-dot"></span>
+                  {t("wall.loading")}
+                </div>
+              }>
                 <WallPage
                   publicQuarterLabel={publicQuarterLabel}
                   selectedWallCity={selectedWallCity}
@@ -4239,7 +4272,12 @@ function AppShell() {
             )
             : pageView === "cities"
               ? (
-                <Suspense fallback={<div className="status-message page-loader">{t("cities.loading")}</div>}>
+                <Suspense fallback={
+                  <div className="status-message page-loader">
+                    <span className="loader-dot"></span>
+                    {t("cities.loading")}
+                  </div>
+                }>
                   <CitiesPage
                     cityLanes={cityLanes}
                     isLoadingCityLanes={isLoadingCityLanes}
@@ -4255,7 +4293,12 @@ function AppShell() {
               )
             : pageView === "leaderboard"
               ? (
-              <Suspense fallback={<div className="status-message page-loader">{t("leaderboard.loading")}</div>}>
+                <Suspense fallback={
+                  <div className="status-message page-loader">
+                    <span className="loader-dot"></span>
+                    {t("leaderboard.loading")}
+                  </div>
+                }>
                   <LeaderboardPage
                     publicQuarterLabel={publicQuarterLabel}
                     selectedLeaderboardCountry={selectedLeaderboardCountry}
@@ -4273,7 +4316,12 @@ function AppShell() {
               )
               : pageView === "rider"
                 ? (
-              <Suspense fallback={<div className="status-message page-loader">{t("rider.loading")}</div>}>
+                <Suspense fallback={
+                  <div className="status-message page-loader">
+                    <span className="loader-dot"></span>
+                    {t("rider.loading")}
+                  </div>
+                }>
                     <RiderProfilePage
                       isLoadingPublicRiderProfile={isLoadingPublicRiderProfile}
                       publicRiderProfile={publicRiderProfile}
@@ -4306,14 +4354,14 @@ function AppShell() {
           <div className="footer-links">
             <a className="ghost-link" href="/leaderboard">{t("nav.leaderboard")}</a>
             <a className="ghost-link" href="/cities">{t("nav.cities")}</a>
-            <a className="ghost-link" href="/privacy.html">{t("footer.privacy")}</a>
-            <a className="ghost-link" href="/terms.html">{t("footer.terms")}</a>
-            <a className="ghost-link" href="/how.html">{t("footer.how")}</a>
+            <a className="ghost-link" href={language === "pt" ? "/privacy_pt.html" : language === "es" ? "/privacy_es.html" : "/privacy.html"}>{t("footer.privacy")}</a>
+            <a className="ghost-link" href={language === "pt" ? "/terms_pt.html" : language === "es" ? "/terms_es.html" : "/terms.html"}>{t("footer.terms")}</a>
+            <a className="ghost-link" href={language === "pt" ? "/how_pt.html" : language === "es" ? "/how_es.html" : "/how.html"}>{t("footer.how")}</a>
             <a className="ghost-link" href="/coffee.html">{t("footer.coffee")}</a>
             {isAdminUser && <a className="ghost-link admin-link" href="/admin.html">{t("footer.admin")}</a>}
           </div>
           <div className="footer-meta">
-            <span className="footer-title">LOOP_V1.0.4</span>
+            <span className="footer-title">LOOP_V1.2.0-DEV</span>
           </div>
         </div>
       </footer>

@@ -34,9 +34,9 @@
 - [x] Account full copy
 - [x] City request modal
 - [x] Share-code modal
-- [ ] Alleycat run-panel deep copy
+- [x] Alleycat run-panel deep copy
 - [x] Loop/alleycat recovery messages in key modal and account flows
-- [ ] Static help/legal page translations
+- [x] Static help/legal page translations
 
 ## Validation
 
