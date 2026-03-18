@@ -1,0 +1,44 @@
+# Gimme The Loop - Workspace Rules
+
+## 🚨 CRITICAL PROTOCOLS (STREET CODE)
+
+All new designs, components, and graphical elements MUST be compared with the reference images in `/design` before shipping. If it doesn't vibe with the reference, it doesn't go live.
+
+### 1. Tone & Voice
+
+- Use street slang, local rider language. No formal/corporate talk.
+- **NO EMOJIS.** Use Lucide or Phosphor icons only.
+- DO NOT change copy (labels, headers, etc.) unless explicitly asked.
+
+### 2. Visual Foundation & Branding
+
+- **Dark Mode Only:** Main theme #1a1a1a.
+- **Strict Palette:** ALWAYS use CSS variables from `:root` (--bg, --accent, --text). DO NOT use custom hex codes outside the branded palette.
+- **NO ORANGE:** Do not use orange (#FF4F00) in any UI component.
+- **Unified Accent:** Use only one accent color (Blue Violet #645AD0) across the whole app.
+- **No Gradients:** Use solid blocks of color.
+- **Spacing:** Keep it premium. Add padding if it feels tight. Content needs to breathe.
+- **App Name Branding:** "GIMME THE LOOP" name must always be white (#FFFFFF). Remove all backgrounds (grey/translucent) from the brand name in the header and footer.
+
+### 3. Layout & Components
+
+- **Mobile-First:** Top navigation only (Logo left, Language/Burger right). Lower nav is deprecated.
+- **Buttons:** Sharp 4px corners. No rounded buttons. Not full width unless necessary.
+- **Hero Images:** Every page needs one. Text should sit in the lower area of the hero.
+- **No New Components:** Do not create new components unless a new architectural pattern is required and specifically requested.
+
+### 4. Technical Rules
+
+- Ensure all interactive elements have unique IDs for testing.
+- Follow existing patterns in `App.tsx` for state management and page rendering.
+- Keep components focused and reusable.
+
+### 5. DO NOT
+
+- ...use shadows on everything.
+- ...crowd the screen with buttons.
+- ...use generic blue/red colors.
+- ...hide the hero image with the menu overlay.
+- ...ADD ANY EMOJIS (Use icons only).
+- ...USE ORANGE ANYWHERE.
+- ...USE MULTIPLE ACCENT COLORS; stick to Blue Violet (#645AD0).

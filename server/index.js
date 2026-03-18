@@ -455,6 +455,42 @@ const recordModerationAction = async ({
   }).catch(() => null);
 };
 
+app.post("/api/admin/rider-list", requireAdmin, async (req, res) => {
+  try {
+    const { data: credits, error: creditsError } = await supabase
+      .from("user_credits")
+      .select("user_id, credits, free_used, updated_at")
+      .order("updated_at", { ascending: false });
+
+    if (creditsError) return res.status(500).json({ error: creditsError.message });
+
+    const { data: profiles, error: profilesError } = await supabase
+      .from("user_profiles")
+      .select("user_id, rider_name");
+
+    const { data: authData, error: authError } = await supabase.auth.admin.listUsers({
+      perPage: 1000,
+    });
+    if (authError) console.error("Admin rider-list auth error:", authError);
+
+    const emailMap = new Map((authData?.users || []).map((u) => [u.id, u.email]));
+    const nameMap = new Map((profiles || []).map((p) => [p.user_id, p.rider_name]));
+
+    const riders = (credits || []).map((c) => ({
+      user_id: c.user_id,
+      email: emailMap.get(c.user_id) || "unknown",
+      rider_name: nameMap.get(c.user_id) || "",
+      credits: c.credits || 0,
+      free_used: c.free_used || 0,
+      updated_at: c.updated_at,
+    }));
+
+    return res.json({ ok: true, riders });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 app.post("/api/admin/reset", requireAdmin, async (req, res) => {
   const { device_id, user_id } = req.body || {};
   if (user_id) {

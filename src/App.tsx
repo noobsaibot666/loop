@@ -2311,22 +2311,23 @@ function AppShell() {
           <div className="header-actions">
             {user && (
               <button
-                className="header-credit-link"
-                onClick={() => setShowCredits(true)}
-                title={t("footer.addCredit")}
-              >
-                <Plus size={16} />
-                <span className="credit-text">{t("footer.addCredit")}</span>
-              </button>
-            )}
-            {user ? (
-              <button
-                className="header-auth-link"
+                className={`nav-link profile-link ${pageView === 'account' ? 'active' : ''}`}
                 onClick={() => handleNavigate('account')}
               >
-                {t("nav.account")}
+                <User size={16} />
+                <span>{accountSummary?.profile?.rider_name || user.user_metadata?.full_name || user.email?.split('@')[0] || t("nav.account")}</span>
               </button>
-            ) : (
+            )}
+            {user && (
+              <button
+                className="header-credit-link"
+                onClick={() => setShowCredits(true)}
+                title={t("nav.addCredits")}
+              >
+                <span className="credit-text">+ Credit</span>
+              </button>
+            )}
+            {!user && (
               <button
                 className="header-auth-link"
                 onClick={() => setShowLogin(true)}
@@ -2368,15 +2369,7 @@ function AppShell() {
           {link.label}
         </button>
       ))}
-      {user && (
-        <button
-          className={`nav-link profile-link ${pageView === 'account' ? 'active' : ''}`}
-          onClick={() => handleNavigate('account')}
-        >
-          <User size={16} />
-          <span>{user.user_metadata?.full_name || user.email?.split('@')[0] || t("nav.account")}</span>
-        </button>
-      )}
+
     </nav>
   );
 
@@ -2393,7 +2386,7 @@ function AppShell() {
               )}
             </div>
             <div className="mobile-user-info">
-              <div className="mobile-user-name">{user.user_metadata?.full_name || user.email?.split('@')[0]}</div>
+              <div className="mobile-user-name">{accountSummary?.profile?.rider_name || user.user_metadata?.full_name || user.email?.split('@')[0]}</div>
               <div className="mobile-user-role">{t("account.member")}</div>
             </div>
           </div>

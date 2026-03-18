@@ -1,62 +1,35 @@
-# Loop Design System & Rules
+# Design Guidelines
 
-> [!IMPORTANT]
-> **STREET CODE:** All new designs, components, and graphical elements MUST be compared with the reference images in `/design` before shipping. If it doesn't vibe with the reference, it doesn't go live.
+## Color Palette
 
-## 1. The Vibe (Tone & Voice)
-We speak slang. We’re street, young, and free. We’re spicy but respect the game.
-- **Do:** Use contextual translations. Speak the local language of the rider.
-- **Don’t:** Be a robot. No formal/corporate talk. No emojis (use icons).
-- **Copy:** Keep it minimal. People are here for fun, not a manual. Headers should say everything; sub-headers are just backup.
+* **Primary Accent**: Blue Violet (`#645AD0`) - Use for typography, icons, and small accent details.
+* **No Orange**: Prohibition of orange (`#FF4F00`, `#F62B0A`, etc.) in all UI elements.
+* **Background**: Deep black/grey variants for dark mode aesthetic.
+* **Types**: White text color for high readability.
+* **App Name Background**: Do not use grey backgrounds (or any backgrounds) for the App name in the header/footer.
 
-## 2. Visual Foundation
-- **Dark Mode First:** The app is mainly dark with #1a1a1a (Darkest Hour) and dark grey touches.
-- **White Type:** High contrast white text for maximum readability on the street.
-- **No Gradients:** Keep it solid. Gradients are for rookies. We move in solid blocks of color.
-- **Breathing Space:** No crowded UI. If it feels tight, add padding. Content needs to breathe.
+## UI Consistency
 
-## 3. Typography & Hierarchy
-- **Contrast is King:** Use heavy weights for titles and lighter weights for data.
-- **Hierarchy:** 
-  1. Important numbers/stats (Big, Bold, Accent Color).
-  2. Main labels (Medium, White).
-  3. Support text (Small, Dark Grey).
-- No overlayed text on images unless there's a clear backdrop or the image is darkened.
+* **No Emojis**: Do not use emojis anywhere in the application.
+* **Component Usage**: Do not create new components or change copy unless explicitly asked.
+* **Numbered Steps**: Use numbered labels (e.g., "01", "02") instead of icons in builder step cards.
+* **Unified Builders**: Standardize layout and pacing across all builders (Messenger, Loop, Night Ride).
+* **Image Handling**: Image uploads (e.g., Night Ride) strictly use a 16:9 aspect ratio. frames are not used.
+* **Unit Centering**: Units like "km" and "mi" in builders should be centered.
+* **Side-by-side Inputs**: Parameters like crew name and city should be displayed side-by-side.
 
-## 4. Accent Colors by Difficulty
-Each section gets its own flavor. Use accents sparingly—only for the important stuff.
-- **LOOP (Easy):** Sun Glare (#E1FF00)
-- **NIGHT RIDE (Medium):** Exuberant Orange (#FF4F00)
-- **ALLEYCAT (Hard):** Blue Violet (#645AD0)
-- **Standard:** Cloud Dancer (#F0EDE5) for general UI elements.
-- **Builder:** All chosen options must be highlighted with the respective section accent color.
+## Footer and Branding
 
-## 5. Mobile-First Layout
-- **No Bottom Nav:** The lower navigation is DEAD. Move everything to the top.
-- **Top Bar:** Minimalist. App name on the LEFT. Language and Burger Menu on the TOP RIGHT.
-- **Hero Images:** Every page MUST have one. Keep the top of the image clean. Text always sits in the lower part of the hero.
-- **Breathing Space:** Don't let content fill the whole width (especially large buttons). Use white space. Premium = Briefing areas, not messy width-filling components.
-- **Cards:** Clean columns/rows. No user profile pictures needed.
-  - **Quick Read:** Credits and Usage cards must be minimal and graphical.
-  - **Header Focus:** Short text, quick read. Header is the priority.
+* **Footer Content**: Use a robust, inline layout with all navigation links (Home, Alleycat, Loop, Night, Leaderboard, Wall, Cities).
+* **Branding**: All project branding (e.g., "GIMME THE LOOP") must be in **white color**.
+* **Name Integrity**: ALWAYS use "Gimme The Loop" (V1.2.0).
 
-## 6. Interaction & Components
-- **Burger Menu:** Must animate smoothly over the page content. Includes all page links + User Profile entry.
-- **Admin Access:** Hide the Admin link from the public menu. Only insiders know how to hit it.
-- **Animations:** Fluid page transitions, smooth loading, and cool/smooth scroll animations.
-- **Sliders:** Comfortable touch distance for mobile. Surface smooth interaction.
-- **Input Fields:** Taller for text types (better tap target/reach).
-- **Icons Only:** Stop using emojis. Use `lucide-react` or `phosphor-icons`. Keep them minimal.
-- **Buttons:** Sharp 4px corners. Not full width if it crowds the space.
+## Buttons
 
-## 7. Image Standard (Ratios)
-- **Night Ride Crews:** 16:9 ratio.
-- **Wall of Fame:** 1:1 (Square) or 3:4 ratio. Must be distinct from crews gallery.
+* **No Accent Backgrounds**: Never use the accent color as a button background; only use it for the button text.
 
----
-### DO NOT...
-- ...use shadows on everything.
-- ...overlay graphics on top of text.
-- ...crowd the screen with buttons.
-- ...use generic blue/red colors.
-- ...hide the hero image with the menu overlay.
+## General Rules
+
+* Don't use non-branded colors.
+* Maintain a clean, industrial and premium vibe across all pages.
+* No orange color in the app.

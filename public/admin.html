@@ -1022,7 +1022,7 @@
     </section>
 
     <section class="card" id="controlsPanel" data-section="ops" style="display:none;">
-      <div class="eyebrow">Credits and resets</div>
+      <div class="eyebrow">Credits and resets (manual entry)</div>
       <div class="stack">
         <input id="userId" type="text" placeholder="Supabase user id" />
         <input id="device" type="text" placeholder="loop_device_id fallback" />
@@ -1036,6 +1036,11 @@
           <button id="setCredits">Set credits</button>
         </div>
       </div>
+    </section>
+
+    <section class="card" id="ridersPanel" data-section="ops" style="display:none;">
+      <div class="eyebrow">Rider List</div>
+      <div class="sessions" id="ridersList"></div>
     </section>
 
     <section class="card" id="sessionsPanel" data-section="overview" style="display:none;">
@@ -1510,6 +1515,75 @@
         return sb;
       };
 
+      const loadRiders = async () => {
+        const ridersList = document.getElementById('ridersList');
+        ridersList.innerHTML = '<div class="label">Loading riders...</div>';
+        try {
+          const data = await post('/api/admin/rider-list', {});
+          const riders = data.riders || [];
+          ridersList.innerHTML = '';
+          if (!riders.length) {
+            ridersList.innerHTML = '<div class="label">No riders found.</div>';
+            return;
+          }
+          riders.forEach((rider) => {
+            const row = document.createElement('div');
+            row.className = 'session';
+            row.innerHTML = `
+              <div style="flex: 1;">
+                <strong>${rider.rider_name || rider.email}</strong>
+                <span class="mini-note">${rider.user_id}</span>
+                <div class="mini-chip-row">
+                  <span class="mini-chip active">${rider.credits} credits</span>
+                  <span class="mini-chip">${rider.free_used} used</span>
+                  <span class="mini-chip">${new Date(rider.updated_at).toLocaleDateString()}</span>
+                </div>
+              </div>
+              <div class="proof-actions">
+                <button class="secondary" data-action="reset">Reset usage</button>
+                <button class="secondary" data-action="set">Update</button>
+              </div>
+            `;
+            row.querySelector('[data-action="reset"]').onclick = async () => {
+              const confirm = window.confirm(`Reset usage for ${rider.rider_name || rider.email}? Credits will be preserved but usage count goes to 0.`);
+              if (!confirm) return;
+              statusEl.textContent = 'Resetting user...';
+              try {
+                // To reset usage but keep credits, we actually use set-credits with free_used=0
+                await post('/api/admin/set-credits', {
+                  user_id: rider.user_id,
+                  free_used: 0,
+                  credits: rider.credits
+                });
+                statusEl.textContent = 'User reset.';
+                await loadRiders();
+              } catch (e) {
+                statusEl.textContent = e.message;
+              }
+            };
+            row.querySelector('[data-action="set"]').onclick = async () => {
+              const newCredits = window.prompt(`New credit balance for ${rider.rider_name || rider.email}:`, rider.credits);
+              if (newCredits === null) return;
+              statusEl.textContent = 'Updating credits...';
+              try {
+                await post('/api/admin/set-credits', {
+                  user_id: rider.user_id,
+                  free_used: rider.free_used,
+                  credits: Number(newCredits)
+                });
+                statusEl.textContent = 'Credits updated.';
+                await loadRiders();
+              } catch (e) {
+                statusEl.textContent = e.message;
+              }
+            };
+            ridersList.appendChild(row);
+          });
+        } catch (error) {
+          ridersList.innerHTML = `<div class="label danger">${error.message}</div>`;
+        }
+      };
+
       const applySection = (section) => {
         activeSection = section;
         localStorage.setItem('loop_admin_section', section);
@@ -1519,6 +1593,7 @@
         document.querySelectorAll('.section-chip').forEach((button) => {
           button.classList.toggle('active', button.dataset.section === section);
         });
+        if (section === 'ops') loadRiders();
       };
 
       const formatModerationAction = (action) =>
@@ -2260,6 +2335,7 @@
               `;
             sessionsList.appendChild(row);
           });
+          await loadRiders();
           await loadProofs();
           if (!overview.quarter?.leaders?.length) {
             quarterLeaders.innerHTML = '<div class="label">No ranked riders yet.</div>';
