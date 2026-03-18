@@ -90,7 +90,7 @@ const NightRidePage = ({
   onPostCreated,
   heroImage,
 }: Props) => {
-  const [sessionType, setSessionType] = useState<"single" | "crew">("single");
+  const [sessionType, setSessionType] = useState<"single" | "crew">("crew");
   const [mode, setMode] = useState<"loop" | "roulette">("loop");
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("medium");
   const [unit, setUnit] = useState<"km" | "mi">("km");
@@ -366,17 +366,7 @@ const NightRidePage = ({
             </div>
 
             <div className="form-section section-block">
-              <label className="field range-field">
-                <span>Ride type</span>
-                <div className="pill-group range-unit-toggle">
-                  <button className={`pill ${sessionType === "single" ? "active" : ""}`} type="button" onClick={() => setSessionType("single")}>
-                    Single
-                  </button>
-                  <button className={`pill ${sessionType === "crew" ? "active" : ""}`} type="button" onClick={() => setSessionType("crew")}>
-                    Crew
-                  </button>
-                </div>
-              </label>
+
 
               <label className="field range-field">
                 <span>Route mode</span>

@@ -2324,7 +2324,8 @@ function AppShell() {
                 onClick={() => setShowCredits(true)}
                 title={t("nav.addCredits")}
               >
-                <span className="credit-text">+ Credit</span>
+                <Plus size={14} />
+                <span className="credit-text">{t("nav.addCreditsShort")}</span>
               </button>
             )}
             {!user && (
@@ -2524,6 +2525,12 @@ function AppShell() {
         subtitle={t("hero.subtitle")}
         image={homeHero}
         actions={null}
+        badge={
+          <div className="hero-badge-pill">
+            <span className="badge-tag">{t("cities.newCity")}</span>
+            <span className="badge-label">Guarulhos</span>
+          </div>
+        }
       />
 
       <section className="modular-grid reveals">

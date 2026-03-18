@@ -75,6 +75,22 @@ export default function CitiesPage({
             <section className="builder-grid single reveals">
               <div className="glass-card form-card city-editorial-section">
                 <div className="wall-editorial-grid city-editorial-grid">
+                  <div className="wall-editorial-card city-editorial-card editorial-growth">
+                    <div className="editorial-eyebrow">
+                      <Zap size={14} className="text-accent" />
+                      <span className="winner-label">{t("cities.growthReport")}</span>
+                    </div>
+                    <div className="growth-list">
+                      <div className="growth-item">
+                        <strong>Guarulhos</strong>
+                        <span className="mini-chip active">{t("cities.newCity")}</span>
+                      </div>
+                      <div className="growth-item">
+                        <strong>São Paulo</strong>
+                        <span className="mini-chip">{t("cities.expanded")}</span>
+                      </div>
+                    </div>
+                  </div>
                   {leadLane && (
                     <div className="wall-editorial-card city-editorial-card editorial-hub">
                       <div className="editorial-eyebrow">
