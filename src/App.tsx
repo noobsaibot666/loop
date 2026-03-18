@@ -1,11 +1,24 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from "react";
 import { createClient } from "@supabase/supabase-js";
-import heroImage from "./images/hero_6.jpg";
-import alleycatImage from "./images/hero_4.jpg";
+import homeHero from "./images/hero_27.png";
+import alleycatHero from "./images/hero_26.png";
+import loopHero from "./images/hero_9.png";
+import accountHero from "./images/hero_12.png";
+import nightRideHero from "./images/hero_18.png";
+import wallHero from "./images/hero_12.png";
+import citiesHero from "./images/hero_19.png";
+import leaderboardHero from "./images/hero_6.png";
+import riderHero from "./images/hero_13.png";
 
 import Hero from "./components/Hero";
 import { I18nProvider, useI18n } from "./i18n";
 import { formatDuration, getPageView, getRiderIdFromPath } from "./utils/routeUtils";
+import {
+  Menu, X, Globe, User, LogOut, ChevronRight,
+  Map as MapIcon, Zap, Moon, LayoutGrid, Trophy,
+  MapPin, Plus, ArrowRight, Settings, History,
+  Layout, Briefcase, Info, Mail
+} from "lucide-react";
 
 const WallPage = lazy(() => import("./components/pages/WallPage"));
 const LeaderboardPage = lazy(() => import("./components/pages/LeaderboardPage"));
@@ -445,7 +458,7 @@ function AppShell() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeStep, setActiveStep] = useState(-1);
   const [deviceId, setDeviceId] = useState("");
-  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
+  const [user, setUser] = useState<any | null>(null);
   const [accessToken, setAccessToken] = useState("");
   const [usage, setUsage] = useState<Usage | null>(null);
   const [authMessage, setAuthMessage] = useState("");
@@ -1422,17 +1435,17 @@ function AppShell() {
           ? "/messenger"
           : target === "night"
             ? "/night"
-          : target === "cities"
-            ? "/cities"
-          : target === "account"
-            ? "/account"
-            : target === "wall"
-              ? "/wall"
-              : target === "leaderboard"
-                ? "/leaderboard"
-              : target === "rider"
-                ? "/rider"
-              : "/";
+            : target === "cities"
+              ? "/cities"
+              : target === "account"
+                ? "/account"
+                : target === "wall"
+                  ? "/wall"
+                  : target === "leaderboard"
+                    ? "/leaderboard"
+                    : target === "rider"
+                      ? "/rider"
+                      : "/";
     window.history.pushState({}, "", path);
     setPageView(target);
     setMenuOpen(false);
@@ -1717,7 +1730,6 @@ function AppShell() {
   const messengerMinRange = messengerUnit === "km" ? 1 : 1;
   const messengerMaxRange = messengerUnit === "km" ? 20 : 12;
   const messengerRangePercent = ((messengerRange - messengerMinRange) / (messengerMaxRange - messengerMinRange)) * 100;
-  const messengerRangeAccent = `hsl(${Math.max(0, 18 - messengerRangePercent * 0.18)} 100% 50%)`;
 
   const requireLogin = (message: string) => {
     openAuth("login", message);
@@ -2003,10 +2015,10 @@ function AppShell() {
           setMessengerRun((current) =>
             current
               ? {
-                  ...current,
-                  completedIds: data.run?.completed_ids || current.completedIds,
-                  proofs: data.proofs || current.proofs || [],
-                }
+                ...current,
+                completedIds: data.run?.completed_ids || current.completedIds,
+                proofs: data.proofs || current.proofs || [],
+              }
               : current
           );
         } catch {
@@ -2287,141 +2299,156 @@ function AppShell() {
   );
 
   const renderHeader = () => (
-    <header className={`site-header ${user ? "user-logged" : ""}`}>
-      <div className={`nav-container ${menuOpen ? "menu-open" : ""} ${user ? "user-logged" : ""}`}>
-        {/* Corner Accents */}
-        <div className="nav-viewfinder">
-          <div className="corner top-left" />
-          <div className="corner top-right" />
-          <div className="corner bottom-left" />
-          <div className="corner bottom-right" />
-        </div>
-
-        <div className="nav-left">
-          <div className="brand" onClick={() => handleNavigate('home')}>
-            <div className="brand-mark" />
-            <div className="brand-text">
-              <div className="brand-title">GIMME THE LOOP</div>
-            </div>
-          </div>
-          <nav className="header-nav">
-            <button className={`nav-link ${pageView === 'home' ? 'active' : ''}`} onClick={() => handleNavigate('home')}>{t("nav.home")}</button>
-            <button className={`nav-link ${pageView === 'loop' ? 'active' : ''}`} onClick={() => handleNavigate('loop')}>{t("nav.loop")}</button>
-            <button className={`nav-link ${pageView === 'messenger' ? 'active' : ''}`} onClick={() => handleNavigate('messenger')}>{t("nav.alleycat")}</button>
-            <button className={`nav-link ${pageView === 'night' ? 'active' : ''}`} onClick={() => handleNavigate('night')}>{t("nav.night")}</button>
-            <button className={`nav-link ${pageView === 'wall' ? 'active' : ''}`} onClick={() => handleNavigate('wall')}>{t("nav.wall")}</button>
-            <button className={`nav-link ${pageView === 'leaderboard' ? 'active' : ''}`} onClick={() => handleNavigate('leaderboard')}>{t("nav.leaderboard")}</button>
-            <button className={`nav-link ${pageView === 'cities' ? 'active' : ''}`} onClick={() => handleNavigate('cities')}>{t("nav.cities")}</button>
-          </nav>
-        </div>
-
-        <div className="nav-right">
-          {renderLanguageSwitcher()}
-          {user ? (
-            <>
-              <button className="nav-link" onClick={() => handleNavigate('account')}>{t("nav.account")}</button>
-              <button className="ghost-button small" onClick={handleDonate}>{t("nav.addCredits")}</button>
-              <button className="nav-link header-signout-link" onClick={() => handleLogout()} aria-label={t("nav.out")}>
-                <span className="header-signout-icon" aria-hidden="true">↗</span>
-                <span>{t("nav.out")}</span>
-              </button>
-            </>
-          ) : (
-            <>
-              <button className="nav-link" onClick={() => openAuth("login")}>{t("nav.logIn")}</button>
-              <button className="primary-button small" onClick={() => openAuth("signup")}>{t("nav.getStarted")}</button>
-            </>
-          )}
-        </div>
-
-        <button
-          className={`menu-toggle ${menuOpen ? "active" : ""}`}
-          type="button"
-          onClick={() => setMenuOpen((prev) => !prev)}
-          aria-expanded={menuOpen}
-          aria-label={t("nav.menu")}
-        >
-          <div className="burger-icon">
-            <span />
-            <span />
-            <span />
-          </div>
+    <header className="site-header">
+      <div className="nav-container">
+        <button className="brand" onClick={() => handleNavigate('home')}>
+          <span className="brand-title">GIMME THE LOOP</span>
         </button>
 
-        {/* Mobile Header Actions (Placeholder for future quick-actions if needed) */}
-        <div className="mobile-header-actions">
-        </div>
+        {renderDesktopNav()}
 
-        <div className={`mobile-nav-sheet ${menuOpen ? "open" : ""}`}>
-          <div className="mobile-nav-top">
-            <div className="mobile-nav-brand">
-              <div className="brand-markSmall" />
-              <span>{t("nav.menu")}</span>
-            </div>
-            {renderLanguageSwitcher()}
-          </div>
-          
-          <div className="mobile-nav-links">
-            <button className={`nav-link ${pageView === 'home' ? 'active' : ''}`} onClick={() => handleNavigate('home')}>{t("nav.home")}</button>
-            <button className={`nav-link ${pageView === 'messenger' ? 'active' : ''}`} onClick={() => handleNavigate('messenger')}>{t("nav.alleycat")}</button>
-            <button className={`nav-link ${pageView === 'loop' ? 'active' : ''}`} onClick={() => handleNavigate('loop')}>{t("nav.loop")}</button>
-            <button className={`nav-link ${pageView === 'night' ? 'active' : ''}`} onClick={() => handleNavigate('night')}>{t("nav.night")}</button>
-            <button className={`nav-link ${pageView === 'wall' ? 'active' : ''}`} onClick={() => handleNavigate('wall')}>{t("nav.wallShort")}</button>
-            <button className={`nav-link ${pageView === 'leaderboard' ? 'active' : ''}`} onClick={() => handleNavigate('leaderboard')}>{t("nav.leaderboard")}</button>
-            <button className={`nav-link ${pageView === 'cities' ? 'active' : ''}`} onClick={() => handleNavigate('cities')}>{t("nav.cities")}</button>
-            <button className={`nav-link ${pageView === 'account' ? 'active' : ''}`} onClick={() => handleNavigate('account')}>{t("nav.accountShort")}</button>
-          </div>
-          
-          <div className="mobile-nav-actions">
-            {user ? (
-              <>
-                <div className="mobile-user-brief">
-                  <div className="user-email-tiny">{user.email}</div>
-                  <div className="user-credits-tiny">{totalCredits} credits</div>
-                </div>
-                <button className="ghost-button small" onClick={handleDonate}>{t("nav.addCredits")}</button>
-                <button className="primary-button small logout-button" onClick={handleLogout}>{t("nav.out")}</button>
-              </>
-            ) : (
-              <>
-                <button className="primary-button small" onClick={() => openAuth("signup")}>{t("nav.getStartedShort")}</button>
-                <button className="ghost-button small" onClick={() => openAuth("login")}>{t("nav.logIn")}</button>
-              </>
+        <div className="nav-right">
+          <div className="header-actions">
+            {user && (
+              <button
+                className="header-credit-link"
+                onClick={() => setShowCredits(true)}
+                title={t("footer.addCredit")}
+              >
+                <Plus size={16} />
+                <span className="credit-text">{t("footer.addCredit")}</span>
+              </button>
             )}
+            {user ? (
+              <button
+                className="header-auth-link"
+                onClick={() => handleNavigate('account')}
+              >
+                {t("nav.account")}
+              </button>
+            ) : (
+              <button
+                className="header-auth-link"
+                onClick={() => setShowLogin(true)}
+              >
+                {t("nav.logIn")}
+              </button>
+            )}
+            {renderLanguageSwitcher()}
+            <button
+              className={`menu-toggle ${menuOpen ? "active" : ""}`}
+              type="button"
+              onClick={() => setMenuOpen((prev) => !prev)}
+              aria-label="Toggle Menu"
+            >
+              {menuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
           </div>
         </div>
       </div>
-    </header >
+    </header>
   );
 
-  const renderMobileDock = () => (
-    <nav className={`mobile-quickbar ${!user ? "guest" : ""}`} aria-label="Quick navigation">
-      <button className={`quickbar-link ${pageView === "home" ? "active" : ""}`} type="button" onClick={() => handleNavigate("home")}>
-        <span>{t("nav.home")}</span>
-      </button>
-      <button className={`quickbar-link ${pageView === "messenger" ? "active" : ""}`} type="button" onClick={() => handleNavigate("messenger")}>
-        <span>{t("nav.alleycat")}</span>
-      </button>
-      <button className={`quickbar-link ${pageView === "loop" ? "active" : ""}`} type="button" onClick={() => handleNavigate("loop")}>
-        <span>{t("nav.loop")}</span>
-      </button>
-      <button className={`quickbar-link ${pageView === "night" ? "active" : ""}`} type="button" onClick={() => handleNavigate("night")}>
-        <span>{t("nav.night")}</span>
-      </button>
-      <button className={`quickbar-link ${pageView === "wall" ? "active" : ""}`} type="button" onClick={() => handleNavigate("wall")}>
-        <span>{t("nav.wallShort")}</span>
-      </button>
+  const renderDesktopNav = () => (
+    <nav className="header-nav">
+      {[
+        { id: 'home', label: t("nav.home") },
+        { id: 'messenger', label: t("nav.alleycat") },
+        { id: 'loop', label: t("nav.loop") },
+        { id: 'night', label: t("nav.night") },
+        { id: 'leaderboard', label: t("nav.leaderboard") },
+        { id: 'wall', label: t("nav.wallShort") },
+        { id: 'cities', label: t("nav.cities") },
+      ].map(link => (
+        <button
+          key={link.id}
+          className={`nav-link ${pageView === link.id ? 'active' : ''}`}
+          onClick={() => handleNavigate(link.id as any)}
+        >
+          {link.label}
+        </button>
+      ))}
       {user && (
         <button
-          className={`quickbar-link ${pageView === "account" ? "active" : ""}`}
-          type="button"
-          onClick={() => handleNavigate("account")}
+          className={`nav-link profile-link ${pageView === 'account' ? 'active' : ''}`}
+          onClick={() => handleNavigate('account')}
         >
-          <span>{t("dock.me")}</span>
+          <User size={16} />
+          <span>{user.user_metadata?.full_name || user.email?.split('@')[0] || t("nav.account")}</span>
         </button>
       )}
     </nav>
   );
+
+  const renderMobileNav = () => (
+    <div className={`mobile-nav-sheet ${menuOpen ? "open" : ""}`} onClick={() => setMenuOpen(false)}>
+      <div className="mobile-nav-content" onClick={(e) => e.stopPropagation()}>
+        {user && (
+          <div className="mobile-nav-user-header">
+            <div className="mobile-user-avatar">
+              {user.user_metadata?.avatar_url ? (
+                <img src={user.user_metadata.avatar_url} alt="" />
+              ) : (
+                <div className="avatar-placeholder">{user.email?.[0].toUpperCase()}</div>
+              )}
+            </div>
+            <div className="mobile-user-info">
+              <div className="mobile-user-name">{user.user_metadata?.full_name || user.email?.split('@')[0]}</div>
+              <div className="mobile-user-role">{t("account.member")}</div>
+            </div>
+          </div>
+        )}
+
+        <div className="mobile-nav-links">
+          {[
+            { id: 'home', label: t("nav.home"), icon: <LayoutGrid size={20} /> },
+            { id: 'messenger', label: t("nav.alleycat"), icon: <Zap size={20} /> },
+            { id: 'loop', label: t("nav.loop"), icon: <MapIcon size={20} /> },
+            { id: 'night', label: t("nav.night"), icon: <Moon size={20} /> },
+            { id: 'leaderboard', label: t("nav.leaderboard"), icon: <Trophy size={20} /> },
+            { id: 'wall', label: t("nav.wallShort"), icon: <Layout size={20} /> },
+            { id: 'cities', label: t("nav.cities"), icon: <MapPin size={20} /> },
+          ].map(link => (
+            <button
+              key={link.id}
+              className={`mobile-nav-link ${pageView === link.id ? 'active' : ''}`}
+              onClick={() => { handleNavigate(link.id as any); setMenuOpen(false); }}
+            >
+              <span className="link-icon">{link.icon}</span>
+              <span className="link-label">{link.label}</span>
+              <ChevronRight size={16} className="link-arrow" />
+            </button>
+          ))}
+        </div>
+
+        <div className="mobile-nav-footer">
+          {user ? (
+            <div className="mobile-account-actions">
+              <button className="secondary-button full-width" onClick={() => { handleNavigate('account'); setMenuOpen(false); }}>
+                <User size={18} />
+                <span>{t("nav.account")}</span>
+              </button>
+              <button className="ghost-button full-width" onClick={handleLogout}>
+                <LogOut size={18} />
+                <span>{t("account.auth.logout")}</span>
+              </button>
+            </div>
+          ) : (
+            <div className="mobile-auth-actions">
+              <button className="primary-button full-width" onClick={() => { openAuth('login'); setMenuOpen(false); }}>
+                {t("account.guest.signIn")}
+              </button>
+              <button className="ghost-button full-width" onClick={() => { openAuth('signup'); setMenuOpen(false); }}>
+                {t("account.guest.create")}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderMobileDock = () => null;
 
   const renderSectionHeader = (title: string, subtitle: string) => (
     <div className="technical-section-header">
@@ -2498,8 +2525,13 @@ function AppShell() {
   };
 
   const renderHome = () => (
-    <div className="sequential-layout">
-      <Hero />
+    <div className="sequential-layout page-home page-stage-enter">
+      <Hero
+        title={t("hero.title")}
+        subtitle={t("hero.subtitle")}
+        image={homeHero}
+        actions={null}
+      />
 
       <section className="modular-grid reveals">
         <div className="modular-cell modular-cell-featured">
@@ -2516,7 +2548,7 @@ function AppShell() {
         </div>
       </section>
 
-      <section className="modular-grid reveals home-lower-grid">
+      <section className="modular-grid reveals home-lower-grid reveals">
         <div className="modular-cell modular-cell-night">
           <h3 className="cell-title">{t("home.night.title")}</h3>
           <p className="cell-body">{t("home.night.body")}</p>
@@ -2524,19 +2556,20 @@ function AppShell() {
             {t("home.night.action")}
           </button>
         </div>
-        <div className="modular-cell modular-cell-community home-construction-card">
-          <div className="section-eyebrow section-eyebrow-accent">{t("home.community.pill")}</div>
-          <h3 className="cell-title">{t("home.community.header")}</h3>
+
+        <div className="modular-cell">
+          <h3 className="cell-title">{t("home.community.title")}</h3>
+          <p className="cell-body">{t("home.community.header")}</p>
           <div className="home-community-list">
-            <span>{t("home.community.line1")}</span>
-            <span>{t("home.community.line2")}</span>
-            <span>{t("home.community.line3")}</span>
-            <span>{t("home.community.line4")}</span>
+            <span>• {t("home.community.line1")}</span>
+            <span>• {t("home.community.line2")}</span>
+            <span>• {t("home.community.line3")}</span>
           </div>
-          <a className="ghost-button small home-card-button" href="/membership.html">
+          <button className="ghost-button small home-card-button" onClick={() => window.open('https://discord.gg/hardchain', '_blank')}>
             {t("home.community.action")}
-          </a>
+          </button>
         </div>
+
       </section>
     </div>
   );
@@ -2545,8 +2578,8 @@ function AppShell() {
     <>
       {showLogin && (
         <div className="modal-overlay" role="dialog" aria-modal="true">
-            <div className="modal-card">
-              <div className="modal-title">{authMode === "signup" ? t("account.guest.create") : t("account.guest.signIn")}</div>
+          <div className="modal-card">
+            <div className="modal-title">{authMode === "signup" ? t("account.guest.create") : t("account.guest.signIn")}</div>
             <div className="modal-subtitle">{t("account.auth.subtitle")}</div>
             <div className="auth-mode-switch">
               <button
@@ -2578,7 +2611,7 @@ function AppShell() {
                   enterKeyHint="next"
                 />
               </label>
-              <label className="field">
+              <div className="field">
                 <span>{t("account.auth.password")}</span>
                 <input
                   type="password"
@@ -2588,17 +2621,19 @@ function AppShell() {
                   autoComplete={authMode === "signup" ? "new-password" : "current-password"}
                   enterKeyHint="go"
                 />
-              </label>
+                {authMode === "login" && (
+                  <div className="field-footer">
+                    <button className="field-link" type="button" onClick={handlePasswordReset} disabled={isSendingReset}>
+                      {isSendingReset ? t("common.sending") : t("account.auth.resetPassword")}
+                    </button>
+                  </div>
+                )}
+              </div>
               {renderStatusBanner(authMessage, true)}
-              <div className="modal-actions">
+              <div className="modal-actions-row">
                 <button className="ghost-button" type="button" onClick={() => setShowLogin(false)}>
                   {t("common.cancel")}
                 </button>
-                {authMode === "login" && (
-                  <button className="ghost-button" type="button" onClick={handlePasswordReset} disabled={isSendingReset}>
-                    {isSendingReset ? t("common.sending") : t("account.auth.resetPassword")}
-                  </button>
-                )}
                 <button className="primary-button" type="submit" disabled={authLoading}>
                   {authLoading ? t("common.working") : authMode === "signup" ? t("account.guest.create") : t("account.guest.signIn")}
                 </button>
@@ -2738,11 +2773,25 @@ function AppShell() {
   );
 
   const renderAccount = () => (
-    <div className="sequential-layout sub-page">
-      <section className="sub-page-header">
-        <h1 className="sub-page-title">{t("account.title")}</h1>
-        <p className="sub-page-description">{user ? t("account.subtitleAuthed", { greeting: accountGreeting }) : t("account.subtitleGuest")}</p>
-      </section>
+    <div className="sequential-layout sub-page page-account page-stage-enter">
+      <Hero
+        title={t("account.title")}
+        subtitle={user ? t("account.subtitleAuthed", { greeting: accountGreeting }) : t("account.subtitleGuest")}
+        image={accountHero}
+        actions={
+          !user ? (
+            <button className="primary-button" onClick={() => openAuth("login")}>
+              <User size={18} />
+              <span>{t("account.guest.signIn")}</span>
+            </button>
+          ) : (
+            <button className="ghost-button" onClick={handleLogout}>
+              <LogOut size={18} />
+              <span>{t("nav.out")}</span>
+            </button>
+          )
+        }
+      />
 
       {!user && (
         <div className="builder-grid single">
@@ -2822,494 +2871,512 @@ function AppShell() {
 
           <div className="builder-grid account-grid">
             <div className="glass-card form-card account-summary-card" id="account-profile">
-            <div className="form-title">{t("account.profile.title")}</div>
-            <div className="form-subtitle">{t("account.profile.subtitle")}</div>
-            <div className="section-jump-strip">
-              <a className="mini-chip active" href="#account-profile">{t("account.jump.setup")}</a>
-              <a className="mini-chip" href="#account-credits">{t("account.jump.credits")}</a>
-              <a className="mini-chip" href="#account-activity">{t("account.jump.stats")}</a>
-              <a className="mini-chip" href="#account-history">{t("account.jump.history")}</a>
-            </div>
-            {renderStatusBanner(authMessage, true)}
-            {renderStatusBanner(accountStatus, true)}
-            <div className="user-row">
-              <div className="user-label">{t("account.profile.email")}</div>
-              <div className="user-value">{user.email || t("account.profile.noEmail")}</div>
-            </div>
+              <div className="form-title">{t("account.profile.title")}</div>
+              <div className="form-subtitle">{t("account.profile.subtitle")}</div>
+              <div className="section-jump-strip">
+                <a className="mini-chip active" href="#account-profile">{t("account.jump.setup")}</a>
+                <a className="mini-chip" href="#account-credits">{t("account.jump.credits")}</a>
+                <a className="mini-chip" href="#account-activity">{t("account.jump.stats")}</a>
+                <a className="mini-chip" href="#account-history">{t("account.jump.history")}</a>
+              </div>
+              {renderStatusBanner(authMessage, true)}
+              {renderStatusBanner(accountStatus, true)}
+              <div className="user-row">
+                <div className="user-label">{t("account.profile.email")}</div>
+                <div className="user-value">{user.email || t("account.profile.noEmail")}</div>
+              </div>
 
-            <div className="profile-grid">
+              <div className="profile-grid">
+                <label className="field">
+                  <span>{t("account.profile.riderName")}</span>
+                  <input
+                    type="text"
+                    value={accountRiderName}
+                    onChange={(event) => setAccountRiderName(event.target.value)}
+                    placeholder={t("account.profile.riderNamePlaceholder")}
+                    autoComplete="nickname"
+                    enterKeyHint="next"
+                  />
+                </label>
+                <label className="field">
+                  <span>{t("account.profile.homeLocation")}</span>
+                  <input
+                    type="text"
+                    value={accountHomeLocation}
+                    onChange={(event) => setAccountHomeLocation(event.target.value)}
+                    placeholder={t("account.profile.homeLocationPlaceholder")}
+                    autoComplete="address-level2"
+                    enterKeyHint="next"
+                  />
+                </label>
+                <label className="field">
+                  <span>{t("account.profile.bikeName")}</span>
+                  <input
+                    type="text"
+                    value={accountBikeName}
+                    onChange={(event) => setAccountBikeName(event.target.value)}
+                    placeholder={t("account.profile.bikeNamePlaceholder")}
+                    enterKeyHint="next"
+                  />
+                </label>
+                <label className="field">
+                  <span>{t("account.profile.bikeRatio")}</span>
+                  <input
+                    type="text"
+                    value={accountBikeRatio}
+                    onChange={(event) => setAccountBikeRatio(event.target.value)}
+                    placeholder={t("account.profile.bikeRatioPlaceholder")}
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    enterKeyHint="done"
+                  />
+                </label>
+              </div>
+
+              <div className="form-actions">
+                <button className="primary-button" type="button" onClick={handleProfileSave} disabled={isSavingProfile}>
+                  {isSavingProfile ? t("account.profile.saving") : t("account.profile.save")}
+                </button>
+              </div>
+              <div className="helper-note">
+                {t("account.profile.helper")}
+              </div>
+
               <label className="field">
-                <span>{t("account.profile.riderName")}</span>
+                <span>{t("account.profile.changePassword")}</span>
                 <input
-                  type="text"
-                  value={accountRiderName}
-                  onChange={(event) => setAccountRiderName(event.target.value)}
-                  placeholder={t("account.profile.riderNamePlaceholder")}
-                  autoComplete="nickname"
-                  enterKeyHint="next"
-                />
-              </label>
-              <label className="field">
-                <span>{t("account.profile.homeLocation")}</span>
-                <input
-                  type="text"
-                  value={accountHomeLocation}
-                  onChange={(event) => setAccountHomeLocation(event.target.value)}
-                  placeholder={t("account.profile.homeLocationPlaceholder")}
-                  autoComplete="address-level2"
-                  enterKeyHint="next"
-                />
-              </label>
-              <label className="field">
-                <span>{t("account.profile.bikeName")}</span>
-                <input
-                  type="text"
-                  value={accountBikeName}
-                  onChange={(event) => setAccountBikeName(event.target.value)}
-                  placeholder={t("account.profile.bikeNamePlaceholder")}
-                  enterKeyHint="next"
-                />
-              </label>
-              <label className="field">
-                <span>{t("account.profile.bikeRatio")}</span>
-                <input
-                  type="text"
-                  value={accountBikeRatio}
-                  onChange={(event) => setAccountBikeRatio(event.target.value)}
-                  placeholder={t("account.profile.bikeRatioPlaceholder")}
-                  autoCapitalize="off"
-                  autoCorrect="off"
-                  spellCheck={false}
+                  type="password"
+                  value={accountPassword}
+                  onChange={(event) => setAccountPassword(event.target.value)}
+                  placeholder={t("account.profile.newPasswordPlaceholder")}
+                  autoComplete="new-password"
                   enterKeyHint="done"
                 />
               </label>
-            </div>
-
-            <div className="form-actions">
-              <button className="primary-button" type="button" onClick={handleProfileSave} disabled={isSavingProfile}>
-                {isSavingProfile ? t("account.profile.saving") : t("account.profile.save")}
-              </button>
-            </div>
-            <div className="helper-note">
-              {t("account.profile.helper")}
-            </div>
-
-            <label className="field">
-              <span>{t("account.profile.changePassword")}</span>
-              <input
-                type="password"
-                value={accountPassword}
-                onChange={(event) => setAccountPassword(event.target.value)}
-                placeholder={t("account.profile.newPasswordPlaceholder")}
-                autoComplete="new-password"
-                enterKeyHint="done"
-              />
-            </label>
-            <div className="form-actions">
-              <button className="primary-button" type="button" onClick={handlePasswordUpdate} disabled={isUpdatingPassword}>
-                {isUpdatingPassword ? t("account.profile.saving") : t("account.profile.updatePassword")}
-              </button>
-              <button className="ghost-button" type="button" onClick={handleLogout}>
-                {t("account.profile.logout")}
-              </button>
-            </div>
-          </div>
-
-          <div className="glass-card form-card account-credits-card" id="account-credits">
-            <div className="form-title">{t("account.credits.title")}</div>
-            <div className="form-subtitle">{t("account.credits.subtitle")}</div>
-
-            <div className="result-grid result-grid-two account-credit-grid">
-              <div>
-                <span>{t("account.credits.total")}</span>
-                <strong>{hasUnlimitedCredits ? t("credits.unlimited") : totalCredits}</strong>
-              </div>
-              <div>
-                <span>{t("account.credits.alleycatBurn")}</span>
-                <strong>{hasUnlimitedCredits ? t("account.credits.free") : t("account.credits.each", { count: MESSENGER_CREDIT_COST })}</strong>
-              </div>
-              <div>
-                <span>{t("account.credits.freeLoopsLeft")}</span>
-                <strong>{hasUnlimitedCredits ? t("credits.unlimited") : usage?.free_remaining || 0}</strong>
-              </div>
-              <div>
-                <span>{t("account.credits.paidCreditsLive")}</span>
-                <strong>{hasUnlimitedCredits ? t("credits.unlimited") : messengerCreditsOnly}</strong>
+              <div className="form-actions">
+                <button className="primary-button" type="button" onClick={handlePasswordUpdate} disabled={isUpdatingPassword}>
+                  {isUpdatingPassword ? t("account.profile.saving") : t("account.profile.updatePassword")}
+                </button>
+                <button className="ghost-button" type="button" onClick={handleLogout}>
+                  {t("account.profile.logout")}
+                </button>
               </div>
             </div>
 
-            <div className="result-grid result-grid-two account-credit-rules">
-              <div>
-                <span>{t("account.credits.loopBurn")}</span>
-                <strong>{hasUnlimitedCredits ? t("account.credits.free") : t("account.credits.each", { count: LOOP_CREDIT_COST })}</strong>
-              </div>
-              <div>
-                <span>{t("account.credits.freeLane")}</span>
-                <strong>{hasUnlimitedCredits ? t("credits.unlimited") : t("account.credits.starterLoops", { count: LOOP_FREE_LIMIT })}</strong>
-              </div>
-              <div>
-                <span>{t("account.credits.topUpLane")}</span>
-                <strong>{t("account.credits.paidCredits")}</strong>
-              </div>
-              <div>
-                <span>{t("account.credits.heavyPull")}</span>
-                <strong>{t("account.credits.alleycatFirst")}</strong>
-              </div>
-            </div>
+            <div className="glass-card form-card account-credits-card" id="account-credits">
+              <div className="form-title">{t("account.credits.title")}</div>
+              <div className="form-subtitle">{t("account.credits.subtitle")}</div>
 
-            <div className="form-actions" style={{ marginTop: '16px' }}>
-              <button className="primary-button" type="button" onClick={handleDonate}>
-                {t("account.credits.add")}
-              </button>
-            </div>
-            <div className="account-note">
-              {hasUnlimitedCredits
-                ? t("account.credits.adminNote")
-                : t("account.credits.note", { loop: LOOP_CREDIT_COST, alleycat: MESSENGER_CREDIT_COST })}
-            </div>
-          </div>
+              <div className="result-grid result-grid-two account-credit-grid">
+                <div className="credit-pill">
+                  <span className="pill-label">{t("account.credits.total")}</span>
+                  <div className="pill-value-wrap">
+                    <strong className="pill-value">{hasUnlimitedCredits ? t("credits.unlimited") : totalCredits}</strong>
+                  </div>
+                </div>
+                <div className="credit-pill">
+                  <span className="pill-label">{t("account.credits.alleycatBurn")}</span>
+                  <div className="pill-value-wrap">
+                    <strong className="pill-value">{hasUnlimitedCredits ? t("account.credits.free") : t("account.credits.each", { count: MESSENGER_CREDIT_COST })}</strong>
+                  </div>
+                </div>
+                <div className="credit-pill">
+                  <span className="pill-label">{t("account.credits.freeLoopsLeft")}</span>
+                  <div className="pill-value-wrap">
+                    <strong className="pill-value">{hasUnlimitedCredits ? t("credits.unlimited") : usage?.free_remaining || 0}</strong>
+                  </div>
+                </div>
+                <div className="credit-pill">
+                  <span className="pill-label">{t("account.credits.paidCreditsLive")}</span>
+                  <div className="pill-value-wrap">
+                    <strong className="pill-value">{hasUnlimitedCredits ? t("credits.unlimited") : messengerCreditsOnly}</strong>
+                  </div>
+                </div>
+              </div>
 
-          <div className="glass-card form-card account-community-card" id="account-community">
-            <div className="form-title">{t("account.community.title")}</div>
-            <div className="form-subtitle">{t("account.community.subtitle")}</div>
-            <div className="result-grid result-grid-two account-credit-grid">
-              <div>
-                <span>{t("account.community.plan")}</span>
-                <strong>{t("account.community.planName")}</strong>
+              <div className="result-grid result-grid-two account-credit-rules">
+                <div>
+                  <span>{t("account.credits.loopBurn")}</span>
+                  <strong>{hasUnlimitedCredits ? t("account.credits.free") : t("account.credits.each", { count: LOOP_CREDIT_COST })}</strong>
+                </div>
+                <div>
+                  <span>{t("account.credits.freeLane")}</span>
+                  <strong>{hasUnlimitedCredits ? t("credits.unlimited") : t("account.credits.starterLoops", { count: LOOP_FREE_LIMIT })}</strong>
+                </div>
+                <div>
+                  <span>{t("account.credits.topUpLane")}</span>
+                  <strong>{t("account.credits.paidCredits")}</strong>
+                </div>
+                <div>
+                  <span>{t("account.credits.heavyPull")}</span>
+                  <strong>{t("account.credits.alleycatFirst")}</strong>
+                </div>
               </div>
-              <div>
-                <span>{t("account.community.price")}</span>
-                <strong>$5 / month</strong>
+
+              <div className="form-actions" style={{ marginTop: '16px' }}>
+                <button className="primary-button" type="button" onClick={handleDonate}>
+                  {t("account.credits.add")}
+                </button>
               </div>
-              <div>
-                <span>{t("account.community.status")}</span>
-                <strong>{accountSummary?.community_membership?.status || t("account.community.statusInactive")}</strong>
-              </div>
-              <div>
-                <span>{t("account.community.access")}</span>
-                <strong>{t("account.community.discord")}</strong>
-              </div>
-            </div>
-            {accountSummary?.community_membership?.current_period_end ? (
               <div className="account-note">
-                {t("account.community.renews", { date: formatDate(accountSummary.community_membership.current_period_end) })}
-              </div>
-            ) : (
-              <div className="account-note">{t("account.community.note")}</div>
-            )}
-            <div className="form-actions" style={{ marginTop: "16px" }}>
-              <button className="primary-button" type="button" onClick={handleStartMembership} disabled={isStartingMembership}>
-                {isStartingMembership ? t("account.community.loading") : t("account.community.action")}
-              </button>
-              <a className="ghost-button" href="/membership.html">
-                {t("account.community.details")}
-              </a>
-              <button
-                className="ghost-button"
-                type="button"
-                onClick={handleOpenCommunityInvite}
-                disabled={!accountSummary?.community_membership?.access_active || isOpeningCommunityInvite}
-              >
-                {isOpeningCommunityInvite ? t("account.community.openingInvite") : t("account.community.openInvite")}
-              </button>
-            </div>
-          </div>
-
-          <div className="glass-card form-card account-stats-card" id="account-activity">
-            <div className="form-title">{t("account.activity.title")}</div>
-            <div className="form-subtitle">{t("account.activity.subtitle")}</div>
-            <div className="result-grid result-grid-two">
-              <div>
-                <span>{t("account.activity.manifests")}</span>
-                <strong>{accountSummary?.alleycat?.manifests || 0}</strong>
-              </div>
-              <div>
-                <span>{t("account.activity.runs")}</span>
-                <strong>{accountSummary?.alleycat?.runs || 0}</strong>
-              </div>
-              <div>
-                <span>{t("account.activity.finished")}</span>
-                <strong>{accountSummary?.alleycat?.finished_runs || 0}</strong>
-              </div>
-              <div>
-                <span>{t("account.activity.challenges")}</span>
-                <strong>{accountSummary?.alleycat?.challenges || 0}</strong>
-              </div>
-              <div>
-                <span>{t("account.activity.proofs")}</span>
-                <strong>{accountSummary?.alleycat?.proofs || 0}</strong>
-              </div>
-              <div>
-                <span>{t("account.activity.publicProofs")}</span>
-                <strong>{accountSummary?.alleycat?.public_proofs || 0}</strong>
+                {hasUnlimitedCredits
+                  ? t("account.credits.adminNote")
+                  : t("account.credits.note", { loop: LOOP_CREDIT_COST, alleycat: MESSENGER_CREDIT_COST })}
               </div>
             </div>
-            <div className="account-note">
-              {hasUnlimitedCredits
-                ? t("account.activity.adminNote")
-                : t("account.activity.note", { alleycat: MESSENGER_CREDIT_COST })}
+
+            <div className="glass-card form-card account-community-card" id="account-community">
+              <div className="form-title">{t("account.community.title")}</div>
+              <div className="form-subtitle">{t("account.community.subtitle")}</div>
+              <div className="result-grid result-grid-two account-credit-grid">
+                <div>
+                  <span>{t("account.community.plan")}</span>
+                  <strong>{t("account.community.planName")}</strong>
+                </div>
+                <div>
+                  <span>{t("account.community.price")}</span>
+                  <strong>$5 / month</strong>
+                </div>
+                <div>
+                  <span>{t("account.community.status")}</span>
+                  <strong>{accountSummary?.community_membership?.status || t("account.community.statusInactive")}</strong>
+                </div>
+                <div>
+                  <span>{t("account.community.access")}</span>
+                  <strong>{t("account.community.discord")}</strong>
+                </div>
+              </div>
+              {accountSummary?.community_membership?.current_period_end ? (
+                <div className="account-note">
+                  {t("account.community.renews", { date: formatDate(accountSummary.community_membership.current_period_end) })}
+                </div>
+              ) : (
+                <div className="account-note">{t("account.community.note")}</div>
+              )}
+              <div className="form-actions" style={{ marginTop: "16px" }}>
+                <button className="primary-button" type="button" onClick={handleStartMembership} disabled={isStartingMembership}>
+                  {isStartingMembership ? t("account.community.loading") : t("account.community.action")}
+                </button>
+                <a className="ghost-button" href="/membership.html">
+                  {t("account.community.details")}
+                </a>
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={handleOpenCommunityInvite}
+                  disabled={!accountSummary?.community_membership?.access_active || isOpeningCommunityInvite}
+                >
+                  {isOpeningCommunityInvite ? t("account.community.openingInvite") : t("account.community.openInvite")}
+                </button>
+              </div>
+            </div>
+
+            <div className="glass-card form-card account-stats-card" id="account-activity">
+              <div className="form-title">{t("account.activity.title")}</div>
+              <div className="form-subtitle">{t("account.activity.subtitle")}</div>
+              <div className="result-grid result-grid-two">
+                <div>
+                  <span>{t("account.activity.manifests")}</span>
+                  <strong>{accountSummary?.alleycat?.manifests || 0}</strong>
+                </div>
+                <div>
+                  <span>{t("account.activity.runs")}</span>
+                  <strong>{accountSummary?.alleycat?.runs || 0}</strong>
+                </div>
+                <div>
+                  <span>{t("account.activity.finished")}</span>
+                  <strong>{accountSummary?.alleycat?.finished_runs || 0}</strong>
+                </div>
+                <div>
+                  <span>{t("account.activity.challenges")}</span>
+                  <strong>{accountSummary?.alleycat?.challenges || 0}</strong>
+                </div>
+                <div>
+                  <span>{t("account.activity.proofs")}</span>
+                  <strong>{accountSummary?.alleycat?.proofs || 0}</strong>
+                </div>
+                <div>
+                  <span>{t("account.activity.publicProofs")}</span>
+                  <strong>{accountSummary?.alleycat?.public_proofs || 0}</strong>
+                </div>
+              </div>
+              <div className="account-note">
+                {hasUnlimitedCredits
+                  ? t("account.activity.adminNote")
+                  : t("account.activity.note", { alleycat: MESSENGER_CREDIT_COST })}
+              </div>
+            </div>
+
+            <div className="glass-card form-card account-quarter-card">
+              <div className="form-title">{t("account.quarter.title")}</div>
+              <div className="form-subtitle">{t("account.quarter.subtitle", { label: accountSummary?.quarter?.label || t("leaderboard.currentQuarter") })}</div>
+              <div className="result-grid result-grid-three">
+                <div>
+                  <span>{t("account.quarter.rank")}</span>
+                  <strong>
+                    {accountSummary?.quarter?.rank ? `#${accountSummary.quarter.rank}` : "--"}
+                  </strong>
+                </div>
+                <div>
+                  <span>{t("account.quarter.publicProofs")}</span>
+                  <strong>{accountSummary?.quarter?.public_proofs || 0}</strong>
+                </div>
+                <div>
+                  <span>{t("account.quarter.finishes")}</span>
+                  <strong>{accountSummary?.quarter?.finished_runs || 0}</strong>
+                </div>
+              </div>
+              <div className="account-note">
+                {accountSummary?.quarter?.total_ranked_riders
+                  ? t("account.quarter.ridersOnBoard", { count: accountSummary.quarter.total_ranked_riders })
+                  : t("account.quarter.noRanked")}
+              </div>
+              {accountSummary?.badges?.length ? (
+                <div className="badge-list">
+                  {accountSummary.badges.map((badge) => (
+                    <div key={badge.id} className="badge-chip">
+                      <strong>{badge.label}</strong>
+                      <span>{badge.description}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <div className="empty-state-body">{t("account.quarter.noBadges")}</div>
+                </div>
+              )}
+              {accountSummary?.quarter?.leaders?.length ? (
+                <div className="leaderboard-list">
+                  {accountSummary.quarter.leaders.map((entry) => (
+                    <div key={entry.user_id} className="leaderboard-row">
+                      <div className="leaderboard-rank">#{entry.rank}</div>
+                      <div className="leaderboard-main">
+                        <strong>{entry.user_id === user?.id ? t("account.quarter.you") : entry.rider_name}</strong>
+                        <span>
+                          {t("account.quarter.proofsFinishes", { proofs: entry.public_proofs, finishes: entry.finished_runs })}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="glass-card form-card account-purchases-card">
+              <div className="form-title">{t("account.purchases.title")}</div>
+              <div className="form-subtitle">{t("account.purchases.subtitle")}</div>
+              {!accountSummary?.purchases?.length && (
+                <div className="empty-state">
+                  <div className="empty-state-body">{t("account.purchases.empty")}</div>
+                </div>
+              )}
+              {accountSummary?.purchases?.length ? (
+                <div className="purchase-list">
+                  {getExpandedLimit(accountSummary.purchases, "purchases").map((purchase) => (
+                    <div key={purchase.session_id} className="purchase-row">
+                      <div>
+                        <strong>${(purchase.amount_cents / 100).toFixed(2)}</strong>
+                        <span>{formatDate(purchase.created_at)}</span>
+                      </div>
+                      <div>
+                        <strong>{t("account.purchases.credits", { count: purchase.credits_to_grant })}</strong>
+                        <span>{purchase.status.replace(/_/g, " ")}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              {renderPanelToggle(accountSummary?.purchases, "purchases", t("account.purchases.showMore"))}
+            </div>
+
+            <div className="glass-card form-card account-history-card" id="account-history">
+              <div className="form-title">{t("account.loopHistory.title")}</div>
+              <div className="form-subtitle">{t("account.loopHistory.subtitle")}</div>
+              {!accountSummary?.loop_history?.length ? (
+                <div className="empty-state">
+                  <div className="empty-state-body">{t("account.loopHistory.empty")}</div>
+                </div>
+              ) : (
+                <div className="history-list">
+                  {getExpandedLimit(accountSummary.loop_history, "loop-history").map((loop) => (
+                    <div key={loop.id} className="history-row">
+                      <div>
+                        <strong>{loop.loop_point}</strong>
+                        <span>
+                          {Number(loop.distance_km).toFixed(1)} km · {loop.terrain} · {loop.surface} · {loop.vibe}
+                        </span>
+                      </div>
+                      <div className="history-actions">
+                        <span>{formatDate(loop.created_at)}</span>
+                        <a className="ghost-button small" href={loop.route_url} target="_blank" rel="noreferrer">
+                          {t("account.loopHistory.open")}
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {renderPanelToggle(accountSummary?.loop_history, "loop-history", t("account.loopHistory.showMore"))}
+            </div>
+
+            <div className="glass-card form-card account-history-card">
+              <div className="form-title">{t("account.alleycatHistory.title")}</div>
+              <div className="form-subtitle">{t("account.alleycatHistory.subtitle")}</div>
+              {!accountSummary?.alleycat_history?.length ? (
+                <div className="empty-state">
+                  <div className="empty-state-body">{t("account.alleycatHistory.empty")}</div>
+                </div>
+              ) : (
+                <div className="history-list">
+                  {getExpandedLimit(accountSummary.alleycat_history, "alleycat-history").map((item) => (
+                    <div key={item.id} className="history-row">
+                      <div>
+                        <strong>{item.city_name || t("account.common.city")} · {item.manifest_title}</strong>
+                        <span>
+                          {item.difficulty} · {item.style} · {t("account.alleycatHistory.proofs", { count: item.proof_count })} · {item.source_challenge_id ? t("account.alleycatHistory.shared") : t("account.alleycatHistory.solo")}
+                        </span>
+                      </div>
+                      <div className="history-actions">
+                        <span>
+                          {item.best_seconds
+                            ? `${formatDuration(item.best_seconds)}${item.ghost_delta !== null ? ` · ${item.ghost_delta <= 0 ? "-" : "+"}${formatDuration(Math.abs(item.ghost_delta))}` : ""}`
+                            : item.status}
+                        </span>
+                        <span>{formatDate(item.created_at)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {renderPanelToggle(accountSummary?.alleycat_history, "alleycat-history", t("account.alleycatHistory.showMore"))}
+            </div>
+
+            <div className="glass-card form-card account-history-card">
+              <div className="form-title">{t("account.challenges.title")}</div>
+              <div className="form-subtitle">{t("account.challenges.subtitle")}</div>
+              {!accountSummary?.challenge_history?.length ? (
+                <div className="empty-state">
+                  <div className="empty-state-body">{t("account.challenges.empty")}</div>
+                </div>
+              ) : (
+                <div className="history-list">
+                  {getExpandedLimit(accountSummary.challenge_history, "challenge-history").map((item) => (
+                    <div key={item.challenge_id} className="history-row">
+                      <div>
+                        <strong>{t("account.challenges.code", { code: item.code })}</strong>
+                        <span>
+                          {item.city_name || t("account.common.city")} · {item.manifest_title || t("account.challenges.manifestFallback")} · {t("account.challenges.rivals", { count: item.rival_count })}
+                        </span>
+                      </div>
+                      <div className="history-actions">
+                        <span>{item.best_seconds ? formatDuration(item.best_seconds) : item.status}</span>
+                        <span>{formatDate(item.joined_at)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {renderPanelToggle(accountSummary?.challenge_history, "challenge-history", t("account.challenges.showMore"))}
+            </div>
+
+            <div className="glass-card form-card account-history-card" id="account-crew">
+              <div className="form-title">{t("account.crew.title")}</div>
+              <div className="form-subtitle">{t("account.crew.subtitle")}</div>
+              {!accountSummary?.shared_riders?.length ? (
+                <div className="empty-state">
+                  <div className="empty-state-body">{t("account.crew.empty")}</div>
+                </div>
+              ) : (
+                <div className="history-list">
+                  {getExpandedLimit(accountSummary.shared_riders, "shared-riders").map((rider) => (
+                    <div key={rider.user_id} className="history-row">
+                      <div>
+                        <strong>{rider.rider_name}</strong>
+                        <span>
+                          {t("account.crew.sharedChallenges", { count: rider.shared_challenges })} · {rider.cities.join(", ") || t("account.crew.noCityTags")}
+                        </span>
+                      </div>
+                      <div className="history-actions">
+                        <span>{t("account.crew.lastSeen")}</span>
+                        <span>{formatDate(rider.last_joined_at)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {renderPanelToggle(accountSummary?.shared_riders, "shared-riders", t("account.crew.showMore"))}
+            </div>
+
+            <div className="glass-card form-card account-history-card" id="account-night-rides">
+              <div className="form-title">{t("account.night.title")}</div>
+              <div className="form-subtitle">{t("account.night.subtitle")}</div>
+              {isLoadingNightRideHistory ? (
+                <div className="status-message compact-status">{t("account.night.loading")}</div>
+              ) : !nightRideHistory.length ? (
+                <div className="empty-state">
+                  <div className="empty-state-body">{t("account.night.empty")}</div>
+                </div>
+              ) : (
+                <div className="history-list">
+                  {nightRideHistory.map((ride) => (
+                    <div key={ride.id} className="history-row">
+                      <div>
+                        <strong>{ride.crew_name || ride.title}</strong>
+                        <span>
+                          {ride.session_type === "crew" ? t("account.night.crewLabel") : t("account.night.singleLabel")}
+                          {" · "}
+                          {ride.ride_city || t("account.common.city")}
+                          {" · "}
+                          {Number(ride.distance_km).toFixed(1)} km
+                          {" · "}
+                          {ride.mode}
+                        </span>
+                      </div>
+                      <div className="history-actions">
+                        <span>
+                          {Array.isArray(ride.crew_members) && ride.crew_members.length
+                            ? ride.crew_members.slice(0, 3).join(", ")
+                            : t("account.night.noCrewNames")}
+                        </span>
+                        <span>{formatDate(ride.created_at)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-
-          <div className="glass-card form-card account-quarter-card">
-            <div className="form-title">{t("account.quarter.title")}</div>
-            <div className="form-subtitle">{t("account.quarter.subtitle", { label: accountSummary?.quarter?.label || t("leaderboard.currentQuarter") })}</div>
-            <div className="result-grid result-grid-three">
-              <div>
-                <span>{t("account.quarter.rank")}</span>
-                <strong>
-                  {accountSummary?.quarter?.rank ? `#${accountSummary.quarter.rank}` : "--"}
-                </strong>
-              </div>
-              <div>
-                <span>{t("account.quarter.publicProofs")}</span>
-                <strong>{accountSummary?.quarter?.public_proofs || 0}</strong>
-              </div>
-              <div>
-                <span>{t("account.quarter.finishes")}</span>
-                <strong>{accountSummary?.quarter?.finished_runs || 0}</strong>
-              </div>
-            </div>
-            <div className="account-note">
-              {accountSummary?.quarter?.total_ranked_riders
-                ? t("account.quarter.ridersOnBoard", { count: accountSummary.quarter.total_ranked_riders })
-                : t("account.quarter.noRanked")}
-            </div>
-            {accountSummary?.badges?.length ? (
-              <div className="badge-list">
-                {accountSummary.badges.map((badge) => (
-                  <div key={badge.id} className="badge-chip">
-                    <strong>{badge.label}</strong>
-                    <span>{badge.description}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="empty-state">
-                <div className="empty-state-body">{t("account.quarter.noBadges")}</div>
-              </div>
-            )}
-            {accountSummary?.quarter?.leaders?.length ? (
-              <div className="leaderboard-list">
-                {accountSummary.quarter.leaders.map((entry) => (
-                  <div key={entry.user_id} className="leaderboard-row">
-                    <div className="leaderboard-rank">#{entry.rank}</div>
-                    <div className="leaderboard-main">
-                      <strong>{entry.user_id === user?.id ? t("account.quarter.you") : entry.rider_name}</strong>
-                      <span>
-                        {t("account.quarter.proofsFinishes", { proofs: entry.public_proofs, finishes: entry.finished_runs })}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-          </div>
-
-          <div className="glass-card form-card account-purchases-card">
-            <div className="form-title">{t("account.purchases.title")}</div>
-            <div className="form-subtitle">{t("account.purchases.subtitle")}</div>
-            {!accountSummary?.purchases?.length && (
-              <div className="empty-state">
-                <div className="empty-state-body">{t("account.purchases.empty")}</div>
-              </div>
-            )}
-            {accountSummary?.purchases?.length ? (
-              <div className="purchase-list">
-                {getExpandedLimit(accountSummary.purchases, "purchases").map((purchase) => (
-                  <div key={purchase.session_id} className="purchase-row">
-                    <div>
-                      <strong>${(purchase.amount_cents / 100).toFixed(2)}</strong>
-                      <span>{formatDate(purchase.created_at)}</span>
-                    </div>
-                    <div>
-                      <strong>{t("account.purchases.credits", { count: purchase.credits_to_grant })}</strong>
-                      <span>{purchase.status.replace(/_/g, " ")}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-            {renderPanelToggle(accountSummary?.purchases, "purchases", t("account.purchases.showMore"))}
-          </div>
-
-          <div className="glass-card form-card account-history-card" id="account-history">
-            <div className="form-title">{t("account.loopHistory.title")}</div>
-            <div className="form-subtitle">{t("account.loopHistory.subtitle")}</div>
-            {!accountSummary?.loop_history?.length ? (
-              <div className="empty-state">
-                <div className="empty-state-body">{t("account.loopHistory.empty")}</div>
-              </div>
-            ) : (
-              <div className="history-list">
-                {getExpandedLimit(accountSummary.loop_history, "loop-history").map((loop) => (
-                  <div key={loop.id} className="history-row">
-                    <div>
-                      <strong>{loop.loop_point}</strong>
-                      <span>
-                        {Number(loop.distance_km).toFixed(1)} km · {loop.terrain} · {loop.surface} · {loop.vibe}
-                      </span>
-                    </div>
-                    <div className="history-actions">
-                      <span>{formatDate(loop.created_at)}</span>
-                      <a className="ghost-button small" href={loop.route_url} target="_blank" rel="noreferrer">
-                        {t("account.loopHistory.open")}
-                      </a>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            {renderPanelToggle(accountSummary?.loop_history, "loop-history", t("account.loopHistory.showMore"))}
-          </div>
-
-          <div className="glass-card form-card account-history-card">
-            <div className="form-title">{t("account.alleycatHistory.title")}</div>
-            <div className="form-subtitle">{t("account.alleycatHistory.subtitle")}</div>
-            {!accountSummary?.alleycat_history?.length ? (
-              <div className="empty-state">
-                <div className="empty-state-body">{t("account.alleycatHistory.empty")}</div>
-              </div>
-            ) : (
-              <div className="history-list">
-                {getExpandedLimit(accountSummary.alleycat_history, "alleycat-history").map((item) => (
-                  <div key={item.id} className="history-row">
-                    <div>
-                      <strong>{item.city_name || t("account.common.city")} · {item.manifest_title}</strong>
-                      <span>
-                        {item.difficulty} · {item.style} · {t("account.alleycatHistory.proofs", { count: item.proof_count })} · {item.source_challenge_id ? t("account.alleycatHistory.shared") : t("account.alleycatHistory.solo")}
-                      </span>
-                    </div>
-                    <div className="history-actions">
-                      <span>
-                        {item.best_seconds
-                          ? `${formatDuration(item.best_seconds)}${item.ghost_delta !== null ? ` · ${item.ghost_delta <= 0 ? "-" : "+"}${formatDuration(Math.abs(item.ghost_delta))}` : ""}`
-                          : item.status}
-                      </span>
-                      <span>{formatDate(item.created_at)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            {renderPanelToggle(accountSummary?.alleycat_history, "alleycat-history", t("account.alleycatHistory.showMore"))}
-          </div>
-
-          <div className="glass-card form-card account-history-card">
-            <div className="form-title">{t("account.challenges.title")}</div>
-            <div className="form-subtitle">{t("account.challenges.subtitle")}</div>
-            {!accountSummary?.challenge_history?.length ? (
-              <div className="empty-state">
-                <div className="empty-state-body">{t("account.challenges.empty")}</div>
-              </div>
-            ) : (
-              <div className="history-list">
-                {getExpandedLimit(accountSummary.challenge_history, "challenge-history").map((item) => (
-                  <div key={item.challenge_id} className="history-row">
-                    <div>
-                      <strong>{t("account.challenges.code", { code: item.code })}</strong>
-                      <span>
-                        {item.city_name || t("account.common.city")} · {item.manifest_title || t("account.challenges.manifestFallback")} · {t("account.challenges.rivals", { count: item.rival_count })}
-                      </span>
-                    </div>
-                    <div className="history-actions">
-                      <span>{item.best_seconds ? formatDuration(item.best_seconds) : item.status}</span>
-                      <span>{formatDate(item.joined_at)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            {renderPanelToggle(accountSummary?.challenge_history, "challenge-history", t("account.challenges.showMore"))}
-          </div>
-
-          <div className="glass-card form-card account-history-card" id="account-crew">
-            <div className="form-title">{t("account.crew.title")}</div>
-            <div className="form-subtitle">{t("account.crew.subtitle")}</div>
-            {!accountSummary?.shared_riders?.length ? (
-              <div className="empty-state">
-                <div className="empty-state-body">{t("account.crew.empty")}</div>
-              </div>
-            ) : (
-              <div className="history-list">
-                {getExpandedLimit(accountSummary.shared_riders, "shared-riders").map((rider) => (
-                  <div key={rider.user_id} className="history-row">
-                    <div>
-                      <strong>{rider.rider_name}</strong>
-                      <span>
-                        {t("account.crew.sharedChallenges", { count: rider.shared_challenges })} · {rider.cities.join(", ") || t("account.crew.noCityTags")}
-                      </span>
-                    </div>
-                    <div className="history-actions">
-                      <span>{t("account.crew.lastSeen")}</span>
-                      <span>{formatDate(rider.last_joined_at)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            {renderPanelToggle(accountSummary?.shared_riders, "shared-riders", t("account.crew.showMore"))}
-          </div>
-
-          <div className="glass-card form-card account-history-card" id="account-night-rides">
-            <div className="form-title">{t("account.night.title")}</div>
-            <div className="form-subtitle">{t("account.night.subtitle")}</div>
-            {isLoadingNightRideHistory ? (
-              <div className="status-message compact-status">{t("account.night.loading")}</div>
-            ) : !nightRideHistory.length ? (
-              <div className="empty-state">
-                <div className="empty-state-body">{t("account.night.empty")}</div>
-              </div>
-            ) : (
-              <div className="history-list">
-                {nightRideHistory.map((ride) => (
-                  <div key={ride.id} className="history-row">
-                    <div>
-                      <strong>{ride.crew_name || ride.title}</strong>
-                      <span>
-                        {ride.session_type === "crew" ? t("account.night.crewLabel") : t("account.night.singleLabel")}
-                        {" · "}
-                        {ride.ride_city || t("account.common.city")}
-                        {" · "}
-                        {Number(ride.distance_km).toFixed(1)} km
-                        {" · "}
-                        {ride.mode}
-                      </span>
-                    </div>
-                    <div className="history-actions">
-                      <span>
-                        {Array.isArray(ride.crew_members) && ride.crew_members.length
-                          ? ride.crew_members.slice(0, 3).join(", ")
-                          : t("account.night.noCrewNames")}
-                      </span>
-                      <span>{formatDate(ride.created_at)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
         </>
       )}
     </div>
   );
 
   const renderLoop = () => (
-    <div className="sequential-layout sub-page">
-      <section className="sub-page-header loop-page-header">
-        <h1 className="sub-page-title">{t("loop.title")}</h1>
-        <p className="sub-page-description">{t("loop.subtitle")}</p>
-        <div className="sub-page-image-shell loop-image-shell">
-          <img src={heroImage} alt={t("loop.imageAlt")} />
-        </div>
-      </section>
+    <div className="sequential-layout sub-page page-loop page-stage-enter">
+      <Hero
+        title={t("loop.title")}
+        subtitle={t("loop.subtitle")}
+        image={loopHero}
+        actions={
+          <button className="accent-text-button" onClick={() => {
+            const el = document.getElementById('loop-builder');
+            el?.scrollIntoView({ behavior: 'smooth' });
+          }}>
+            <span>{t("home.loop.action")}</span>
+          </button>
+        }
+      />
 
       <section className="modular-grid flow-grid reveals">
-        {loopSteps.map((step, index) => (
+        {[
+          loopSteps[0],
+          loopSteps[1],
+          loopSteps[2]
+        ].map((step, index) => (
           <div key={step.number} className="module-card">
             <div className="module-header">
-              <span className="module-index">{step.number}</span>
+              <span className="module-number">{step.number}</span>
               <h3 className="module-title">{step.title}</h3>
             </div>
             <p className="module-body">{step.body}</p>
@@ -3320,11 +3387,11 @@ function AppShell() {
       <section className="split-module reveals" id="loop-builder">
         <div className="module-content">
           <div className="glass-card form-card">
-              <div className="form-header">
-                <div>
-                  <h2 className="form-title">{t("loop.builderTitle")}</h2>
+            <div className="form-header">
+              <div>
+                <h2 className="form-title">{t("loop.builderTitle")}</h2>
                 <p className="form-subtitle">{t("loop.builderSubtitle")}</p>
-                </div>
+              </div>
               {usage && (
                 <div className="loops-left">
                   <span className="loops-left-line">{hasUnlimitedCredits ? t("credits.unlimited") : t("credits.balance", { count: totalCredits })}</span>
@@ -3333,9 +3400,7 @@ function AppShell() {
               )}
             </div>
 
-              <div className="form-section section-block">
-                <div className="section-block-head">
-              </div>
+            <div className="form-section section-block section-block-clean">
               <label className="field">
                 <span>{t("loop.startPoint")}</span>
                 <input
@@ -3371,12 +3436,10 @@ function AppShell() {
               </label>
             </div>
 
-            <div className="form-section section-block loop-builder-section">
-              <div className="section-block-head">
-              </div>
-              <label className="field">
+            <div className="form-section section-block">
+              <label className="field range-field">
                 <span>{t("loop.distance")}</span>
-                <div className="unit-toggle loop-centered-pills">
+                <div className="pill-group range-unit-toggle">
                   <button
                     type="button"
                     className={`pill ${unit === "km" ? "active" : ""}`}
@@ -3402,6 +3465,7 @@ function AppShell() {
                   type="range"
                   min={minDistance}
                   max={maxDistance}
+                  step="1"
                   value={distance}
                   onChange={(event) => {
                     setDistance(Number(event.target.value));
@@ -3409,7 +3473,7 @@ function AppShell() {
                   }}
                   style={{
                     ["--range-progress" as string]: `${rangePercent}%`,
-                    ["--range-accent" as string]: "var(--accent)",
+                    ["--range-accent" as string]: "var(--page-accent)",
                   }}
                 />
                 <div className="range-labels">
@@ -3425,9 +3489,9 @@ function AppShell() {
                 </div>
               </label>
 
-              <label className="field loop-terrain-field">
+              <label className="field difficulty-field">
                 <span>{t("loop.terrain")}</span>
-                <div className="pill-group terrain-pill-grid">
+                <div className="pill-group checkpoint-count-grid">
                   {[
                     ["mix", t("loop.terrain.mix")],
                     ["road", t("loop.terrain.road")],
@@ -3449,9 +3513,9 @@ function AppShell() {
                 </div>
               </label>
 
-              <label className="field loop-surface-field">
+              <label className="field">
                 <span>{t("loop.surface")}</span>
-                <div className="pill-group terrain-pill-grid">
+                <div className="pill-group street-tone-group">
                   {[
                     ["paved", t("loop.surface.paved")],
                     ["mixed", t("loop.surface.mixed")],
@@ -3472,9 +3536,9 @@ function AppShell() {
                 </div>
               </label>
 
-              <label className="field loop-vibe-field">
+              <label className="field">
                 <span>{t("loop.vibe")}</span>
-                <div className="terrain-pill-grid">
+                <div className="pill-group checkpoint-count-grid">
                   {[
                     ["Elegant", t("loop.vibe.elegant")],
                     ["Energy", t("loop.vibe.energy")],
@@ -3538,20 +3602,26 @@ function AppShell() {
   );
 
   const renderMessenger = () => (
-    <div className="sequential-layout sub-page">
-      <section className="sub-page-header alleycat-page-header">
-        <h1 className="sub-page-title">{t("alleycat.title")}</h1>
-        <p className="sub-page-description">{t("alleycat.subtitle")}</p>
-        <div className="sub-page-image-shell alleycat-image-shell">
-          <img src={alleycatImage} alt={t("alleycat.imageAlt")} />
-        </div>
-      </section>
+    <div className="sequential-layout sub-page page-messenger page-stage-enter">
+      <Hero
+        title={t("alleycat.title")}
+        subtitle={t("alleycat.subtitle")}
+        image={alleycatHero}
+        actions={
+          <button className="accent-text-button" onClick={() => {
+            const el = document.getElementById('messenger-builder');
+            el?.scrollIntoView({ behavior: 'smooth' });
+          }}>
+            <span>{t("home.alleycat.action")}</span>
+          </button>
+        }
+      />
 
       <section className="modular-grid flow-grid flow-grid-four reveals">
-        {messengerFlow.map((step, index) => (
+        {messengerFlow.map((step) => (
           <div key={step.number} className="module-card">
             <div className="module-header">
-              <span className="module-index">{step.number}</span>
+              <span className="module-number">{step.number}</span>
               <h3 className="module-title">{step.title}</h3>
             </div>
             <p className="module-body">{step.body}</p>
@@ -3636,7 +3706,7 @@ function AppShell() {
               </div>
 
               <div className="form-section section-block">
-                <label className="field">
+                <label className="field range-field">
                   <span>{t("alleycat.rideZone")}</span>
                   <div className="pill-group range-unit-toggle">
                     <button
@@ -3671,14 +3741,14 @@ function AppShell() {
                     onChange={(event) => setMessengerRange(Number(event.target.value))}
                     style={{
                       ["--range-progress" as string]: `${messengerRangePercent}%`,
-                      ["--range-accent" as string]: messengerRangeAccent,
+                      ["--range-accent" as string]: "var(--page-accent)",
                     }}
                   />
                   <div className="range-labels">
                     <span>
                       {messengerMinRange} {messengerUnit}
                     </span>
-                    <div className="range-focus-card" style={{ ["--range-accent" as string]: messengerRangeAccent }}>
+                    <div className="range-focus-card">
                       <strong>{messengerRangeLabel} {messengerUnit}</strong>
                     </div>
                     <span>
@@ -4239,130 +4309,140 @@ function AppShell() {
               onPostCreated={(post) =>
                 setNightRidePosts((current) => [post, ...current.filter((item) => item.id !== post.id)].slice(0, 24))
               }
+              heroImage={nightRideHero}
             />
           </Suspense>
         )
-      : pageView === "loop"
-        ? renderLoop()
-        : pageView === "account"
-          ? renderAccount()
+        : pageView === "loop"
+          ? renderLoop()
+          : pageView === "account"
+            ? renderAccount()
             : pageView === "wall"
-            ? (
-              <Suspense fallback={
-                <div className="status-message page-loader">
-                  <span className="loader-dot"></span>
-                  {t("wall.loading")}
-                </div>
-              }>
-                <WallPage
-                  publicQuarterLabel={publicQuarterLabel}
-                  selectedWallCity={selectedWallCity}
-                  setSelectedWallCity={setSelectedWallCity}
-                  cityPresets={ALLEYCAT_CITY_PRESETS}
-                  toCitySlug={toCitySlug}
-                  getCityLabel={getCityLabel}
-                  isLoadingWall={isLoadingWall}
-                  wallPosts={wallPosts}
-                  nightRidePosts={nightRidePosts}
-                  onOpenRiderProfile={handleOpenRiderProfile}
-                  onOpenWallCity={handleOpenWallCity}
-                  onOpenLeaderboardCity={handleOpenLeaderboardCity}
-                />
-              </Suspense>
-            )
-            : pageView === "cities"
               ? (
                 <Suspense fallback={
                   <div className="status-message page-loader">
                     <span className="loader-dot"></span>
-                    {t("cities.loading")}
+                    {t("wall.loading")}
                   </div>
                 }>
-                  <CitiesPage
-                    cityLanes={cityLanes}
-                    isLoadingCityLanes={isLoadingCityLanes}
-                    onOpenMessengerCity={handleOpenMessengerCity}
-                    onOpenWallCity={handleOpenWallCity}
-                    onOpenLeaderboardCity={handleOpenLeaderboardCity}
-                    onOpenCityRequest={(cityName) => {
-                      if (cityName) setCityRequestName(cityName);
-                      setShowCityRequest(true);
-                    }}
-                  />
-                </Suspense>
-              )
-            : pageView === "leaderboard"
-              ? (
-                <Suspense fallback={
-                  <div className="status-message page-loader">
-                    <span className="loader-dot"></span>
-                    {t("leaderboard.loading")}
-                  </div>
-                }>
-                  <LeaderboardPage
+                  <WallPage
                     publicQuarterLabel={publicQuarterLabel}
-                    selectedLeaderboardCountry={selectedLeaderboardCountry}
-                    setSelectedLeaderboardCountry={setSelectedLeaderboardCountry}
-                    selectedLeaderboardCity={selectedLeaderboardCity}
-                    setSelectedLeaderboardCity={setSelectedLeaderboardCity}
+                    selectedWallCity={selectedWallCity}
+                    setSelectedWallCity={setSelectedWallCity}
                     cityPresets={ALLEYCAT_CITY_PRESETS}
                     toCitySlug={toCitySlug}
                     getCityLabel={getCityLabel}
-                    isLoadingPublicLeaderboard={isLoadingPublicLeaderboard}
-                    publicLeaderboard={publicLeaderboard}
+                    isLoadingWall={isLoadingWall}
+                    wallPosts={wallPosts}
+                    nightRidePosts={nightRidePosts}
                     onOpenRiderProfile={handleOpenRiderProfile}
+                    onOpenWallCity={handleOpenWallCity}
+                    onOpenLeaderboardCity={handleOpenLeaderboardCity}
+                    heroImage={wallHero}
                   />
                 </Suspense>
               )
-              : pageView === "rider"
+              : pageView === "cities"
                 ? (
-                <Suspense fallback={
-                  <div className="status-message page-loader">
-                    <span className="loader-dot"></span>
-                    {t("rider.loading")}
-                  </div>
-                }>
-                    <RiderProfilePage
-                      isLoadingPublicRiderProfile={isLoadingPublicRiderProfile}
-                      publicRiderProfile={publicRiderProfile}
+                  <Suspense fallback={
+                    <div className="status-message page-loader">
+                      <span className="loader-dot"></span>
+                      {t("cities.loading")}
+                    </div>
+                  }>
+                    <CitiesPage
+                      cityLanes={cityLanes}
+                      isLoadingCityLanes={isLoadingCityLanes}
+                      onOpenMessengerCity={handleOpenMessengerCity}
                       onOpenWallCity={handleOpenWallCity}
                       onOpenLeaderboardCity={handleOpenLeaderboardCity}
-                      onOpenRiderProfile={handleOpenRiderProfile}
+                      onOpenCityRequest={(cityName) => {
+                        if (cityName) setCityRequestName(cityName);
+                        setShowCityRequest(true);
+                      }}
+                      heroImage={citiesHero}
                     />
                   </Suspense>
                 )
-            : renderHome();
+                : pageView === "leaderboard"
+                  ? (
+                    <Suspense fallback={
+                      <div className="status-message page-loader">
+                        <span className="loader-dot"></span>
+                        {t("leaderboard.loading")}
+                      </div>
+                    }>
+                      <LeaderboardPage
+                        publicQuarterLabel={publicQuarterLabel}
+                        selectedLeaderboardCountry={selectedLeaderboardCountry}
+                        setSelectedLeaderboardCountry={setSelectedLeaderboardCountry}
+                        selectedLeaderboardCity={selectedLeaderboardCity}
+                        setSelectedLeaderboardCity={setSelectedLeaderboardCity}
+                        cityPresets={ALLEYCAT_CITY_PRESETS}
+                        toCitySlug={toCitySlug}
+                        getCityLabel={getCityLabel}
+                        isLoadingPublicLeaderboard={isLoadingPublicLeaderboard}
+                        publicLeaderboard={publicLeaderboard}
+                        onOpenRiderProfile={handleOpenRiderProfile}
+                        heroImage={leaderboardHero}
+                      />
+                    </Suspense>
+                  )
+                  : pageView === "rider"
+                    ? (
+                      <Suspense fallback={
+                        <div className="status-message page-loader">
+                          <span className="loader-dot"></span>
+                          {t("rider.loading")}
+                        </div>
+                      }>
+                        <RiderProfilePage
+                          isLoadingPublicRiderProfile={isLoadingPublicRiderProfile}
+                          publicRiderProfile={publicRiderProfile}
+                          onOpenWallCity={handleOpenWallCity}
+                          onOpenLeaderboardCity={handleOpenLeaderboardCity}
+                          onOpenRiderProfile={handleOpenRiderProfile}
+                          heroImage={riderHero}
+                        />
+                      </Suspense>
+                    )
+                    : renderHome();
+
+  const getPageAccent = () => 'var(--accent)';
 
   return (
     <div
-      className={`page ${pageView === "messenger" ? "page-messenger" : "page-home"}`}
+      className={`page page-${pageView}`}
+      style={{ ["--page-accent" as string]: getPageAccent() }}
     >
       {renderHeader()}
+      {renderMobileNav()}
       {renderModals()}
       <main key={pageView} className="page-stage page-stage-enter">
         {renderCurrentPage()}
       </main>
-      {renderMobileDock()}
       <footer className="site-footer">
         <div className="nav-container">
-          <div className="nav-viewfinder">
-            <div className="corner top-left"></div>
-            <div className="corner top-right"></div>
-            <div className="corner bottom-left"></div>
-            <div className="corner bottom-right"></div>
-          </div>
-          <div className="footer-links">
-            <a className="ghost-link" href="/leaderboard">{t("nav.leaderboard")}</a>
-            <a className="ghost-link" href="/cities">{t("nav.cities")}</a>
-            <a className="ghost-link" href={language === "pt" ? "/privacy_pt.html" : language === "es" ? "/privacy_es.html" : "/privacy.html"}>{t("footer.privacy")}</a>
-            <a className="ghost-link" href={language === "pt" ? "/terms_pt.html" : language === "es" ? "/terms_es.html" : "/terms.html"}>{t("footer.terms")}</a>
-            <a className="ghost-link" href={language === "pt" ? "/how_pt.html" : language === "es" ? "/how_es.html" : "/how.html"}>{t("footer.how")}</a>
-            <a className="ghost-link" href="/coffee.html">{t("footer.coffee")}</a>
-            {isAdminUser && <a className="ghost-link admin-link" href="/admin.html">{t("footer.admin")}</a>}
-          </div>
           <div className="footer-meta">
-            <span className="footer-title">LOOP_V1.2.0-DEV</span>
+            <span className="footer-title">GIMME THE LOOP</span>
+            <span className="footer-meta-info">V1.2.0 · {new Date().getFullYear()}</span>
           </div>
+
+          <nav className="footer-nav">
+            <div className="footer-nav-group">
+              <button className="footer-nav-link" onClick={() => handleNavigate('account')}>{t("nav.account")}</button>
+              <button className="footer-nav-link" onClick={() => setShowCredits(true)}>{t("nav.addCredits")}</button>
+              {user && <button className="footer-nav-link" onClick={handleLogout}>{t("nav.out")}</button>}
+            </div>
+
+            <div className="footer-nav-group">
+              <a className="footer-nav-link" href={language === "pt" ? "/how_pt.html" : language === "es" ? "/how_es.html" : "/how.html"}>{t("footer.how")}</a>
+              <a className="footer-nav-link" href={language === "pt" ? "/privacy_pt.html" : language === "es" ? "/privacy_es.html" : "/privacy.html"}>{t("footer.privacy")}</a>
+              <a className="footer-nav-link" href={language === "pt" ? "/terms_pt.html" : language === "es" ? "/terms_es.html" : "/terms.html"}>{t("footer.terms")}</a>
+              <a className="footer-nav-link" href="/coffee.html">{t("footer.coffee")}</a>
+              <a className="footer-nav-link" href="/admin.html">{t("footer.admin")}</a>
+            </div>
+          </nav>
         </div>
       </footer>
     </div>

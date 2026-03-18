@@ -1,4 +1,6 @@
 import { useI18n } from "../../i18n";
+import Hero from "../Hero";
+import { MapPin, Zap, LayoutGrid, Trophy, ArrowRight, MessageSquare, Plus } from "lucide-react";
 
 type CityLane = {
   city_slug: string;
@@ -21,6 +23,7 @@ type CitiesPageProps = {
   onOpenWallCity: (cityName?: string) => void;
   onOpenLeaderboardCity: (cityName?: string) => void;
   onOpenCityRequest: (cityName?: string) => void;
+  heroImage?: string;
 };
 
 export default function CitiesPage({
@@ -29,6 +32,7 @@ export default function CitiesPage({
   onOpenWallCity,
   onOpenLeaderboardCity,
   onOpenCityRequest,
+  heroImage,
 }: CitiesPageProps) {
   const { t } = useI18n();
   const liveCities = cityLanes.filter((lane) => lane.status === "live");
@@ -50,11 +54,12 @@ export default function CitiesPage({
           : t("cities.draft");
 
   return (
-    <div className="sequential-layout sub-page">
-      <section className="sub-page-header">
-        <h1 className="sub-page-title">{t("cities.title")}</h1>
-        <p className="sub-page-description">{t("cities.subtitle")}</p>
-      </section>
+    <div className="sequential-layout sub-page page-cities page-stage-enter">
+      <Hero 
+        title={t("cities.title")}
+        subtitle={t("cities.subtitle")}
+        image={heroImage || ""}
+      />
 
       {isLoadingCityLanes && (
         <section className="builder-grid single reveals">
@@ -73,25 +78,28 @@ export default function CitiesPage({
                   {leadLane && (
                     <div className="wall-editorial-card city-editorial-card editorial-hub">
                       <div className="editorial-eyebrow">
+                        <Trophy size={14} className="text-accent" />
                         <span className="winner-label">{t("cities.operationalHub")}</span>
                       </div>
                       <strong>{leadLane.city_name}</strong>
                       <div className="mini-chip-row compact city-editorial-stats">
                         <div className="mini-chip active">
-                          <span className="clue-tag">{t("cities.clueActive")}</span>
+                          <Zap size={12} />
                           {leadLane.active_checkpoint_count}
                         </div>
                         <div className="mini-chip">
-                          <span className="clue-tag">{t("cities.districts")}</span>
+                          <MapPin size={12} />
                           {leadLane.district_count}
                         </div>
                       </div>
                       <div className="city-lane-actions city-lane-actions-compact">
                         <button className="ghost-button small city-action-secondary" type="button" onClick={() => onOpenWallCity(leadLane.city_name)}>
-                          {t("common.wall")}
+                          <LayoutGrid size={14} />
+                          <span>{t("common.wall")}</span>
                         </button>
                         <button className="ghost-button small city-action-secondary" type="button" onClick={() => onOpenLeaderboardCity(leadLane.city_name)}>
-                          {t("common.board")}
+                          <Trophy size={14} />
+                          <span>{t("common.board")}</span>
                         </button>
                       </div>
                     </div>
@@ -135,8 +143,8 @@ export default function CitiesPage({
                       <div className="city-lane-header-premium">
                         <div className="lane-status-indicator">
                           <span className="status-dot status-dot-live" />
+                          <Zap size={14} className="text-accent" />
                           <span className="lane-count">{lane.active_checkpoint_count}</span>
-                          <span className="lane-clue">{t("cities.clueActive")}</span>
                         </div>
                         <strong>{lane.city_name}</strong>
                       </div>
@@ -144,10 +152,12 @@ export default function CitiesPage({
                       <div className="city-lane-meta">
                         <div className="city-lane-stats-box">
                           <div className="city-lane-stat-item">
+                            <MapPin size={12} />
                             <span>{t("cities.districts")}</span>
                             <strong>{lane.district_count}</strong>
                           </div>
                           <div className="city-lane-stat-item">
+                            <Plus size={12} />
                             <span>{t("cities.demandLabel")}</span>
                             <strong>{lane.demand_count}</strong>
                           </div>

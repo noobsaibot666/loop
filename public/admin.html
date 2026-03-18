@@ -16,8 +16,8 @@
       --text: hsl(0, 0%, 98%);
       --text-soft: hsl(0, 0%, 85%);
       --muted: hsl(0, 0%, 60%);
-      --accent: hsl(20, 100%, 50%);
-      --accent-soft: hsla(20, 100%, 50%, 0.16);
+      --accent: #645AD0;
+      --accent-soft: rgba(100, 90, 208, 0.16);
       --border: hsla(0, 0%, 100%, 0.08);
       --border-bright: hsla(0, 0%, 100%, 0.15);
       --shadow: 0 40px 100px hsla(0, 0%, 0%, 0.9);
@@ -39,7 +39,7 @@
       margin: 0;
       font-family: var(--font-mono);
       background:
-        radial-gradient(circle at 50% 50%, hsla(20, 100%, 50%, 0.03) 0%, transparent 70%),
+        radial-gradient(circle at 50% 50%, rgba(100, 90, 208, 0.03) 0%, transparent 70%),
         linear-gradient(to bottom, var(--bg), #000);
       color: var(--text);
       padding: 40px 40px 80px;
@@ -61,22 +61,25 @@
     }
 
     .shell {
-      max-width: 1080px;
+      max-width: 1200px;
       margin: 0 auto;
       display: grid;
-      gap: 18px;
-      padding-bottom: 60px;
+      gap: 24px;
+      padding-bottom: 80px;
       position: relative;
       z-index: 1;
     }
 
     .card {
       background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 28px 32px;
+      padding: 32px 40px;
       min-width: 0;
       overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
     }
 
     h1,
@@ -93,7 +96,7 @@
     }
 
     .eyebrow {
-      color: #ffb575;
+      color: #8C82F2;
       text-transform: uppercase;
       letter-spacing: 0.2em;
       font-size: 0.7rem;
@@ -114,13 +117,13 @@
 
     .grid {
       display: grid;
-      gap: 16px;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 24px;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     }
 
     .section-nav {
       display: flex;
-      gap: 10px;
+      gap: 12px;
       flex-wrap: wrap;
     }
 
@@ -128,17 +131,21 @@
       position: sticky;
       top: 14px;
       z-index: 3;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      background: rgba(10, 10, 10, 0.4);
+      padding: 12px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
     }
 
     .section-chip {
-      padding: 10px 16px;
+      padding: 12px 20px;
       border-radius: 4px;
       border: 1px solid var(--border);
       background: rgba(255, 255, 255, 0.04);
       color: var(--text-soft);
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
       font-family: var(--font-header), sans-serif;
       font-size: 0.78rem;
@@ -154,8 +161,8 @@
     }
 
     .section-chip.active {
-      background: rgba(246, 43, 10, 0.1);
-      border-color: rgba(246, 43, 10, 0.4);
+      background: rgba(100, 90, 208, 0.1);
+      border-color: rgba(100, 90, 208, 0.4);
       color: var(--accent);
     }
 
@@ -313,7 +320,7 @@
     }
 
     .winner-card .label {
-      color: #ffb575;
+      color: #8C82F2;
     }
 
     .proofs {
@@ -470,7 +477,7 @@
 
     .pack-item.is-loaded {
       border-color: var(--accent);
-      background: rgba(246, 43, 10, 0.08);
+      background: rgba(100, 90, 208, 0.08);
     }
 
     .pack-item-head {
@@ -503,9 +510,9 @@
     }
 
     .mini-chip.active {
-      border-color: rgba(246, 43, 10, 0.4);
-      background: rgba(246, 43, 10, 0.12);
-      color: #ffb575;
+      border-color: rgba(100, 90, 208, 0.4);
+      background: rgba(100, 90, 208, 0.12);
+      color: #8C82F2;
     }
 
     .mini-chip-row {
@@ -611,8 +618,8 @@
     .preview-alert {
       padding: 14px 16px;
       border-radius: 4px;
-      border: 1px solid rgba(246, 43, 10, 0.2);
-      background: rgba(246, 43, 10, 0.08);
+      border: 1px solid rgba(100, 90, 208, 0.2);
+      background: rgba(100, 90, 208, 0.08);
       color: #ffbf91;
     }
 

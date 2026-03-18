@@ -1,5 +1,11 @@
 import { formatDuration } from "../../utils/routeUtils";
 import { useI18n } from "../../i18n";
+import Hero from "../Hero";
+import { 
+  User, MapPin, Zap, Trophy, 
+  Map, History, LayoutGrid, Award, ChevronRight,
+  TrendingUp, Clock, Globe, ArrowRight, CheckCircle, Bike
+} from "lucide-react";
 
 type WallPost = {
   id: string;
@@ -85,6 +91,7 @@ type RiderProfilePageProps = {
   onOpenWallCity: (cityName?: string) => void;
   onOpenLeaderboardCity: (cityName?: string) => void;
   onOpenRiderProfile: (userId?: string) => void;
+  heroImage?: string;
 };
 
 export default function RiderProfilePage({
@@ -93,24 +100,28 @@ export default function RiderProfilePage({
   onOpenWallCity,
   onOpenLeaderboardCity,
   onOpenRiderProfile,
+  heroImage,
 }: RiderProfilePageProps) {
   const { t, formatDate } = useI18n();
   const getProofLabel = (count: number) => count === 1 ? t("rider.proofCount", { count }) : t("rider.proofCountPlural", { count });
   return (
-    <div className="sequential-layout sub-page">
-      <section className="sub-page-header">
-        <h1 className="sub-page-title">{publicRiderProfile?.profile?.rider_name || t("rider.notFound")}</h1>
-        <p className="sub-page-description">{t("rider.subtitle")}</p>
-        {publicRiderProfile && (
-          <div className="section-jump-strip">
-            <a className="mini-chip active" href="#rider-stats">{t("rider.jump.stats")}</a>
-            <a className="mini-chip" href="#rider-cities">{t("rider.jump.cities")}</a>
-            <a className="mini-chip" href="#rider-standing">{t("rider.jump.standing")}</a>
-            <a className="mini-chip" href="#rider-ledger">{t("rider.jump.ledger")}</a>
-            <a className="mini-chip" href="#rider-proof">{t("rider.jump.proof")}</a>
-          </div>
-        )}
-      </section>
+    <div className="sequential-layout sub-page page-profile page-stage-enter">
+      <Hero 
+        title={publicRiderProfile?.profile?.rider_name || t("rider.notFound")}
+        subtitle={publicRiderProfile?.profile?.home_location || t("rider.subtitle")}
+        image={heroImage || ""}
+        actions={
+          publicRiderProfile && (
+            <div className="section-jump-strip">
+              <a className="mini-chip active" href="#rider-stats">{t("rider.jump.stats")}</a>
+              <a className="mini-chip" href="#rider-cities">{t("rider.jump.cities")}</a>
+              <a className="mini-chip" href="#rider-standing">{t("rider.jump.standing")}</a>
+              <a className="mini-chip" href="#rider-ledger">{t("rider.jump.ledger")}</a>
+              <a className="mini-chip" href="#rider-proof">{t("rider.jump.proof")}</a>
+            </div>
+          )
+        }
+      />
 
       <section className="builder-grid single reveals">
         <div className="glass-card form-card rider-profile-card">
@@ -135,22 +146,23 @@ export default function RiderProfilePage({
                     <div className="rider-profile-status-badges">
                       {publicRiderProfile.stats.quarter_rank === 1 && (
                         <div className="achievement-badge gold">
-                          🥇 {t("leaderboard.loopLeader")}
+                          <Award size={14} /> {t("leaderboard.loopLeader")}
                         </div>
                       )}
                       {publicRiderProfile.stats.finished_runs > 0 && (
                         <div className="achievement-badge silver">
-                          🏁 {t("leaderboard.alleycatWinner")}
+                          <CheckCircle size={14} /> {t("leaderboard.alleycatWinner")}
                         </div>
                       )}
                       {publicRiderProfile.profile.is_community_member && (
                         <div className="achievement-badge community">
-                          ⛓️ {t("leaderboard.hardChainCrew")}
+                          <Globe size={14} /> {t("leaderboard.hardChainCrew")}
                         </div>
                       )}
                     </div>
                   </div>
                   <div className="rider-bike-tag">
+                    <Bike size={16} />
                     <span>{publicRiderProfile.profile.bike_name || t("rider.bikeNotSet")}</span>
                     <strong>{publicRiderProfile.profile.bike_ratio || t("rider.ratioNotSet")}</strong>
                   </div>
@@ -175,44 +187,43 @@ export default function RiderProfilePage({
               </div>
 
               <div className="result-grid result-grid-four rider-stat-grid" id="rider-stats">
-                <div>
+                <div className="rider-stat-item">
+                  <Zap size={16} className="text-accent" />
                   <span>{t("rider.publicProofs")}</span>
                   <strong>{publicRiderProfile.stats.public_proofs}</strong>
                 </div>
-                <div>
+                <div className="rider-stat-item">
+                  <CheckCircle size={16} />
                   <span>{t("rider.finishedRuns")}</span>
                   <strong>{publicRiderProfile.stats.finished_runs}</strong>
                 </div>
-                <div>
+                <div className="rider-stat-item">
+                  <Award size={16} className="text-gold" />
                   <span>{t("rider.quarterRank")}</span>
                   <strong>{publicRiderProfile.stats.quarter_rank ? `#${publicRiderProfile.stats.quarter_rank}` : "--"}</strong>
                 </div>
-                <div>
+                <div className="rider-stat-item">
+                  <Clock size={16} />
                   <span>{t("rider.bestFinish")}</span>
                   <strong>{publicRiderProfile.stats.best_finish_seconds ? formatDuration(publicRiderProfile.stats.best_finish_seconds) : "--:--"}</strong>
                 </div>
               </div>
 
               <div className="result-grid result-grid-three rider-stat-grid rider-stat-grid-secondary">
-                <div>
+                <div className="rider-stat-item">
+                  <Globe size={16} />
                   <span>{t("rider.citiesHit")}</span>
                   <strong>{publicRiderProfile.stats.cities}</strong>
                 </div>
-                <div>
+                <div className="rider-stat-item">
+                  <TrendingUp size={16} />
                   <span>{t("rider.topCity")}</span>
                   <strong>{publicRiderProfile.stats.top_city || "--"}</strong>
                 </div>
-                <div>
+                <div className="rider-stat-item">
+                  <Zap size={16} className="text-accent" />
                   <span>{t("rider.quarterProofs")}</span>
                   <strong>{publicRiderProfile.stats.quarter_public_proofs}</strong>
-                </div>
-                <div>
-                  <span>{t("rider.sharedCodes")}</span>
-                  <strong>{publicRiderProfile.stats.shared_challenges}</strong>
-                </div>
-                <div>
-                  <span>{t("rider.rivalsMet")}</span>
-                  <strong>{publicRiderProfile.stats.rivals}</strong>
                 </div>
               </div>
 

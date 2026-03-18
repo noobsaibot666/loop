@@ -1,6 +1,11 @@
 import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useI18n } from "../../i18n";
+import Hero from "../Hero";
+import { 
+  Trophy, MapPin, Users, Zap, Globe, 
+  Filter, X, ArrowRight, ChevronRight, Award
+} from "lucide-react";
 
 type PublicLeaderboardEntry = {
   user_id: string;
@@ -23,6 +28,7 @@ type LeaderboardPageProps = {
   isLoadingPublicLeaderboard: boolean;
   publicLeaderboard: PublicLeaderboardEntry[];
   onOpenRiderProfile: (userId?: string) => void;
+  heroImage?: string;
 };
 
 const CITY_COUNTRY_MAP: Record<string, string> = {
@@ -65,26 +71,25 @@ export default function LeaderboardPage({
   isLoadingPublicLeaderboard,
   publicLeaderboard,
   onOpenRiderProfile,
+  heroImage,
 }: LeaderboardPageProps) {
   const { t } = useI18n();
   const [showCityPicker, setShowCityPicker] = useState(false);
   const countryOptions = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          cityPresets
-            .map((city) => CITY_COUNTRY_MAP[toCitySlug(city)] || "")
-            .filter(Boolean)
-        )
-      ).sort((a, b) => a.localeCompare(b)),
-    [cityPresets, toCitySlug]
+    () => [t("continent.americas"), t("continent.europe"), t("continent.asia")],
+    [t]
   );
   const filteredCityPresets = useMemo(
-    () =>
-      selectedLeaderboardCountry
-        ? cityPresets.filter((city) => CITY_COUNTRY_MAP[toCitySlug(city)] === selectedLeaderboardCountry)
-        : cityPresets,
-    [cityPresets, selectedLeaderboardCountry, toCitySlug]
+    () => {
+      if (!selectedLeaderboardCountry) return cityPresets;
+      const group = [
+        { label: t("continent.americas"), names: ["Bogota", "Buenos Aires", "Chicago", "Los Angeles", "Mexico City", "New York", "Philadelphia", "San Francisco", "Santos", "Sao Paulo", "Seattle"] },
+        { label: t("continent.europe"), names: ["Amsterdam", "Barcelona", "Berlin", "Krakow", "London", "Milan", "Paris", "Vienna", "Warsaw"] },
+        { label: t("continent.asia"), names: ["Bangkok", "Seoul", "Taipei", "Tokyo"] }
+      ].find(g => g.label === selectedLeaderboardCountry);
+      return group ? cityPresets.filter(c => group.names.includes(c)) : cityPresets;
+    },
+    [cityPresets, selectedLeaderboardCountry, t]
   );
   const cityGroups = useMemo(() => [
     {
@@ -116,24 +121,25 @@ export default function LeaderboardPage({
     : selectedLeaderboardCountry || t("leaderboard.allCitiesLower");
 
   return (
-    <div className="sequential-layout sub-page">
-      <section className="sub-page-header">
-        <h1 className="sub-page-title">{t("leaderboard.title")}</h1>
-      </section>
+    <div className="sequential-layout sub-page page-leaderboard page-stage-enter">
+      <Hero 
+        title={t("leaderboard.title")}
+        subtitle={t("leaderboard.subtitle")}
+        image={heroImage || ""}
+      />
 
       <section className="builder-grid single reveals">
         <div className="glass-card form-card leaderboard-shell">
           <div className="leaderboard-public-head" id="leaderboard-filter">
             <div className="leaderboard-head-copy">
-              <div className="form-title">{publicQuarterLabel || t("leaderboard.currentQuarter")}</div>
+              <div className="form-title accent-text">{publicQuarterLabel || t("leaderboard.currentQuarter")}</div>
               <div className="leaderboard-head-scope">
                 <span>{t("leaderboard.currentFilter")}</span>
-                <strong>{activeScopeLabel}</strong>
+                <strong className="accent-text-glow leaderboard-city-trigger" onClick={() => setShowCityPicker(true)}>
+                  {activeScopeLabel}
+                </strong>
               </div>
             </div>
-            <button type="button" className="inline-link-button wall-filter-link" onClick={() => setShowCityPicker(true)}>
-              {selectedLeaderboardCity ? getCityLabel(selectedLeaderboardCity) : t("leaderboard.allCities")}
-            </button>
           </div>
           <div className="leaderboard-country-strip">
             <button
@@ -144,7 +150,7 @@ export default function LeaderboardPage({
                 setSelectedLeaderboardCity("");
               }}
             >
-              {t("leaderboard.allCountries")}
+              {t("leaderboard.allContinents")}
             </button>
             {countryOptions.map((country) => (
               <button
@@ -163,21 +169,24 @@ export default function LeaderboardPage({
           {isLoadingPublicLeaderboard && <div className="status-message">{t("leaderboard.loading")}</div>}
           {!isLoadingPublicLeaderboard && publicLeaderboard.length === 0 && (
             <div className="empty-state">
-              <div className="empty-state-icon">🏁</div>
+              <div className="empty-state-icon"><Zap size={32} className="text-muted" /></div>
               <div className="empty-state-text">{t("leaderboard.empty")}</div>
             </div>
           )}
           {publicLeaderboard.length > 0 && (
             <div className="result-grid result-grid-three leaderboard-summary-grid">
               <div className="leaderboard-stat-card">
+                <Users size={16} className="text-muted" />
                 <span>{t("leaderboard.rankedRiders")}</span>
                 <strong>{publicLeaderboard.length}</strong>
               </div>
               <div className="leaderboard-stat-card leaderboard-stat-card-accent">
+                <Zap size={16} className="text-accent" />
                 <span>{t("leaderboard.totalProofs")}</span>
                 <strong>{leaderboardProofs}</strong>
               </div>
               <div className="leaderboard-stat-card">
+                <Trophy size={16} className="text-muted" />
                 <span>{t("leaderboard.totalFinishes")}</span>
                 <strong>{leaderboardFinishes}</strong>
               </div>
@@ -190,8 +199,9 @@ export default function LeaderboardPage({
                 <span className="winner-label">{t("leaderboard.quarterLeader")}</span>
                 <div className="leaderboard-hero-name">
                   <strong>{publicLeaderboard[0].rider_name}</strong>
-                  <div className="achievement-badge gold">
-                    <span>🥇 {t("leaderboard.loopLeader")}</span>
+                  <div className="achievement-badge gold animated-badge">
+                    <Award size={14} />
+                    <span>{t("leaderboard.loopLeader")}</span>
                   </div>
                 </div>
                 <span>{t("leaderboard.proofsFinishes", { proofs: publicLeaderboard[0].public_proofs, finishes: publicLeaderboard[0].finished_runs })}</span>
@@ -219,6 +229,9 @@ export default function LeaderboardPage({
                   className={`podium-card podium-${entry.rank}`}
                   onClick={() => onOpenRiderProfile(entry.user_id)}
                 >
+                  <div className={`animated-rank-badge rank-${entry.rank} animated-badge ${entry.rank === 1 ? 'gold' : entry.rank === 2 ? 'silver' : 'bronze'}`}>
+                    <Award size={16} />
+                  </div>
                   <span className="winner-label">{t("leaderboard.top", { rank: entry.rank })}</span>
                   <strong>{entry.rider_name}</strong>
                   <span>{t("leaderboard.proofsFinishes", { proofs: entry.public_proofs, finishes: entry.finished_runs })}</span>
@@ -229,7 +242,7 @@ export default function LeaderboardPage({
           {publicLeaderboard.length > 0 && (
             <div className="leaderboard-list public-board" id="leaderboard-list">
               {publicLeaderboard.map((entry) => (
-                <div key={entry.user_id} className="leaderboard-row">
+                <div key={entry.user_id} className={`leaderboard-row ${entry.rank <= 3 ? `rank-${entry.rank}-row` : ""}`}>
                   <div className="leaderboard-rank">#{entry.rank}</div>
                   <div className="leaderboard-main">
                     <strong>
@@ -240,21 +253,23 @@ export default function LeaderboardPage({
                     <span>{t("leaderboard.proofsFinishes", { proofs: entry.public_proofs, finishes: entry.finished_runs })}</span>
                     <div className="leaderboard-meta-chips">
                       {entry.rank === 1 && (
-                        <span className="achievement-badge gold">
-                          🥇 {t("leaderboard.loopLeader")}
+                        <span className="achievement-badge gold animated-badge">
+                          <Award size={12} /> {t("leaderboard.loopLeader")}
                         </span>
                       )}
                       {entry.finished_runs > 0 && (
                         <span className="achievement-badge silver">
-                          🏁 {t("leaderboard.alleycatWinner")}
+                          <Zap size={12} /> {t("leaderboard.alleycatWinner")}
                         </span>
                       )}
                       {entry.is_community_member && (
                         <span className="achievement-badge community">
-                          ⛓️ {t("leaderboard.hardChainCrew")}
+                          <Globe size={12} /> {t("leaderboard.hardChainCrew")}
                         </span>
                       )}
-                      <span className="mini-chip active">{t("leaderboard.top", { rank: entry.rank })}</span>
+                      <span className={`mini-chip active ${entry.rank <= 3 ? `rank-chip-${entry.rank}` : ""}`}>
+                        {t("leaderboard.top", { rank: entry.rank })}
+                      </span>
                       {entry.finished_runs > 0 && <span className="mini-chip">{t("leaderboard.closed", { count: entry.finished_runs })}</span>}
                       {entry.public_proofs > 0 && <span className="mini-chip">{t("leaderboard.posted", { count: entry.public_proofs })}</span>}
                     </div>
@@ -272,7 +287,7 @@ export default function LeaderboardPage({
             <div className="modal-header">
               <div className="modal-title">{t("leaderboard.chooseCity")}</div>
               <button className="modal-close" type="button" aria-label={t("common.close")} onClick={() => setShowCityPicker(false)}>
-                ×
+                <X size={20} />
               </button>
             </div>
             <div className="modal-actions city-picker-nav">

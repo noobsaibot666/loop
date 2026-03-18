@@ -1,4 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
+import Hero from "../Hero";
+import { 
+  Moon, Users, MapPin, Zap, Camera, 
+  ChevronRight, Filter, Share2, Compass, Award, 
+  Image as ImageIcon, Upload, Info, CheckCircle, X
+} from "lucide-react";
 
 type Suggestion = {
   label: string;
@@ -65,6 +71,7 @@ type Props = {
   feed: NightRidePost[];
   history: NightRideHistorySession[];
   onPostCreated: (post: NightRidePost) => void;
+  heroImage?: string;
 };
 
 const NightRidePage = ({
@@ -81,6 +88,7 @@ const NightRidePage = ({
   feed,
   history,
   onPostCreated,
+  heroImage,
 }: Props) => {
   const [sessionType, setSessionType] = useState<"single" | "crew">("single");
   const [mode, setMode] = useState<"loop" | "roulette">("loop");
@@ -101,12 +109,11 @@ const NightRidePage = ({
   const [shareInput, setShareInput] = useState("");
   const [isBuilding, setIsBuilding] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
-  const [postSessionId, setPostSessionId] = useState("");
   const [postCaption, setPostCaption] = useState("");
-  const [postAspectRatio, setPostAspectRatio] = useState<"1:1" | "16:9">("1:1");
   const [postFile, setPostFile] = useState<File | null>(null);
   const [postStatus, setPostStatus] = useState("");
   const [isPosting, setIsPosting] = useState(false);
+  const [showPostModal, setShowPostModal] = useState(false);
 
   const distanceKm = unit === "km" ? distance : distance * 1.60934;
   const crewMembers = useMemo(
@@ -114,8 +121,7 @@ const NightRidePage = ({
       crewMembersInput
         .split(",")
         .map((item) => item.trim().replace(/^@+/, ""))
-        .filter(Boolean)
-        .slice(0, 12),
+        .filter(Boolean),
     [crewMembersInput]
   );
 
@@ -192,18 +198,6 @@ const NightRidePage = ({
     ],
     []
   );
-
-  const postableSessions = useMemo(() => {
-    const merged = [...(session ? [session] : []), ...history];
-    return Array.from(new Map(merged.map((item) => [item.id, item])).values())
-      .sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || "")));
-  }, [history, session]);
-
-  useEffect(() => {
-    if (!postSessionId && postableSessions.length) {
-      setPostSessionId(postableSessions[0].id);
-    }
-  }, [postableSessions, postSessionId]);
 
   const handleBuild = async () => {
     if (!user?.id) {
@@ -287,7 +281,7 @@ const NightRidePage = ({
       setPostStatus("Night Ride upload is not ready in this browser.");
       return;
     }
-    if (!postSessionId) {
+    if (!session) {
       setPostStatus("Pick a Night Ride session first.");
       return;
     }
@@ -300,7 +294,7 @@ const NightRidePage = ({
     setPostStatus("");
     try {
       const extension = postFile.name.split(".").pop()?.toLowerCase() || "jpg";
-      const storagePath = `${user.id}/${postSessionId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`;
+      const storagePath = `${user.id}/${session.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`;
       const upload = await supabase.storage.from(bucketName).upload(storagePath, postFile, {
         cacheControl: "3600",
         upsert: false,
@@ -309,10 +303,10 @@ const NightRidePage = ({
       const { data: publicData } = supabase.storage.from(bucketName).getPublicUrl(storagePath);
 
       const response = await postJSON<{ post: NightRidePost }>("/api/night-rides/post", {
-        session_id: postSessionId,
+        session_id: session.id,
         image_url: publicData.publicUrl,
         storage_path: storagePath,
-        aspect_ratio: postAspectRatio,
+        aspect_ratio: "16:9",
         caption: postCaption.trim(),
       });
 
@@ -320,6 +314,7 @@ const NightRidePage = ({
       setPostCaption("");
       setPostFile(null);
       setPostStatus("Night Ride post landed on the night wall.");
+      setShowPostModal(false);
     } catch (error) {
       setPostStatus(error instanceof Error ? error.message : "Could not post Night Ride shot.");
     } finally {
@@ -328,30 +323,40 @@ const NightRidePage = ({
   };
 
   return (
-    <div className="sequential-layout sub-page">
-      <section className="sub-page-header loop-page-header">
-        <h1 className="sub-page-title">Night Ride</h1>
-        <p className="sub-page-description">
-          Separate lane for after-dark routes, crew codes, and the future night wall.
-        </p>
-      </section>
+    <div className="sequential-layout sub-page page-night page-stage-enter">
+      <Hero 
+        title="Night Ride"
+        subtitle="Separate lane for after-dark routes, crew codes, and the future night wall."
+        image={heroImage || ""}
+        actions={
+          <div className="hero-actions-group">
+            <button className="accent-text-button" onClick={() => document.getElementById('night-builder')?.scrollIntoView({ behavior: 'smooth' })}>
+              <span>{sessionType === "crew" ? "Build Crew Ride" : "Build Single Ride"}</span>
+            </button>
+          </div>
+        }
+      />
 
       <section className="modular-grid flow-grid flow-grid-four reveals">
         {flow.map((step) => (
-          <div key={step.number} className="modular-cell module-card">
-            <div className="flow-number">{step.number}</div>
-            <h3 className="cell-title">{step.title}</h3>
-            <p className="cell-body">{step.body}</p>
+          <div key={step.number} className="module-card">
+            <div className="module-header">
+              <span className="module-number">{step.number}</span>
+              <h3 className="module-title">{step.title}</h3>
+            </div>
+            <p className="module-body">{step.body}</p>
           </div>
         ))}
       </section>
 
       <section className="split-module reveals" id="night-builder">
         <div className="builder-grid single">
-          <div className="glass-card form-card night-ride-shell">
-            <div className="builder-head">
+          <div className={`glass-card form-card night-ride-shell ${sessionType === "crew" ? "crew-mode" : ""}`}>
+            <div className="form-header">
               <div>
-                <h2 className="form-title">Night Ride Builder</h2>
+                <h2 className="form-title">
+                  <span>Night Ride Builder</span>
+                </h2>
                 <p className="form-subtitle">Single stays simple. Crew carries code, city, and names.</p>
               </div>
               <div className="loops-left">
@@ -361,9 +366,9 @@ const NightRidePage = ({
             </div>
 
             <div className="form-section section-block">
-              <label className="field">
+              <label className="field range-field">
                 <span>Ride type</span>
-                <div className="unit-toggle loop-centered-pills">
+                <div className="pill-group range-unit-toggle">
                   <button className={`pill ${sessionType === "single" ? "active" : ""}`} type="button" onClick={() => setSessionType("single")}>
                     Single
                   </button>
@@ -373,11 +378,11 @@ const NightRidePage = ({
                 </div>
               </label>
 
-              <label className="field">
+              <label className="field range-field">
                 <span>Route mode</span>
-                <div className="unit-toggle loop-centered-pills">
+                <div className="pill-group range-unit-toggle">
                   <button className={`pill ${mode === "loop" ? "active" : ""}`} type="button" onClick={() => setMode("loop")}>
-                    Night Loop
+                    Loop
                   </button>
                   <button className={`pill ${mode === "roulette" ? "active" : ""}`} type="button" onClick={() => setMode("roulette")}>
                     Roulette
@@ -388,14 +393,16 @@ const NightRidePage = ({
 
             {sessionType === "crew" && (
               <div className="form-section section-block">
-                <label className="field">
-                  <span>Crew name</span>
-                  <input value={crewName} onChange={(event) => setCrewName(event.target.value)} placeholder="Crew da Lapa" />
-                </label>
-                <label className="field">
-                  <span>City</span>
-                  <input value={rideCity} onChange={(event) => setRideCity(event.target.value)} placeholder="Sao Paulo" />
-                </label>
+                <div className="field-grid-two">
+                  <label className="field">
+                    <span>Crew name</span>
+                    <input value={crewName} onChange={(event) => setCrewName(event.target.value)} placeholder="Crew da Lapa" />
+                  </label>
+                  <label className="field">
+                    <span>City</span>
+                    <input value={rideCity} onChange={(event) => setRideCity(event.target.value)} placeholder="Sao Paulo" />
+                  </label>
+                </div>
                 <label className="field">
                   <span>Crew members</span>
                   <input
@@ -405,7 +412,7 @@ const NightRidePage = ({
                   />
                 </label>
                 <div className="night-ride-helper">
-                  Tag with <strong>@</strong> or drop plain names. The first 12 names are kept.
+                  Tag with <strong>@</strong> for app users, or drop plain names for anyone else.
                 </div>
               </div>
             )}
@@ -477,9 +484,9 @@ const NightRidePage = ({
             </div>
 
             <div className="form-section section-block">
-              <label className="field">
+              <label className="field range-field">
                 <span>Distance</span>
-                <div className="unit-toggle loop-centered-pills">
+                <div className="pill-group range-unit-toggle">
                   <button className={`pill ${unit === "km" ? "active" : ""}`} type="button" onClick={() => setUnit("km")}>
                     KM
                   </button>
@@ -487,7 +494,6 @@ const NightRidePage = ({
                     MI
                   </button>
                 </div>
-              </label>
               <input
                 type="range"
                 min={unit === "km" ? 5 : 3}
@@ -496,17 +502,18 @@ const NightRidePage = ({
                 value={distance}
                 onChange={(event) => setDistance(Number(event.target.value))}
               />
-              <div className="range-values">
+              <div className="range-labels">
                 <span>{unit === "km" ? 5 : 3} {unit}</span>
                 <div className="range-focus-card">
                   <strong>{Number(distance.toFixed(1))} {unit}</strong>
                 </div>
                 <span>{unit === "km" ? 40 : 25} {unit}</span>
               </div>
+              </label>
 
               <label className="field">
                 <span>Difficulty</span>
-                <div className="pill-grid pill-grid-three">
+                <div className="pill-grid pill-grid-three" style={{ justifyContent: 'center' }}>
                   {["easy", "medium", "hard"].map((value) => (
                     <button
                       key={value}
@@ -522,7 +529,7 @@ const NightRidePage = ({
             </div>
 
             <div className="form-actions">
-              <button className="primary-button primary-button-flat" type="button" onClick={handleBuild} disabled={isBuilding}>
+              <button className="accent-text-button" type="button" onClick={handleBuild} disabled={isBuilding}>
                 {isBuilding ? "Building..." : sessionType === "crew" ? "Build Crew Ride" : "Build Single Ride"}
               </button>
               <button className="ghost-button" type="button" onClick={handleDonate}>
@@ -578,136 +585,67 @@ const NightRidePage = ({
                 </div>
               )}
               <div className="form-actions">
-                <a className="primary-button primary-button-flat" href={session.route_url} target="_blank" rel="noreferrer">
+                <a className="accent-text-button" href={session.route_url} target="_blank" rel="noreferrer">
                   Open in Maps
                 </a>
-                {session.session_type === "crew" && (
-                  <button
-                    className="ghost-button"
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(session.share_code);
-                      } catch {
-                        window.prompt("Copy Night Ride code", session.share_code);
-                      }
-                    }}
-                  >
-                    Copy code
-                  </button>
-                )}
+                <button className="secondary-button" type="button" onClick={() => setShowPostModal(true)}>
+                  <Camera size={16} />
+                  <span>Post Ride Shot</span>
+                </button>
               </div>
-              <div className="loop-community-card night-community-card">
-                <strong>Ride completed.</strong>
-                <span>Want to connect with riders in your city?</span>
-                <span>Join the Hard Chain Crew Discord.</span>
-                <a className="ghost-button small" href="/membership.html">
-                  Join the Crew
-                </a>
-              </div>
+
             </div>
           )}
         </div>
       </section>
 
-      <section className="split-module reveals">
-        <div className="builder-grid single">
-          <div className="glass-card form-card night-ride-shell">
-            <div className="builder-head">
-              <div>
-                <h2 className="form-title">Post to Night Wall</h2>
-                <p className="form-subtitle">Drop the group shot or the solo frame tied to a real Night Ride session.</p>
-              </div>
-            </div>
-
-            <div className="form-section section-block">
-              <label className="field">
-                <span>Session</span>
-                <select value={postSessionId} onChange={(event) => setPostSessionId(event.target.value)}>
-                  <option value="">Pick a Night Ride</option>
-                  {postableSessions.map((ride) => (
-                    <option key={ride.id} value={ride.id}>
-                      {(ride.crew_name || ride.title)} · {ride.ride_city || "Night city"}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="field">
-                <span>Frame</span>
-                <div className="unit-toggle loop-centered-pills">
-                  <button className={`pill ${postAspectRatio === "1:1" ? "active" : ""}`} type="button" onClick={() => setPostAspectRatio("1:1")}>
-                    1:1
-                  </button>
-                  <button className={`pill ${postAspectRatio === "16:9" ? "active" : ""}`} type="button" onClick={() => setPostAspectRatio("16:9")}>
-                    16:9
-                  </button>
-                </div>
-              </label>
-
-              <label className="field">
-                <span>Caption</span>
-                <textarea
-                  value={postCaption}
-                  onChange={(event) => setPostCaption(event.target.value.slice(0, 280))}
-                  placeholder="Crew out in Mooca, wet streets, bridge wind, still smiling."
-                  rows={3}
-                />
-              </label>
-
-              <label className="field">
-                <span>Photo</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(event) => setPostFile(event.target.files?.[0] || null)}
-                />
-              </label>
-            </div>
-
-            <div className="form-actions">
-              <button className="primary-button primary-button-flat" type="button" onClick={handlePost} disabled={isPosting}>
-                {isPosting ? "Posting..." : "Post night shot"}
+      {showPostModal && (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <div className="modal-card">
+            <div className="modal-header">
+              <div className="modal-title">Post to Night Wall</div>
+              <button className="modal-close" type="button" onClick={() => setShowPostModal(false)}>
+                <X size={20} />
               </button>
             </div>
-            {postStatus ? <div className="status-message compact-status">{postStatus}</div> : null}
+            <div className="modal-body form-card">
+              <div className="form-section section-block">
+                <div className="manifest-brief mini-brief">
+                  <strong>{session?.crew_name || session?.title}</strong>
+                  <span>{session?.ride_city || "Night city"} · {Number(session?.distance_km || 0).toFixed(1)} km</span>
+                </div>
+                
+                <label className="field">
+                  <span>Caption</span>
+                  <textarea
+                    value={postCaption}
+                    onChange={(event) => setPostCaption(event.target.value.slice(0, 280))}
+                    placeholder="Crew out, wet streets, still smiling."
+                    rows={3}
+                  />
+                </label>
+
+                <label className="field">
+                  <span>Photo (16:9 recommended)</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) => setPostFile(event.target.files?.[0] || null)}
+                  />
+                </label>
+              </div>
+              <div className="form-actions">
+                <button className="primary-button" type="button" onClick={handlePost} disabled={isPosting}>
+                  {isPosting ? "Posting..." : "Post night shot"}
+                </button>
+              </div>
+              {postStatus ? <div className="status-message compact-status">{postStatus}</div> : null}
+            </div>
           </div>
         </div>
-      </section>
+      )}
 
-      <section className="glass-card form-card reveals">
-        <div className="form-title">Night wall</div>
-        <div className="form-subtitle">Crew shots and after-dark proof stay separate from Wall of Fame.</div>
-        {feed.length ? (
-          <div className="night-feed-grid">
-            {feed.filter(post => post.moderation_status === 'live' || (user && post.user_id === user.id)).map((post) => (
-              <article key={post.id} className={`night-feed-card ${post.moderation_status === 'pending' ? 'post-pending' : ''}`}>
-                <img src={post.image_url} alt={post.caption || post.route_title || "Night ride post"} loading="lazy" decoding="async" />
-                <div className="night-feed-meta">
-                  <div className="meta-header">
-                    <strong>{post.crew_name || post.rider_name}</strong>
-                    {post.moderation_status === 'pending' && (
-                      <span className="pending-badge">Pending Review</span>
-                    )}
-                  </div>
-                  <span>
-                    {(post.route_title || "Night route")}
-                    {post.distance_km ? ` · ${Number(post.distance_km).toFixed(1)} km` : ""}
-                  </span>
-                  <span>{post.city_name || "Night lane"} · {formatDate(post.created_at)}</span>
-                  {post.moderation_status === 'pending' && (
-                    <p className="pending-note">Only you can see this until it's approved.</p>
-                  )}
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <div className="empty-state">
-            <div className="empty-state-body">Night wall is wired. Build a ride and drop your first shot to start the line.</div>
-          </div>
-        )}
-      </section>
+      {/* Night wall removed */}
     </div>
   );
 };

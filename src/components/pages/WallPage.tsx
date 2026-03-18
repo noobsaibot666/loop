@@ -1,6 +1,11 @@
 import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useI18n } from "../../i18n";
+import Hero from "../Hero";
+import { 
+  Filter, Image as ImageIcon, MapPin, User, Bike, 
+  Calendar, Zap, History, LayoutGrid, Trophy, X, ArrowRight
+} from "lucide-react";
 
 type WallPost = {
   id: string;
@@ -39,6 +44,7 @@ type WallPageProps = {
   onOpenRiderProfile: (userId?: string) => void;
   onOpenWallCity: (cityName?: string) => void;
   onOpenLeaderboardCity: (cityName?: string) => void;
+  heroImage?: string;
 };
 
 export default function WallPage({
@@ -54,6 +60,7 @@ export default function WallPage({
   onOpenRiderProfile,
   onOpenWallCity,
   onOpenLeaderboardCity,
+  heroImage,
 }: WallPageProps) {
   const { t, formatDate } = useI18n();
   const [showCityPicker, setShowCityPicker] = useState(false);
@@ -82,15 +89,18 @@ export default function WallPage({
   ].filter((group) => group.cities.length > 0), [cityPresets]);
 
   return (
-    <div className="sequential-layout sub-page">
-      <section className="sub-page-header">
-        <h1 className="sub-page-title">{t("wall.title")}</h1>
-      </section>
+    <div className="sequential-layout sub-page page-wall page-stage-enter">
+      <Hero 
+        title={t("wall.title")}
+        subtitle={selectedWallCity ? getCityLabel(selectedWallCity) : t("wall.allCities")}
+        image={heroImage || ""}
+      />
 
       <section className="wall-section reveals" id="wall-feed">
-        <div className="filter-strip" id="wall-filter">
-          <button type="button" className="inline-link-button wall-filter-link" onClick={() => setShowCityPicker(true)}>
-            {selectedWallCity ? getCityLabel(selectedWallCity) : t("wall.allCities")}
+        <div className="filter-strip" id="wall-filter" style={{ marginBottom: '16px' }}>
+          <button type="button" className="primary-button small" onClick={() => setShowCityPicker(true)}>
+            <Filter size={14} />
+            <span>{selectedWallCity ? getCityLabel(selectedWallCity) : t("wall.allCities")}</span>
           </button>
         </div>
         {isLoadingWall && <div className="status-message">{t("wall.loading")}</div>}
@@ -101,41 +111,39 @@ export default function WallPage({
                 <img src={post.public_url} alt={`${post.checkpoint_name} by ${post.rider_name}`} className="wall-image" loading="lazy" decoding="async" />
                 <div className="wall-meta">
                   <div className="wall-detail-grid">
-                    <div>
-                      <span>{t("wall.type")}</span>
+                    <div className="wall-detail-item">
+                      <Zap size={14} className="text-accent" />
                       <strong>{t("wall.typeAlleycat")}</strong>
                     </div>
-                    <div>
-                      <span>{t("wall.rider")}</span>
+                    <div className="wall-detail-item">
+                      <User size={14} />
                       <strong>
                         <button className="inline-link-button checkpoint-name" type="button" onClick={() => onOpenRiderProfile(post.user_id)}>
                           {post.rider_name}
                         </button>
                       </strong>
                     </div>
-                    <div>
-                      <span>{t("wall.location")}</span>
+                    <div className="wall-detail-item">
+                      <MapPin size={14} />
                       <strong>{post.location_label || post.city_name}</strong>
                     </div>
-                    <div>
-                      <span>{t("wall.date")}</span>
+                    <div className="wall-detail-item">
+                      <Calendar size={14} />
                       <strong>{formatDate(post.created_at)}</strong>
                     </div>
-                    <div>
-                      <span>{t("wall.bike")}</span>
-                      <strong>{post.bike_name || t("wall.bikeFallback")}</strong>
-                    </div>
-                    <div>
-                      <span>{t("wall.ratio")}</span>
-                      <strong>{post.bike_ratio || t("wall.ratioFallback")}</strong>
+                    <div className="wall-detail-item">
+                      <Bike size={14} />
+                      <strong>{post.bike_name || t("wall.bikeFallback")} ({post.bike_ratio || "N/A"})</strong>
                     </div>
                   </div>
                   <div className="wall-city-actions">
                     <button className="ghost-button small" type="button" onClick={() => onOpenWallCity(post.city_name)}>
-                      {t("wall.buttonWall")}
+                      <LayoutGrid size={14} />
+                      <span>{t("wall.buttonWall")}</span>
                     </button>
                     <button className="ghost-button small" type="button" onClick={() => onOpenLeaderboardCity(post.city_name)}>
-                      {t("wall.buttonBoard")}
+                      <Trophy size={14} />
+                      <span>{t("wall.buttonBoard")}</span>
                     </button>
                   </div>
                 </div>
@@ -145,7 +153,7 @@ export default function WallPage({
         )}
         {!isLoadingWall && wallPosts.length === 0 && (
           <div className="empty-state">
-            <div className="empty-state-icon">🖼️</div>
+            <div className="empty-state-icon"><ImageIcon size={32} className="text-muted" /></div>
             <div className="empty-state-text">{t("wall.empty")}</div>
           </div>
         )}
@@ -175,7 +183,7 @@ export default function WallPage({
         )}
         {!isLoadingWall && nightRidePosts.length === 0 && (
           <div className="empty-state">
-            <div className="empty-state-icon">🌃</div>
+            <div className="empty-state-icon"><Zap size={32} className="text-muted" /></div>
             <div className="empty-state-text">{t("wall.nightEmpty")}</div>
           </div>
         )}
@@ -187,7 +195,7 @@ export default function WallPage({
             <div className="modal-header">
               <div className="modal-title">{t("wall.chooseCity")}</div>
               <button className="modal-close" type="button" aria-label={t("common.close")} onClick={() => setShowCityPicker(false)}>
-                ×
+                <X size={20} />
               </button>
             </div>
             <div className="modal-actions city-picker-nav">
