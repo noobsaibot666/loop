@@ -39,12 +39,15 @@ const CITY_COUNTRY_MAP: Record<string, string> = {
   bogota: "Colombia",
   buenosaires: "Argentina",
   chicago: "United States",
+  curitiba: "Brazil",
+  guarulhos: "Brazil",
   krakow: "Poland",
   london: "United Kingdom",
   losangeles: "United States",
   mexico: "Mexico",
   mexicocity: "Mexico",
   milan: "Italy",
+  munich: "Germany",
   newyork: "United States",
   paris: "France",
   philadelphia: "United States",
@@ -83,8 +86,8 @@ export default function LeaderboardPage({
     () => {
       if (!selectedLeaderboardCountry) return cityPresets;
       const group = [
-        { label: t("continent.americas"), names: ["Bogota", "Buenos Aires", "Chicago", "Los Angeles", "Mexico City", "New York", "Philadelphia", "San Francisco", "Santos", "Sao Paulo", "Seattle"] },
-        { label: t("continent.europe"), names: ["Amsterdam", "Barcelona", "Berlin", "Krakow", "London", "Milan", "Paris", "Vienna", "Warsaw"] },
+        { label: t("continent.americas"), names: ["Bogota", "Buenos Aires", "Chicago", "Curitiba", "Guarulhos", "Los Angeles", "Mexico City", "New York", "Philadelphia", "San Francisco", "Santos", "Sao Paulo", "Seattle"] },
+        { label: t("continent.europe"), names: ["Amsterdam", "Barcelona", "Berlin", "Krakow", "London", "Milan", "Munich", "Paris", "Vienna", "Warsaw"] },
         { label: t("continent.asia"), names: ["Bangkok", "Seoul", "Taipei", "Tokyo"] }
       ].find(g => g.label === selectedLeaderboardCountry);
       return group ? cityPresets.filter(c => group.names.includes(c)) : cityPresets;
@@ -95,14 +98,14 @@ export default function LeaderboardPage({
     {
       label: t("continent.americas"),
       cities: filteredCityPresets
-        .filter((city) => ["Bogota", "Buenos Aires", "Chicago", "Los Angeles", "Mexico City", "New York", "Philadelphia", "San Francisco", "Santos", "Sao Paulo", "Seattle"].includes(city))
+        .filter((city) => ["Bogota", "Buenos Aires", "Chicago", "Curitiba", "Guarulhos", "Los Angeles", "Mexico City", "New York", "Philadelphia", "San Francisco", "Santos", "Sao Paulo", "Seattle"].includes(city))
         .sort((a, b) => a.localeCompare(b)),
       anchor: "leaderboard-city-group-americas",
     },
     {
       label: t("continent.europe"),
       cities: filteredCityPresets
-        .filter((city) => ["Amsterdam", "Barcelona", "Berlin", "Krakow", "London", "Milan", "Paris", "Vienna", "Warsaw"].includes(city))
+        .filter((city) => ["Amsterdam", "Barcelona", "Berlin", "Krakow", "London", "Milan", "Munich", "Paris", "Vienna", "Warsaw"].includes(city))
         .sort((a, b) => a.localeCompare(b)),
       anchor: "leaderboard-city-group-europe",
     },

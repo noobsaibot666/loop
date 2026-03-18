@@ -68,14 +68,14 @@ export default function WallPage({
     {
       label: t("continent.americas"),
       cities: cityPresets
-        .filter((city) => ["Bogota", "Buenos Aires", "Chicago", "Los Angeles", "Mexico City", "New York", "Philadelphia", "San Francisco", "Santos", "Sao Paulo", "Seattle"].includes(city))
+        .filter((city) => ["Bogota", "Buenos Aires", "Chicago", "Curitiba", "Guarulhos", "Los Angeles", "Mexico City", "New York", "Philadelphia", "San Francisco", "Santos", "Sao Paulo", "Seattle"].includes(city))
         .sort((a, b) => a.localeCompare(b)),
       anchor: "wall-city-group-americas",
     },
     {
       label: t("continent.europe"),
       cities: cityPresets
-        .filter((city) => ["Amsterdam", "Barcelona", "Berlin", "Krakow", "London", "Milan", "Paris", "Vienna", "Warsaw"].includes(city))
+        .filter((city) => ["Amsterdam", "Barcelona", "Berlin", "Krakow", "London", "Milan", "Munich", "Paris", "Vienna", "Warsaw"].includes(city))
         .sort((a, b) => a.localeCompare(b)),
       anchor: "wall-city-group-europe",
     },

@@ -393,8 +393,8 @@ const ALLEYCAT_STORAGE_KEY = "loop_alleycat_state";
 const ALLEYCAT_PROOF_DRAFTS_KEY = "loop_alleycat_proof_drafts";
 const LOOP_BUILDER_STORAGE_KEY = "loop_builder_state";
 const ALLEYCAT_CITY_GROUPS = [
-  { label: "Americas", cities: ["Bogota", "Buenos Aires", "Chicago", "Los Angeles", "Mexico City", "New York", "Philadelphia", "San Francisco", "Santos", "Sao Paulo", "Seattle"] },
-  { label: "Europe", cities: ["Amsterdam", "Barcelona", "Berlin", "Krakow", "London", "Milan", "Paris", "Vienna", "Warsaw"] },
+  { label: "Americas", cities: ["Bogota", "Buenos Aires", "Chicago", "Curitiba", "Guarulhos", "Los Angeles", "Mexico City", "New York", "Philadelphia", "San Francisco", "Santos", "Sao Paulo", "Seattle"] },
+  { label: "Europe", cities: ["Amsterdam", "Barcelona", "Berlin", "Krakow", "London", "Milan", "Munich", "Paris", "Vienna", "Warsaw"] },
   { label: "Asia", cities: ["Bangkok", "Seoul", "Taipei", "Tokyo"] },
 ];
 const ALLEYCAT_CITY_PRESETS = ALLEYCAT_CITY_GROUPS.flatMap((group) => group.cities);
@@ -2302,10 +2302,24 @@ function AppShell() {
     <header className="site-header">
       <div className="nav-container">
         <button className="brand" onClick={() => handleNavigate('home')}>
-          <span className="brand-title">GIMME THE LOOP</span>
+          <span className="brand-title">
+            <span className="brand-word">GIMME</span>
+            <span className="brand-word">THE</span>
+            <span className="brand-word">LOOP</span>
+          </span>
         </button>
 
         {renderDesktopNav()}
+        
+        {user && (
+          <button
+            className="header-credit-link-centered"
+            onClick={() => setShowCredits(true)}
+            title={t("nav.addCredits")}
+          >
+            <span className="credit-text">{t("nav.addCreditsShort")}</span>
+          </button>
+        )}
 
         <div className="nav-right">
           <div className="header-actions">
@@ -2314,18 +2328,8 @@ function AppShell() {
                 className={`nav-link profile-link ${pageView === 'account' ? 'active' : ''}`}
                 onClick={() => handleNavigate('account')}
               >
-                <User size={16} />
-                <span>{accountSummary?.profile?.rider_name || user.user_metadata?.full_name || user.email?.split('@')[0] || t("nav.account")}</span>
-              </button>
-            )}
-            {user && (
-              <button
-                className="header-credit-link"
-                onClick={() => setShowCredits(true)}
-                title={t("nav.addCredits")}
-              >
-                <Plus size={14} />
-                <span className="credit-text">{t("nav.addCreditsShort")}</span>
+                <User size={16} className="profile-icon" />
+                <span className="profile-name">{accountSummary?.profile?.rider_name || user.user_metadata?.full_name || user.email?.split('@')[0] || t("nav.account")}</span>
               </button>
             )}
             {!user && (
@@ -2528,7 +2532,7 @@ function AppShell() {
         badge={
           <div className="hero-badge-pill">
             <span className="badge-tag">{t("cities.newCity")}</span>
-            <span className="badge-label">Guarulhos</span>
+            <span className="badge-label">Curitiba/BR · Munich/DE</span>
           </div>
         }
       />

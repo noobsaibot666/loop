@@ -154,16 +154,18 @@ textarea {
 }
 
 .site-header {
-  position: sticky;
+  position: absolute;
   top: 0;
+  left: 0;
+  width: 100%;
   display: flex;
   justify-content: center;
   padding: 8px 20px;
   z-index: 1000;
-  background: rgba(10, 10, 10, 0.4);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  background: rgba(0, 0, 0, 0.4); /* Making it a bit darker since it's now at the top */
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   transition: all 0.3s ease;
 }
 
@@ -1651,7 +1653,6 @@ p {
   object-fit: cover;
   filter: grayscale(0.6) contrast(1.05) brightness(0.75);
   opacity: 0.8;
-  transform: scale(0.90);
 }
 
 .page-home .hero-image-raw {
@@ -4919,7 +4920,7 @@ input[type="range"]::-moz-range-thumb {
     -webkit-backdrop-filter: none;
     border-bottom: 0;
     width: 100%;
-    position: fixed;
+    position: absolute;
     top: 0;
     left: 0;
     z-index: 1050;
@@ -6240,9 +6241,148 @@ input[type="range"]::-webkit-slider-thumb {
   opacity: 0.9;
 }
 
+@keyframes pillSlideIn {
+  0% {
+    transform: translateX(40px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pillSlideOut {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+}
+
+.pill-appear {
+  animation: pillSlideIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.pill-hide {
+  animation: pillSlideOut 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
 @media (max-width: 768px) {
   .hero-badge-container {
-    top: 15%;
+    top: 20%;
     right: 5%;
+  }
+}
+
+/* --- MOBILE NAVIGATION REFINEMENT V1.3 --- */
+@media (max-width: 600px) {
+  .site-header {
+    padding: 8px 12px !important;
+  }
+
+  /* 3-line Brand Title */
+  .brand {
+    gap: 8px !important;
+  }
+
+  .brand-title {
+    display: flex !important;
+    flex-direction: column !important;
+    white-space: normal !important;
+    align-items: flex-start !important;
+    line-height: 1 !important;
+    font-size: 0.75rem !important;
+    gap: 1px !important;
+  }
+  
+  .brand-word {
+    display: block !important;
+  }
+
+  /* Absolute Center Credits Link */
+  .header-credit-link-centered {
+    position: absolute !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    display: flex !important;
+    align-items: center !important;
+    padding: 8px 12px !important;
+    font-weight: 800 !important;
+    font-size: 0.65rem !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    color: #fff !important;
+    border-radius: 4px !important;
+    text-transform: uppercase !important;
+    white-space: nowrap !important;
+    z-index: 5 !important;
+  }
+
+  /* Hide Profile Name, Default Icon */
+  .profile-link {
+    padding: 8px !important;
+    margin-left: 4px !important;
+    background: transparent !important;
+    border: none !important;
+  }
+
+  .profile-name {
+    display: none !important;
+  }
+
+  .profile-icon {
+    width: 22px !important;
+    height: 22px !important;
+    stroke-width: 2 !important; /* Back to default */
+    color: var(--text-soft) !important;
+  }
+
+  /* Actions visibility */
+  .header-actions {
+    gap: 4px !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+  
+  .nav-right {
+    gap: 4px !important;
+  }
+
+  .language-trigger {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .menu-toggle {
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 6px !important;
+  }
+}
+
+/* Hide centered credits on desktop */
+@media (min-width: 1101px) {
+  .header-credit-link-centered {
+    display: none !important;
+  }
+}
+
+/* Extra small screens protection */
+@media (max-width: 360px) {
+  .brand-title {
+    font-size: 0.65rem !important;
+  }
+  
+  .header-actions {
+    gap: 2px !important;
+  }
+  
+  .header-credit-link-centered {
+    font-size: 0.6rem !important;
+    padding: 6px 10px !important;
   }
 }
