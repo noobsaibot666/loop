@@ -82,20 +82,28 @@ export default function CitiesPage({
                     </div>
                     <div className="growth-list">
                       <div className="growth-item">
+                        <strong>Berlin</strong>
+                        <span className="mini-chip active">24 {t("cities.checkpoints")}</span>
+                      </div>
+                      <div className="growth-item">
+                        <strong>Santos</strong>
+                        <span className="mini-chip active">24 {t("cities.checkpoints")}</span>
+                      </div>
+                      <div className="growth-item">
+                        <strong>São Paulo + ABC</strong>
+                        <span className="mini-chip active">24 {t("cities.checkpoints")}</span>
+                      </div>
+                      <div className="growth-item">
                         <strong>Curitiba</strong>
-                        <span className="mini-chip active">{t("cities.newCity")}</span>
+                        <span className="mini-chip">{t("cities.newCity")}</span>
                       </div>
                       <div className="growth-item">
                         <strong>Munich</strong>
-                        <span className="mini-chip active">{t("cities.newCity")}</span>
+                        <span className="mini-chip">{t("cities.newCity")}</span>
                       </div>
                       <div className="growth-item">
                         <strong>Guarulhos</strong>
-                        <span className="mini-chip">{t("cities.expanded")}</span>
-                      </div>
-                      <div className="growth-item">
-                        <strong>São Paulo</strong>
-                        <span className="mini-chip">{t("cities.expanded")}</span>
+                        <span className="mini-chip">24 {t("cities.checkpoints")}</span>
                       </div>
                     </div>
                   </div>
