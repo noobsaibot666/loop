@@ -58,15 +58,22 @@ Date: 2026-03-19
 - [ ] iOS smoke checklist executed
 
 ## Phase 7
-- [ ] route handoff correctness fixed
-- [ ] Loop UI aligned to web product direction
-- [ ] Messenger UI aligned to web product direction
-- [ ] Night Ride UI aligned to web product direction
-- [ ] Wall UI aligned to web product direction
-- [ ] Cities UI aligned to web product direction
-- [ ] Leaderboard UI aligned to web product direction
-- [ ] Account UI aligned to web product direction
-- [ ] modal and sheet patterns replace scaffold filters and crowded controls
+- [x] route handoff correctness fixed
+- [x] Loop UI aligned to web product direction
+- [x] Messenger UI aligned to web product direction
+- [x] Night Ride UI aligned to web product direction
+- [x] Wall UI aligned to web product direction
+- [x] Cities UI aligned to web product direction
+- [x] Leaderboard UI aligned to web product direction
+- [x] Account UI aligned to web product direction
+- [x] modal and sheet patterns replace scaffold filters and crowded controls
+- [x] brand imagery and navigation icon system added
+- [x] shared spacing, typography, card hierarchy, and interaction polish stabilized
 
 ## Phase 8
-- [ ] embedded in-app maps planned after core production polish
+- [x] embedded in-app maps planned after core production polish
+- [ ] map SDK decision finalized
+- [ ] in-app route preview for Loop
+- [ ] in-app route preview for Messenger
+- [ ] in-app route preview for Night Ride
+- [ ] external map handoff kept as fallback, not primary flow
