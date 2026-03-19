@@ -56,3 +56,17 @@ Date: 2026-03-19
 - [x] Android release readiness documented and completed to engineering handoff
 - [x] iOS enablement completed
 - [ ] iOS smoke checklist executed
+
+## Phase 7
+- [ ] route handoff correctness fixed
+- [ ] Loop UI aligned to web product direction
+- [ ] Messenger UI aligned to web product direction
+- [ ] Night Ride UI aligned to web product direction
+- [ ] Wall UI aligned to web product direction
+- [ ] Cities UI aligned to web product direction
+- [ ] Leaderboard UI aligned to web product direction
+- [ ] Account UI aligned to web product direction
+- [ ] modal and sheet patterns replace scaffold filters and crowded controls
+
+## Phase 8
+- [ ] embedded in-app maps planned after core production polish

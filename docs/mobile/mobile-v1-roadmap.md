@@ -72,6 +72,18 @@ This document is the source of truth for the new native mobile rebuild of LOOP.
 - Play Store assets, privacy disclosures, support metadata, and review notes.
 - iOS enablement after Android stabilizes.
 
+### Phase 7: Core production polish
+- Shift priority from feature breadth to product quality.
+- Bring the mobile app as close as practical to a 1:1 operational and visual translation of the web app while respecting mobile interaction rules.
+- Fix route handoff correctness before broader polish so ride generation and launch behavior are dependable.
+- Replace scaffold filters and control clusters with mobile-native patterns such as sheets, modals, and tighter hierarchy.
+- Tune spacing, typography, card hierarchy, and navigation surfaces so testing and repeated use feel production-grade.
+
+### Phase 8: Embedded in-app maps
+- Add embedded route maps only after the core production pass is stable.
+- Keep external map launch as a fallback rather than the primary experience.
+- Evaluate a dedicated map SDK for Loop, Messenger, and Night Ride route preview inside the app.
+
 ## Deliverables
 - A new mobile workspace with shared app code.
 - Mobile-specific documentation in both repos.
@@ -83,3 +95,4 @@ This document is the source of truth for the new native mobile rebuild of LOOP.
 - Prefer clear feature boundaries over shared mega-files.
 - Document major decisions close to the code and in the docs.
 - Do not change live web behavior unless there is a deliberate backend extension that keeps web compatibility.
+- Prioritize core experience quality before adding new feature surfaces that expand scope.
