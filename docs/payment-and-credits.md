@@ -110,6 +110,17 @@ These are intentionally not active in production right now:
 - automatic monthly free-credit drops for members
 - subscription tiers
 
+## Mobile native billing path
+- Mobile app billing is now designed around `native in-app purchases` instead of web Stripe checkout.
+- The mobile app uses `RevenueCat` as the purchase SDK and store catalog layer.
+- The backend grant path is server-side:
+  1. purchase completes in App Store / Google Play
+  2. RevenueCat sends a webhook event
+  3. backend maps `store_product_id` to credits in `mobile_product_catalog`
+  4. credits are granted into `user_credits`
+  5. event is logged in `mobile_purchase_events`
+- Web Stripe checkout remains the live web top-up path and is not removed by this mobile billing work.
+
 ## Deferred membership plan
 The intended later layer is:
 - monthly access pass

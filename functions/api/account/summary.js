@@ -8,7 +8,7 @@ export async function onRequest({ request, env }) {
   if (!user?.id) return json({ error: "login required" }, { status: 401 });
 
   const quarter = getQuarterWindow();
-  const [profileRows, purchases, loopHistory, manifests, runs, challengeEntries, proofs, quarterProofs, quarterRuns, communityMembershipRows] = await Promise.all([
+  const [profileRows, stripePurchases, mobilePurchases, loopHistory, manifests, runs, challengeEntries, proofs, quarterProofs, quarterRuns, communityMembershipRows] = await Promise.all([
     supabaseRequest(
       env,
       `user_profiles?user_id=eq.${encodeURIComponent(user.id)}&select=user_id,rider_name,home_location,bike_name,bike_ratio`,
@@ -19,6 +19,11 @@ export async function onRequest({ request, env }) {
       `stripe_sessions?user_id=eq.${encodeURIComponent(user.id)}&select=session_id,amount_cents,credits_to_grant,status,created_at&order=created_at.desc&limit=5`,
       { method: "GET" }
     ),
+    supabaseRequest(
+      env,
+      `mobile_purchase_events?user_id=eq.${encodeURIComponent(user.id)}&status=eq.credited&select=event_id,amount_cents,credits_to_grant,status,purchased_at,created_at&order=created_at.desc&limit=5`,
+      { method: "GET" }
+    ).catch(() => []),
     supabaseRequest(
       env,
       `loop_history?user_id=eq.${encodeURIComponent(user.id)}&select=id,loop_point,distance_km,unit,terrain,surface,vibe,route_url,created_at&order=created_at.desc&limit=8`,
@@ -145,6 +150,22 @@ export async function onRequest({ request, env }) {
   });
   const userQuarterRuns = userRuns.filter((run) => run.status === "finished" && isInWindow(run.finished_at, quarter.start, quarter.end));
   const userQuarterProofs = userProofs.filter((proof) => proof.is_public && isInWindow(proof.created_at, quarter.start, quarter.end));
+  const purchases = [
+    ...((stripePurchases || []).map((purchase) => ({
+      ...purchase,
+      source: "web",
+    })) || []),
+    ...((mobilePurchases || []).map((purchase) => ({
+      session_id: purchase.event_id,
+      amount_cents: purchase.amount_cents || 0,
+      credits_to_grant: purchase.credits_to_grant || 0,
+      status: purchase.status || "credited",
+      created_at: purchase.purchased_at || purchase.created_at,
+      source: "mobile",
+    })) || []),
+  ]
+    .sort((left, right) => String(right.created_at || "").localeCompare(String(left.created_at || "")))
+    .slice(0, 5);
   const challengeManifestSet = new Set(userManifests.filter((manifest) => manifest.source_challenge_id).map((manifest) => manifest.id));
   const badges = deriveBadges({
     quarterStats: {
