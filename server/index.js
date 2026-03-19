@@ -980,12 +980,17 @@ app.post("/api/account/summary", async (req, res) => {
     { data: communityMembership, error: communityMembershipError },
   ] =
     await Promise.all([
-      supabase
-        .from("user_profiles")
-        .select("user_id, rider_name, home_location, bike_name, bike_ratio")
-        .eq("user_id", user_id)
-        .maybeSingle()
-        .catch(() => ({ data: null, error: null })),
+      (async () => {
+        try {
+          return await supabase
+            .from("user_profiles")
+            .select("user_id, rider_name, home_location, bike_name, bike_ratio")
+            .eq("user_id", user_id)
+            .maybeSingle();
+        } catch {
+          return { data: null, error: null };
+        }
+      })(),
       supabase
         .from("stripe_sessions")
         .select("session_id, amount_cents, credits_to_grant, status, created_at")
@@ -1026,12 +1031,17 @@ app.post("/api/account/summary", async (req, res) => {
         .eq("status", "finished")
         .gte("finished_at", quarter.start.toISOString())
         .lt("finished_at", quarter.end.toISOString()),
-      supabase
-        .from("community_memberships")
-        .select("user_id, plan_code, status, price_cents, currency, interval, current_period_end, cancel_at_period_end, discord_invite_url")
-        .eq("user_id", user_id)
-        .maybeSingle()
-        .catch(() => ({ data: null, error: null })),
+      (async () => {
+        try {
+          return await supabase
+            .from("community_memberships")
+            .select("user_id, plan_code, status, price_cents, currency, interval, current_period_end, cancel_at_period_end, discord_invite_url")
+            .eq("user_id", user_id)
+            .maybeSingle();
+        } catch {
+          return { data: null, error: null };
+        }
+      })(),
     ]);
 
   const error =
@@ -1160,7 +1170,7 @@ app.post("/api/account/summary", async (req, res) => {
       manifests: userManifests.length,
       runs: userRuns.length,
       finished_runs: userRuns.filter((run) => run.status === "finished").length,
-      challenges: challenges?.length || 0,
+      challenges: userChallenges.length,
       proofs: userProofs.length,
       public_proofs: userProofs.filter((proof) => proof.is_public).length,
     },
