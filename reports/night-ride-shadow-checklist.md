@@ -13,14 +13,14 @@ Status legend:
 - [x] Separate Night Ride feed from Wall of Fame
 - [x] Define loop and roulette builder modes
 - [x] Define join-by-code behavior
-- [x] Define Single vs Crew ride split
+- [x] Pivot Night Ride to crew-only
 - [x] Define Crew metadata model
 
 ## Frontend
 - [x] Add hidden `/night` route
 - [x] Add Night Ride builder page
 - [x] Add loop/roulette mode switch
-- [x] Add Single/Crew toggle
+- [x] Remove single ride option from Night Ride UI
 - [x] Add Crew metadata fields
 - [x] Add builder result card with route link and share code
 - [x] Add join-by-code UI

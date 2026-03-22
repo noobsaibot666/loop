@@ -90,7 +90,6 @@ const NightRidePage = ({
   onPostCreated,
   heroImage,
 }: Props) => {
-  const [sessionType, setSessionType] = useState<"single" | "crew">("crew");
   const [mode, setMode] = useState<"loop" | "roulette">("loop");
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("medium");
   const [unit, setUnit] = useState<"km" | "mi">("km");
@@ -191,10 +190,10 @@ const NightRidePage = ({
 
   const flow = useMemo(
     () => [
-      { number: "01", title: "Pick the lane", body: "Single keeps it personal. Crew turns it into a shared night out." },
-      { number: "02", title: "Shape the route", body: "Loop stays circular. Roulette bends the line between two points." },
-      { number: "03", title: "Bring the crew", body: "Crew rides carry names, city, and join codes for the whole pack." },
-      { number: "04", title: "Drop the photo", body: "Night ride shots land in their own wall, separate from Alleycat proof." },
+      { number: "01", title: "Name the pack", body: "Set the crew, city, and rider tags before the streets open up." },
+      { number: "02", title: "Shape the route", body: "Loop keeps it circular. Roulette bends the line between two night points." },
+      { number: "03", title: "Share the code", body: "One rider builds. The rest load the code and spend their own credit." },
+      { number: "04", title: "Drop the shot", body: "Night ride posts land in the crew wall, separate from Street Hunt proof." },
     ],
     []
   );
@@ -212,7 +211,7 @@ const NightRidePage = ({
       setStatus("Roulette needs both ends locked.");
       return;
     }
-    if (sessionType === "crew" && !crewName.trim()) {
+    if (!crewName.trim()) {
       setStatus("Crew mode needs a crew name.");
       return;
     }
@@ -225,7 +224,7 @@ const NightRidePage = ({
         route_url: string;
         share_code: string;
       }>("/api/night-rides/generate", {
-        session_type: sessionType,
+        session_type: "crew",
         mode,
         difficulty,
         unit,
@@ -241,7 +240,7 @@ const NightRidePage = ({
         crew_members: crewMembers,
       });
       setSession(data.session || null);
-      setStatus(sessionType === "crew" ? "Crew Night Ride built. Share the code and load the route." : "Single Night Ride built. Open the route and move.");
+      setStatus("Crew Night Ride built. Share the code and load the route.");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Could not build Night Ride.");
     } finally {
@@ -264,7 +263,6 @@ const NightRidePage = ({
       setSession(data.session || null);
       setStatus(data.already_joined ? "Crew code loaded again. You were already in." : "Crew Night Ride joined. Open the route and roll.");
       setShareInput("");
-      setSessionType("crew");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Could not join Crew Night Ride.");
     } finally {
@@ -326,12 +324,12 @@ const NightRidePage = ({
     <div className="sequential-layout sub-page page-night page-stage-enter">
       <Hero 
         title="Night Ride"
-        subtitle="Separate lane for after-dark routes, crew codes, and the future night wall."
+        subtitle="Group-only lane for after-dark rides, share codes, and crew shots."
         image={heroImage || ""}
         actions={
           <div className="hero-actions-group">
             <button className="accent-text-button" onClick={() => document.getElementById('night-builder')?.scrollIntoView({ behavior: 'smooth' })}>
-              <span>{sessionType === "crew" ? "Build Crew Ride" : "Build Single Ride"}</span>
+              <span>Build Crew Ride</span>
             </button>
           </div>
         }
@@ -351,23 +349,21 @@ const NightRidePage = ({
 
       <section className="split-module reveals" id="night-builder">
         <div className="builder-grid single">
-          <div className={`glass-card form-card night-ride-shell ${sessionType === "crew" ? "crew-mode" : ""}`}>
+          <div className="glass-card form-card night-ride-shell crew-mode">
             <div className="form-header">
               <div>
                 <h2 className="form-title">
                   <span>Night Ride Builder</span>
                 </h2>
-                <p className="form-subtitle">Single stays simple. Crew carries code, city, and names.</p>
+                <p className="form-subtitle">Build one crew ride. Share the code. Roll as a pack.</p>
               </div>
               <div className="loops-left">
                 <span className="loops-left-line">{hasUnlimitedCredits ? "Unlimited" : `${totalCredits} credits`}</span>
-                <span className="loops-left-line">{sessionType === "crew" ? "Crew build 2 credits · join 1" : "Single build 1 credit"}</span>
+                <span className="loops-left-line">Crew build 2 credits · join 1</span>
               </div>
             </div>
 
             <div className="form-section section-block">
-
-
               <label className="field range-field">
                 <span>Route mode</span>
                 <div className="pill-group range-unit-toggle">
@@ -381,31 +377,29 @@ const NightRidePage = ({
               </label>
             </div>
 
-            {sessionType === "crew" && (
-              <div className="form-section section-block">
-                <div className="field-grid-two">
-                  <label className="field">
-                    <span>Crew name</span>
-                    <input value={crewName} onChange={(event) => setCrewName(event.target.value)} placeholder="Crew da Lapa" />
-                  </label>
-                  <label className="field">
-                    <span>City</span>
-                    <input value={rideCity} onChange={(event) => setRideCity(event.target.value)} placeholder="Sao Paulo" />
-                  </label>
-                </div>
+            <div className="form-section section-block">
+              <div className="field-grid-two">
                 <label className="field">
-                  <span>Crew members</span>
-                  <input
-                    value={crewMembersInput}
-                    onChange={(event) => setCrewMembersInput(event.target.value)}
-                    placeholder="@bia, joao, gui"
-                  />
+                  <span>Crew name</span>
+                  <input value={crewName} onChange={(event) => setCrewName(event.target.value)} placeholder="Hard Chain Berlin" />
                 </label>
-                <div className="night-ride-helper">
-                  Tag with <strong>@</strong> for app users, or drop plain names for anyone else.
-                </div>
+                <label className="field">
+                  <span>City</span>
+                  <input value={rideCity} onChange={(event) => setRideCity(event.target.value)} placeholder="Berlin" />
+                </label>
               </div>
-            )}
+              <label className="field">
+                <span>Crew members</span>
+                <input
+                  value={crewMembersInput}
+                  onChange={(event) => setCrewMembersInput(event.target.value)}
+                  placeholder="@alan, @bia, gui"
+                />
+              </label>
+              <div className="night-ride-helper">
+                Use <strong>@</strong> for app riders. Add plain names for the rest of the pack.
+              </div>
+            </div>
 
             <div className="form-section section-block">
               <label className="field">
@@ -520,28 +514,26 @@ const NightRidePage = ({
 
             <div className="form-actions">
               <button className="accent-text-button" type="button" onClick={handleBuild} disabled={isBuilding}>
-                {isBuilding ? "Building..." : sessionType === "crew" ? "Build Crew Ride" : "Build Single Ride"}
+                {isBuilding ? "Building..." : "Build Crew Ride"}
               </button>
               <button className="ghost-button" type="button" onClick={handleDonate}>
                 Add credits
               </button>
             </div>
 
-            {sessionType === "crew" && (
-              <div className="night-ride-join">
-                <label className="field compact-field">
-                  <span>Join with code</span>
-                  <input
-                    value={shareInput}
-                    onChange={(event) => setShareInput(event.target.value.toUpperCase())}
-                    placeholder="NIGHT7"
-                  />
-                </label>
-                <button className="ghost-button small" type="button" onClick={handleJoin} disabled={isJoining || !shareInput.trim()}>
-                  {isJoining ? "Joining..." : "Load code"}
-                </button>
-              </div>
-            )}
+            <div className="night-ride-join">
+              <label className="field compact-field">
+                <span>Join with code</span>
+                <input
+                  value={shareInput}
+                  onChange={(event) => setShareInput(event.target.value.toUpperCase())}
+                  placeholder="NIGHT7"
+                />
+              </label>
+              <button className="ghost-button small" type="button" onClick={handleJoin} disabled={isJoining || !shareInput.trim()}>
+                {isJoining ? "Joining..." : "Load code"}
+              </button>
+            </div>
 
             {status ? <div className="status-message compact-status">{status}</div> : null}
           </div>
@@ -552,7 +544,7 @@ const NightRidePage = ({
               <div className="result-grid result-grid-three">
                 <div>
                   <span>Ride</span>
-                  <strong>{session.session_type}</strong>
+                  <strong>Crew</strong>
                 </div>
                 <div>
                   <span>Mode</span>
@@ -567,13 +559,11 @@ const NightRidePage = ({
                 <strong>{session.ride_city || session.origin_label}</strong>
                 <span>{session.destination_label ? `${session.origin_label} to ${session.destination_label}` : "Loop back to the start."}</span>
               </div>
-              {session.session_type === "crew" && (
-                <div className="share-code-box run-progress">
-                  <span>Crew code</span>
-                  <strong>{session.share_code}</strong>
-                  <em>Each rider joins on their own credit.</em>
-                </div>
-              )}
+              <div className="share-code-box run-progress">
+                <span>Crew code</span>
+                <strong>{session.share_code}</strong>
+                <em>Each rider joins on their own credit.</em>
+              </div>
               <div className="form-actions">
                 <a className="accent-text-button" href={session.route_url} target="_blank" rel="noreferrer">
                   Open in Maps

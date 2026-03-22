@@ -3368,18 +3368,18 @@ function AppShell() {
               <div className="form-subtitle">{t("account.night.subtitle")}</div>
               {isLoadingNightRideHistory ? (
                 <div className="status-message compact-status">{t("account.night.loading")}</div>
-              ) : !nightRideHistory.length ? (
+              ) : !nightRideHistory.filter((ride) => ride.session_type === "crew").length ? (
                 <div className="empty-state">
                   <div className="empty-state-body">{t("account.night.empty")}</div>
                 </div>
               ) : (
                 <div className="history-list">
-                  {nightRideHistory.map((ride) => (
+                  {nightRideHistory.filter((ride) => ride.session_type === "crew").map((ride) => (
                     <div key={ride.id} className="history-row">
                       <div>
                         <strong>{ride.crew_name || ride.title}</strong>
                         <span>
-                          {ride.session_type === "crew" ? t("account.night.crewLabel") : t("account.night.singleLabel")}
+                          {t("account.night.crewLabel")}
                           {" · "}
                           {ride.ride_city || t("account.common.city")}
                           {" · "}

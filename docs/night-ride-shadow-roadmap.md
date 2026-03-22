@@ -2,6 +2,7 @@
 
 Date: 2026-03-15
 Status: Shadow development
+Updated: 2026-03-22
 
 ## Purpose
 Night Ride is a separate community lane for after-dark route planning and image-driven culture, without mixing it into Alleycat or the public Wall too early.
@@ -10,7 +11,7 @@ Status on 2026-03-15:
 - Hidden page, route builder, join flow, and feed preview are implemented in app code
 - Supabase SQL still needs manual application
 - Public launch remains blocked on routing QA and moderation definition
-- Single and Crew builder split is now implemented
+- Night Ride is now being tightened into a crew-only lane
 - Home has a construction-state promo and top nav can reach `/night`
 - Account, Wall, and Admin now have Night Ride shadow surfaces
 
@@ -41,20 +42,20 @@ Each rider joining a shared Night Ride should burn their own credit so one code 
   - strong spacing
   - mobile-first builder flow
 
-### Builder modes
-- Toggle: `Single` / `Crew`
-- Inside both:
-  - `Night Loop`
-    - after-dark loop around a chosen start point
-    - uses a cleaner loop planner, not Alleycat checkpoints
-  - `Roulette`
-    - start point + end point + target distance
-    - app suggests a less direct route based on difficulty
+### Ride model
+- Night Ride is crew-only
+- one rider builds the route
+- the builder gets the share code immediately
+- other riders load the code and burn their own credit
+- `@` tags are used to mark app riders inside the planned crew
 
-### Single
-- one-person planning flow
-- no share-code UI
-- route goes straight to Maps
+### Route modes
+- `Night Loop`
+  - after-dark loop around a chosen start point
+  - uses a cleaner loop planner, not Street Hunt checkpoints
+- `Roulette`
+  - start point + end point + target distance
+  - app suggests a less direct route based on difficulty
 
 ### Crew
 - requires:
@@ -95,12 +96,11 @@ Each rider joining a shared Night Ride should burn their own credit so one code 
 ### Frontend
 - Add hidden page `/night`
 - Builder sections:
-  - single / crew toggle
   - mode
   - start / end
   - distance
   - difficulty
-  - crew metadata in crew mode
+  - crew metadata
   - generate
   - share/join
   - feed preview
@@ -139,7 +139,6 @@ Each rider joining a shared Night Ride should burn their own credit so one code 
   - `moderation_status`
 
 ## Temporary rules for shadow release
-- Single Night Ride build cost: `1` credit
 - Crew Night Ride build cost: `2` credits
 - Crew Night Ride join cost: `1` credit
 - Feed upload flow is not shipped in this pass
@@ -148,7 +147,7 @@ Each rider joining a shared Night Ride should burn their own credit so one code 
 ## Phase plan
 
 ### Phase 1: Shadow foundation
-- Single and Crew builders
+- Crew-only builder
 - account reflection
 - wall shadow section
 - admin shadow feed preview
