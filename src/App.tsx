@@ -9,6 +9,8 @@ import wallHero from "./images/hero_12.png";
 import citiesHero from "./images/hero_19.png";
 import leaderboardHero from "./images/hero_6.png";
 import riderHero from "./images/hero_13.png";
+import discordLogo from "./logos/Discord-Logo-Light-Blurple.png";
+import stravaLogo from "./logos/Strava_idOGsGeeO9_0.svg";
 
 import Hero from "./components/Hero";
 import { I18nProvider, useI18n } from "./i18n";
@@ -2537,41 +2539,90 @@ function AppShell() {
         }
       />
 
-      <section className="modular-grid reveals">
-        <div className="modular-cell modular-cell-featured">
-          <h3 className="cell-title">{t("home.alleycat.title")}</h3>
+      <section className="modular-grid home-modular-grid reveals">
+        <div
+          className="modular-cell modular-cell-featured home-mode-card"
+          style={{ "--home-card-image": `url(${alleycatHero})` } as CSSProperties}
+        >
+          <div className="home-card-title-row">
+            <h3 className="cell-title">{t("home.alleycat.title")}</h3>
+            <span className="home-card-pill">{t("home.modePill")}</span>
+          </div>
           <p className="cell-body">{t("home.alleycat.body")}</p>
           <button className="primary-button primary-button-flat small home-card-button" onClick={() => handleNavigate('messenger')}>
             {t("home.alleycat.action")}
           </button>
         </div>
-        <div className="modular-cell">
-          <h3 className="cell-title">{t("home.loop.title")}</h3>
+        <div
+          className="modular-cell home-mode-card"
+          style={{ "--home-card-image": `url(${loopHero})` } as CSSProperties}
+        >
+          <div className="home-card-title-row">
+            <h3 className="cell-title">{t("home.loop.title")}</h3>
+            <span className="home-card-pill">{t("home.modePill")}</span>
+          </div>
           <p className="cell-body">{t("home.loop.body")}</p>
           <button className="ghost-button small home-card-button" onClick={() => handleNavigate('loop')}>{t("home.loop.action")}</button>
         </div>
-      </section>
-
-      <section className="modular-grid reveals home-lower-grid reveals">
-        <div className="modular-cell modular-cell-night">
-          <h3 className="cell-title">{t("home.night.title")}</h3>
+        <div
+          className="modular-cell modular-cell-night home-mode-card"
+          style={{ "--home-card-image": `url(${nightRideHero})` } as CSSProperties}
+        >
+          <div className="home-card-title-row">
+            <h3 className="cell-title">{t("home.night.title")}</h3>
+            <span className="home-card-pill">{t("home.modePill")}</span>
+          </div>
           <p className="cell-body">{t("home.night.body")}</p>
           <button className="primary-button primary-button-flat small home-card-button" onClick={() => handleNavigate('night')}>
             {t("home.night.action")}
           </button>
         </div>
+      </section>
 
-        <div className="modular-cell">
-          <h3 className="cell-title">{t("home.community.title")}</h3>
+      <section className="modular-grid reveals home-lower-grid">
+        <div className="modular-cell home-community-card">
+          <div className="home-card-title-row">
+            <h3 className="cell-title">{t("home.community.title")}</h3>
+            <span className="home-card-pill">{t("home.community.pill")}</span>
+          </div>
           <p className="cell-body">{t("home.community.header")}</p>
           <div className="home-community-list">
             <span>• {t("home.community.line1")}</span>
             <span>• {t("home.community.line2")}</span>
             <span>• {t("home.community.line3")}</span>
           </div>
-          <button className="ghost-button small home-card-button" onClick={() => window.open('https://discord.gg/hardchain', '_blank')}>
+          <button className="ghost-button small home-card-button home-community-action" onClick={() => window.open('https://discord.gg/hardchain', '_blank')}>
             {t("home.community.action")}
           </button>
+          <div className="home-community-brand-footer" aria-hidden="true">
+            <img className="home-community-brand-mark home-community-brand-mark-large" src={discordLogo} alt="" />
+          </div>
+        </div>
+
+        <div className="modular-cell modular-cell-community home-community-card">
+          <div className="home-card-title-row">
+            <h3 className="cell-title">{t("home.community.strava.title")}</h3>
+            <span className="home-card-pill">{t("home.community.strava.pill")}</span>
+          </div>
+          <p className="cell-body home-community-strava-body">{t("home.community.strava.body")}</p>
+          <a
+            className="home-community-ride-link"
+            href="https://strava.app.link/uDsyfRxxI1b"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <span className="home-community-ride-dot" aria-hidden="true" />
+            <span>{t("home.community.strava.ride")}</span>
+          </a>
+          <button
+            className="ghost-button small home-card-button home-card-button-inline home-community-action"
+            onClick={() => window.open('https://strava.app.link/Zw7TiN8vI1b', '_blank')}
+          >
+            <span>{t("home.community.strava.action")}</span>
+          </button>
+          <div className="home-community-brand-footer" aria-hidden="true">
+            <img className="home-community-brand-mark home-community-brand-mark-large" src={stravaLogo} alt="" />
+          </div>
         </div>
 
       </section>
