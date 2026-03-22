@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Hero from "../Hero";
+import { useI18n } from "../../i18n";
 import { 
   Moon, Users, MapPin, Zap, Camera, 
   ChevronRight, Filter, Share2, Compass, Award, 
@@ -90,6 +91,7 @@ const NightRidePage = ({
   onPostCreated,
   heroImage,
 }: Props) => {
+  const { t } = useI18n();
   const [mode, setMode] = useState<"loop" | "roulette">("loop");
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("medium");
   const [unit, setUnit] = useState<"km" | "mi">("km");
@@ -190,29 +192,29 @@ const NightRidePage = ({
 
   const flow = useMemo(
     () => [
-      { number: "01", title: "Name the pack", body: "Set the crew, city, and rider tags before the streets open up." },
-      { number: "02", title: "Shape the route", body: "Loop keeps it circular. Roulette bends the line between two night points." },
-      { number: "03", title: "Share the code", body: "One rider builds. The rest load the code and spend their own credit." },
-      { number: "04", title: "Drop the shot", body: "Night ride posts land in the crew wall, separate from Street Hunt proof." },
+      { number: "01", title: t("night.flow1.title"), body: t("night.flow1.body") },
+      { number: "02", title: t("night.flow2.title"), body: t("night.flow2.body") },
+      { number: "03", title: t("night.flow3.title"), body: t("night.flow3.body") },
+      { number: "04", title: t("night.flow4.title"), body: t("night.flow4.body") },
     ],
-    []
+    [t]
   );
 
   const handleBuild = async () => {
     if (!user?.id) {
-      requireLogin("Log in to build a Night Ride.");
+      requireLogin(t("night.messages.loginBuild"));
       return;
     }
     if (!startCoords || !startLabel.trim()) {
-      setStatus("Drop a clean start point first.");
+      setStatus(t("night.messages.startRequired"));
       return;
     }
     if (mode === "roulette" && (!endCoords || !endLabel.trim())) {
-      setStatus("Roulette needs both ends locked.");
+      setStatus(t("night.messages.endRequired"));
       return;
     }
     if (!crewName.trim()) {
-      setStatus("Crew mode needs a crew name.");
+      setStatus(t("night.messages.crewNameRequired"));
       return;
     }
 
@@ -240,9 +242,9 @@ const NightRidePage = ({
         crew_members: crewMembers,
       });
       setSession(data.session || null);
-      setStatus("Crew Night Ride built. Share the code and load the route.");
+      setStatus(t("night.messages.built"));
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Could not build Night Ride.");
+      setStatus(error instanceof Error ? error.message : t("night.messages.buildFailed"));
     } finally {
       setIsBuilding(false);
     }
@@ -250,7 +252,7 @@ const NightRidePage = ({
 
   const handleJoin = async () => {
     if (!user?.id) {
-      requireLogin("Log in to join a Crew Night Ride.");
+      requireLogin(t("night.messages.loginJoin"));
       return;
     }
     if (!shareInput.trim()) return;
@@ -261,10 +263,10 @@ const NightRidePage = ({
         code: shareInput.trim().toUpperCase(),
       });
       setSession(data.session || null);
-      setStatus(data.already_joined ? "Crew code loaded again. You were already in." : "Crew Night Ride joined. Open the route and roll.");
+      setStatus(data.already_joined ? t("night.messages.joinedAgain") : t("night.messages.joined"));
       setShareInput("");
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Could not join Crew Night Ride.");
+      setStatus(error instanceof Error ? error.message : t("night.messages.joinFailed"));
     } finally {
       setIsJoining(false);
     }
@@ -272,19 +274,19 @@ const NightRidePage = ({
 
   const handlePost = async () => {
     if (!user?.id) {
-      requireLogin("Log in to post a Night Ride shot.");
+      requireLogin(t("night.messages.loginPost"));
       return;
     }
     if (!supabase) {
-      setPostStatus("Night Ride upload is not ready in this browser.");
+      setPostStatus(t("night.messages.uploadUnavailable"));
       return;
     }
     if (!session) {
-      setPostStatus("Pick a Night Ride session first.");
+      setPostStatus(t("night.messages.sessionRequired"));
       return;
     }
     if (!postFile) {
-      setPostStatus("Pick a photo first.");
+      setPostStatus(t("night.messages.photoRequired"));
       return;
     }
 
@@ -311,10 +313,10 @@ const NightRidePage = ({
       if (response?.post) onPostCreated(response.post);
       setPostCaption("");
       setPostFile(null);
-      setPostStatus("Night Ride post landed on the night wall.");
+      setPostStatus(t("night.messages.posted"));
       setShowPostModal(false);
     } catch (error) {
-      setPostStatus(error instanceof Error ? error.message : "Could not post Night Ride shot.");
+      setPostStatus(error instanceof Error ? error.message : t("night.messages.postFailed"));
     } finally {
       setIsPosting(false);
     }
@@ -323,13 +325,13 @@ const NightRidePage = ({
   return (
     <div className="sequential-layout sub-page page-night page-stage-enter">
       <Hero 
-        title="Night Ride"
-        subtitle="Group-only lane for after-dark rides, share codes, and crew shots."
+        title={t("night.hero.title")}
+        subtitle={t("night.hero.subtitle")}
         image={heroImage || ""}
         actions={
           <div className="hero-actions-group">
             <button className="accent-text-button" onClick={() => document.getElementById('night-builder')?.scrollIntoView({ behavior: 'smooth' })}>
-              <span>Build Crew Ride</span>
+              <span>{t("night.hero.action")}</span>
             </button>
           </div>
         }
@@ -353,25 +355,25 @@ const NightRidePage = ({
             <div className="form-header">
               <div>
                 <h2 className="form-title">
-                  <span>Night Ride Builder</span>
+                  <span>{t("night.builder.title")}</span>
                 </h2>
-                <p className="form-subtitle">Build one crew ride. Share the code. Roll as a pack.</p>
+                <p className="form-subtitle">{t("night.builder.subtitle")}</p>
               </div>
               <div className="loops-left">
-                <span className="loops-left-line">{hasUnlimitedCredits ? "Unlimited" : `${totalCredits} credits`}</span>
-                <span className="loops-left-line">Crew build 2 credits · join 1</span>
+                <span className="loops-left-line">{hasUnlimitedCredits ? t("credits.unlimited") : t("credits.balance", { count: totalCredits })}</span>
+                <span className="loops-left-line">{t("night.builder.creditLine")}</span>
               </div>
             </div>
 
             <div className="form-section section-block">
               <label className="field range-field">
-                <span>Route mode</span>
+                <span>{t("night.builder.routeMode")}</span>
                 <div className="pill-group range-unit-toggle">
                   <button className={`pill ${mode === "loop" ? "active" : ""}`} type="button" onClick={() => setMode("loop")}>
-                    Loop
+                    {t("night.builder.modeLoop")}
                   </button>
                   <button className={`pill ${mode === "roulette" ? "active" : ""}`} type="button" onClick={() => setMode("roulette")}>
-                    Roulette
+                    {t("night.builder.modeRoulette")}
                   </button>
                 </div>
               </label>
@@ -380,37 +382,35 @@ const NightRidePage = ({
             <div className="form-section section-block">
               <div className="field-grid-two">
                 <label className="field">
-                  <span>Crew name</span>
-                  <input value={crewName} onChange={(event) => setCrewName(event.target.value)} placeholder="Hard Chain Berlin" />
+                  <span>{t("night.builder.crewName")}</span>
+                  <input value={crewName} onChange={(event) => setCrewName(event.target.value)} placeholder={t("night.builder.crewNamePlaceholder")} />
                 </label>
                 <label className="field">
-                  <span>City</span>
-                  <input value={rideCity} onChange={(event) => setRideCity(event.target.value)} placeholder="Berlin" />
+                  <span>{t("night.builder.city")}</span>
+                  <input value={rideCity} onChange={(event) => setRideCity(event.target.value)} placeholder={t("night.builder.cityPlaceholder")} />
                 </label>
               </div>
               <label className="field">
-                <span>Crew members</span>
+                <span>{t("night.builder.members")}</span>
                 <input
                   value={crewMembersInput}
                   onChange={(event) => setCrewMembersInput(event.target.value)}
-                  placeholder="@alan, @bia, gui"
+                  placeholder={t("night.builder.membersPlaceholder")}
                 />
               </label>
-              <div className="night-ride-helper">
-                Use <strong>@</strong> for app riders. Add plain names for the rest of the pack.
-              </div>
+              <div className="night-ride-helper">{t("night.builder.memberHelper")}</div>
             </div>
 
             <div className="form-section section-block">
               <label className="field">
-                <span>Start point</span>
+                <span>{t("night.builder.startPoint")}</span>
                 <input
                   value={startLabel}
                   onChange={(event) => {
                     setStartLabel(event.target.value);
                     setStartCoords(null);
                   }}
-                  placeholder="Neighborhood, station, or exact address"
+                  placeholder={t("night.builder.startPlaceholder")}
                 />
               </label>
               {startSuggestions.length > 0 && (
@@ -435,14 +435,14 @@ const NightRidePage = ({
               {mode === "roulette" && (
                 <>
                   <label className="field">
-                    <span>End point</span>
+                    <span>{t("night.builder.endPoint")}</span>
                     <input
                       value={endLabel}
                       onChange={(event) => {
                         setEndLabel(event.target.value);
                         setEndCoords(null);
                       }}
-                      placeholder="Where the ride should land"
+                      placeholder={t("night.builder.endPlaceholder")}
                     />
                   </label>
                   {endSuggestions.length > 0 && (
@@ -469,7 +469,7 @@ const NightRidePage = ({
 
             <div className="form-section section-block">
               <label className="field range-field">
-                <span>Distance</span>
+                <span>{t("night.builder.distance")}</span>
                 <div className="pill-group range-unit-toggle">
                   <button className={`pill ${unit === "km" ? "active" : ""}`} type="button" onClick={() => setUnit("km")}>
                     KM
@@ -496,7 +496,7 @@ const NightRidePage = ({
               </label>
 
               <label className="field">
-                <span>Difficulty</span>
+                <span>{t("night.builder.difficulty")}</span>
                 <div className="pill-grid pill-grid-three" style={{ justifyContent: 'center' }}>
                   {["easy", "medium", "hard"].map((value) => (
                     <button
@@ -505,7 +505,7 @@ const NightRidePage = ({
                       type="button"
                       onClick={() => setDifficulty(value as "easy" | "medium" | "hard")}
                     >
-                      {value}
+                      {t(`difficulty.${value}`)}
                     </button>
                   ))}
                 </div>
@@ -514,24 +514,24 @@ const NightRidePage = ({
 
             <div className="form-actions">
               <button className="accent-text-button" type="button" onClick={handleBuild} disabled={isBuilding}>
-                {isBuilding ? "Building..." : "Build Crew Ride"}
+                {isBuilding ? t("common.building") : t("night.builder.buildAction")}
               </button>
               <button className="ghost-button" type="button" onClick={handleDonate}>
-                Add credits
+                {t("account.credits.add")}
               </button>
             </div>
 
             <div className="night-ride-join">
               <label className="field compact-field">
-                <span>Join with code</span>
+                <span>{t("night.builder.joinCode")}</span>
                 <input
                   value={shareInput}
                   onChange={(event) => setShareInput(event.target.value.toUpperCase())}
-                  placeholder="NIGHT7"
+                  placeholder={t("night.builder.joinPlaceholder")}
                 />
               </label>
               <button className="ghost-button small" type="button" onClick={handleJoin} disabled={isJoining || !shareInput.trim()}>
-                {isJoining ? "Joining..." : "Load code"}
+                {isJoining ? t("night.builder.joining") : t("night.builder.loadCode")}
               </button>
             </div>
 
@@ -543,34 +543,34 @@ const NightRidePage = ({
               <div className="form-title">{session.crew_name || session.title}</div>
               <div className="result-grid result-grid-three">
                 <div>
-                  <span>Ride</span>
-                  <strong>Crew</strong>
+                  <span>{t("night.result.rideLabel")}</span>
+                  <strong>{t("night.result.rideCrew")}</strong>
                 </div>
                 <div>
-                  <span>Mode</span>
-                  <strong>{session.mode}</strong>
+                  <span>{t("night.result.modeLabel")}</span>
+                  <strong>{session.mode === "loop" ? t("night.builder.modeLoop") : t("night.builder.modeRoulette")}</strong>
                 </div>
                 <div>
-                  <span>Distance</span>
+                  <span>{t("night.result.distanceLabel")}</span>
                   <strong>{Number(session.distance_km).toFixed(1)} km</strong>
                 </div>
               </div>
               <div className="night-ride-route-note">
                 <strong>{session.ride_city || session.origin_label}</strong>
-                <span>{session.destination_label ? `${session.origin_label} to ${session.destination_label}` : "Loop back to the start."}</span>
+                <span>{session.destination_label ? `${session.origin_label} to ${session.destination_label}` : t("night.result.loopFallback")}</span>
               </div>
               <div className="share-code-box run-progress">
-                <span>Crew code</span>
+                <span>{t("night.result.crewCode")}</span>
                 <strong>{session.share_code}</strong>
-                <em>Each rider joins on their own credit.</em>
+                <em>{t("night.result.crewCodeNote")}</em>
               </div>
               <div className="form-actions">
                 <a className="accent-text-button" href={session.route_url} target="_blank" rel="noreferrer">
-                  Open in Maps
+                  {t("loop.openMaps")}
                 </a>
                 <button className="secondary-button" type="button" onClick={() => setShowPostModal(true)}>
                   <Camera size={16} />
-                  <span>Post Ride Shot</span>
+                  <span>{t("night.result.postShot")}</span>
                 </button>
               </div>
 
@@ -583,7 +583,7 @@ const NightRidePage = ({
         <div className="modal-overlay" role="dialog" aria-modal="true">
           <div className="modal-card">
             <div className="modal-header">
-              <div className="modal-title">Post to Night Wall</div>
+              <div className="modal-title">{t("night.modal.title")}</div>
               <button className="modal-close" type="button" onClick={() => setShowPostModal(false)}>
                 <X size={20} />
               </button>
@@ -592,21 +592,21 @@ const NightRidePage = ({
               <div className="form-section section-block">
                 <div className="manifest-brief mini-brief">
                   <strong>{session?.crew_name || session?.title}</strong>
-                  <span>{session?.ride_city || "Night city"} · {Number(session?.distance_km || 0).toFixed(1)} km</span>
+                  <span>{session?.ride_city || t("night.modal.cityFallback")} · {Number(session?.distance_km || 0).toFixed(1)} km</span>
                 </div>
                 
                 <label className="field">
-                  <span>Caption</span>
+                  <span>{t("night.modal.caption")}</span>
                   <textarea
                     value={postCaption}
                     onChange={(event) => setPostCaption(event.target.value.slice(0, 280))}
-                    placeholder="Crew out, wet streets, still smiling."
+                    placeholder={t("night.modal.captionPlaceholder")}
                     rows={3}
                   />
                 </label>
 
                 <label className="field">
-                  <span>Photo (16:9 recommended)</span>
+                  <span>{t("night.modal.photo")}</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -616,7 +616,7 @@ const NightRidePage = ({
               </div>
               <div className="form-actions">
                 <button className="primary-button" type="button" onClick={handlePost} disabled={isPosting}>
-                  {isPosting ? "Posting..." : "Post night shot"}
+                  {isPosting ? t("night.modal.posting") : t("night.modal.postAction")}
                 </button>
               </div>
               {postStatus ? <div className="status-message compact-status">{postStatus}</div> : null}

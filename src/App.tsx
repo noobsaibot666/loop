@@ -2,12 +2,15 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSPropertie
 import { createClient } from "@supabase/supabase-js";
 import homeHero from "./images/hero_27.png";
 import alleycatHero from "./images/hero_26.png";
+import alleycatCardHero from "./images/hero_21.png";
 import loopHero from "./images/hero_9.png";
+import loopCardHero from "./images/hero_7.png";
 import accountHero from "./images/hero_12.png";
 import nightRideHero from "./images/hero_18.png";
+import nightRideCardHero from "./images/hero_24.png";
 import wallHero from "./images/hero_12.png";
 import citiesHero from "./images/hero_19.png";
-import leaderboardHero from "./images/hero_6.png";
+import leaderboardHero from "./images/hero_8.png";
 import riderHero from "./images/hero_13.png";
 import discordLogo from "./logos/Discord-Logo-Light-Blurple.png";
 import stravaLogo from "./logos/Strava_idOGsGeeO9_0.svg";
@@ -458,6 +461,16 @@ function AppShell() {
   }, [showLanguageMenu]);
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileHeaderVisible, setMobileHeaderVisible] = useState(true);
+  const heroBadgeCities = useMemo(() => ["Curitiba/BR", "Munich/DE", "Santos/BR"].slice(0, 3), []);
+  const [heroBadgeIndex, setHeroBadgeIndex] = useState(0);
+  const [heroBadgePrevious, setHeroBadgePrevious] = useState<string | null>(null);
+  const heroBadgeStepMs = 2600;
+  const heroBadgeFinalHoldMs = 1200;
+  const heroBadgeDurationMs = useMemo(() => {
+    const transitionCount = Math.max(0, heroBadgeCities.length - 1);
+    return 400 + transitionCount * heroBadgeStepMs + heroBadgeFinalHoldMs;
+  }, [heroBadgeCities]);
   const [activeStep, setActiveStep] = useState(-1);
   const [deviceId, setDeviceId] = useState("");
   const [user, setUser] = useState<any | null>(null);
@@ -1400,6 +1413,93 @@ function AppShell() {
     return `${proofLine} ${ghostLine}`;
   }, [messengerManifest, messengerRun?.finishedAt, ghostDelta, proofCount]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let lastY = window.scrollY;
+
+    const clearExistingTimeout = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+    };
+
+    const showHeaderTemporarily = () => {
+      setMobileHeaderVisible(true);
+      clearExistingTimeout();
+      if (window.innerWidth > 768 || menuOpen || window.scrollY <= 8) return;
+      timeoutId = setTimeout(() => {
+        setMobileHeaderVisible(false);
+      }, 1200);
+    };
+
+    const handleScroll = () => {
+      if (window.innerWidth > 768) {
+        setMobileHeaderVisible(true);
+        return;
+      }
+
+      const currentY = window.scrollY;
+      const delta = currentY - lastY;
+      lastY = currentY;
+
+      if (menuOpen || currentY <= 8) {
+        setMobileHeaderVisible(true);
+        clearExistingTimeout();
+        return;
+      }
+
+      if (Math.abs(delta) > 1) {
+        showHeaderTemporarily();
+      }
+    };
+
+    const handleResize = () => {
+      if (window.innerWidth > 768) {
+        clearExistingTimeout();
+        setMobileHeaderVisible(true);
+      } else if (window.scrollY <= 8) {
+        setMobileHeaderVisible(true);
+      }
+    };
+
+    handleResize();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      clearExistingTimeout();
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [menuOpen]);
+
+  useEffect(() => {
+    setHeroBadgeIndex(0);
+    setHeroBadgePrevious(null);
+    if (heroBadgeCities.length <= 1) return;
+
+    const timers = heroBadgeCities.slice(1).map((_, index) =>
+      window.setTimeout(() => {
+        setHeroBadgeIndex((current) => {
+          setHeroBadgePrevious(heroBadgeCities[current] || null);
+          return Math.min(current + 1, heroBadgeCities.length - 1);
+        });
+      }, 400 + (index + 1) * heroBadgeStepMs)
+    );
+
+    return () => {
+      timers.forEach((timer) => window.clearTimeout(timer));
+    };
+  }, [heroBadgeCities]);
+
+  useEffect(() => {
+    if (!heroBadgePrevious) return;
+    const clearPreviousTimer = window.setTimeout(() => setHeroBadgePrevious(null), 560);
+    return () => window.clearTimeout(clearPreviousTimer);
+  }, [heroBadgePrevious]);
+
   const parseLatLng = (value: string) => {
     const match = value.match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
     if (!match) return null;
@@ -1427,6 +1527,25 @@ function AppShell() {
         Math.cos(distanceKm / earthRadiusKm) - Math.sin(lat1) * Math.sin(lat2)
       );
     return { lat: (lat2 * 180) / Math.PI, lng: (lng2 * 180) / Math.PI };
+  };
+
+  const buildGoogleMapsLoopUrl = (
+    origin: { lat: number; lng: number },
+    routeWaypoints: string[],
+  ) => {
+    const cleanedWaypoints = routeWaypoints
+      .map((point) => point.replace(/^via:/, "").trim())
+      .filter(Boolean);
+    const destination = cleanedWaypoints[cleanedWaypoints.length - 1] || `${origin.lat},${origin.lng}`;
+    const waypoints = cleanedWaypoints.slice(0, -1);
+    const params = new URLSearchParams();
+    params.set("api", "1");
+    params.set("origin", `${origin.lat},${origin.lng}`);
+    params.set("destination", destination);
+    params.set("travelmode", "bicycling");
+    params.set("dir_action", "navigate");
+    if (waypoints.length) params.set("waypoints", waypoints.join("|"));
+    return `https://www.google.com/maps/dir/?${params.toString()}`;
   };
 
   const handleNavigate = (target: PageView) => {
@@ -1687,25 +1806,19 @@ function AppShell() {
   };
 
   const buildMapsUrl = (variant: string) => {
-    const params = new URLSearchParams();
-    params.set("api", "1");
-    params.set("origin", loopPoint);
-    params.set("destination", loopPoint);
-    params.set("travelmode", "bicycling");
     const bearingMap: Record<string, number> = {
       Fast: 35,
       Scenic: 120,
       Climb: 220,
     };
     const origin = parseLatLng(loopPoint);
+    if (!origin) return "";
     const distanceKm = Math.max(3, (unit === "km" ? distance : distance * 1.60934) * 0.24);
-    const waypoint = origin
-      ? computeWaypointFromOrigin(origin, bearingMap[variant] ?? 90, distanceKm)
-      : null;
-    if (waypoint) {
-      params.set("waypoints", `via:${waypoint.lat.toFixed(6)},${waypoint.lng.toFixed(6)}`);
-    }
-    return `https://www.google.com/maps/dir/?${params.toString()}`;
+    const bearings = [bearingMap[variant] ?? 90, (bearingMap[variant] ?? 90) + 165];
+    const waypoints = bearings
+      .map((bearing) => computeWaypointFromOrigin(origin, bearing, distanceKm))
+      .map((point) => `via:${point.lat.toFixed(6)},${point.lng.toFixed(6)}`);
+    return buildGoogleMapsLoopUrl(origin, waypoints);
   };
 
   const handleCopy = async () => {
@@ -2095,25 +2208,18 @@ function AppShell() {
           .filter(Boolean)
           .map((point) => `via:${point[1]},${point[0]}`);
       };
-      const params = new URLSearchParams();
-      params.set("api", "1");
-      params.set("origin", `${origin.lat},${origin.lng}`);
-      params.set("destination", `${origin.lat},${origin.lng}`);
-      params.set("travelmode", "bicycling");
-
       const sampledWaypoints = sampleLoopWaypoints(coords);
+      let routeUrl = "";
       if (sampledWaypoints.length) {
-        params.set("waypoints", sampledWaypoints.join("|"));
+        routeUrl = buildGoogleMapsLoopUrl(origin, sampledWaypoints);
       } else {
         const fallbackDistanceKm = Math.max(1.2, distanceKm * 0.18);
         const bearings = [55, 235];
         const waypoints = bearings
           .map((bearing) => computeWaypointFromOrigin(origin, bearing, fallbackDistanceKm))
           .map((point) => `via:${point.lat.toFixed(6)},${point.lng.toFixed(6)}`);
-        if (waypoints.length) params.set("waypoints", waypoints.join("|"));
+        routeUrl = buildGoogleMapsLoopUrl(origin, waypoints);
       }
-
-      const routeUrl = `https://www.google.com/maps/dir/?${params.toString()}`;
       setLastRouteUrl(routeUrl);
       try {
         await postJSON("/api/loop-history", {
@@ -2301,7 +2407,7 @@ function AppShell() {
   );
 
   const renderHeader = () => (
-    <header className="site-header">
+    <header className={`site-header ${mobileHeaderVisible ? "mobile-visible" : "mobile-hidden"}`}>
       <div className="nav-container">
         <button className="brand" onClick={() => handleNavigate('home')}>
           <span className="brand-title">
@@ -2531,10 +2637,20 @@ function AppShell() {
         subtitle={t("hero.subtitle")}
         image={homeHero}
         actions={null}
+        badgeDurationMs={heroBadgeDurationMs}
         badge={
           <div className="hero-badge-pill">
             <span className="badge-tag">{t("cities.newCity")}</span>
-            <span className="badge-label">Curitiba/BR · Munich/DE</span>
+            <span className="badge-label-viewport" aria-live="polite">
+              {heroBadgePrevious && (
+                <span className="badge-label badge-label-out" key={`prev-${heroBadgePrevious}`}>
+                  {heroBadgePrevious}
+                </span>
+              )}
+              <span className={`badge-label ${heroBadgePrevious ? "badge-label-in" : ""}`} key={heroBadgeCities[heroBadgeIndex]}>
+                {heroBadgeCities[heroBadgeIndex]}
+              </span>
+            </span>
           </div>
         }
       />
@@ -2542,7 +2658,7 @@ function AppShell() {
       <section className="modular-grid home-modular-grid reveals">
         <div
           className="modular-cell modular-cell-featured home-mode-card"
-          style={{ "--home-card-image": `url(${alleycatHero})` } as CSSProperties}
+          style={{ "--home-card-image": `url(${alleycatCardHero})` } as CSSProperties}
         >
           <div className="home-card-title-row">
             <h3 className="cell-title">{t("home.alleycat.title")}</h3>
@@ -2555,7 +2671,7 @@ function AppShell() {
         </div>
         <div
           className="modular-cell home-mode-card"
-          style={{ "--home-card-image": `url(${loopHero})` } as CSSProperties}
+          style={{ "--home-card-image": `url(${loopCardHero})` } as CSSProperties}
         >
           <div className="home-card-title-row">
             <h3 className="cell-title">{t("home.loop.title")}</h3>
@@ -2566,7 +2682,7 @@ function AppShell() {
         </div>
         <div
           className="modular-cell modular-cell-night home-mode-card"
-          style={{ "--home-card-image": `url(${nightRideHero})` } as CSSProperties}
+          style={{ "--home-card-image": `url(${nightRideCardHero})` } as CSSProperties}
         >
           <div className="home-card-title-row">
             <h3 className="cell-title">{t("home.night.title")}</h3>
@@ -2595,7 +2711,7 @@ function AppShell() {
             {t("home.community.action")}
           </button>
           <div className="home-community-brand-footer" aria-hidden="true">
-            <img className="home-community-brand-mark home-community-brand-mark-large" src={discordLogo} alt="" />
+            <img className="home-community-brand-mark home-community-brand-mark-large home-community-brand-mark-discord" src={discordLogo} alt="" />
           </div>
         </div>
 
@@ -4477,6 +4593,7 @@ function AppShell() {
         {renderCurrentPage()}
       </main>
       <footer className="site-footer">
+        <div className="footer-divider" aria-hidden="true" />
         <div className="nav-container">
           <div className="footer-meta">
             <span className="footer-title">GIMME THE LOOP</span>
