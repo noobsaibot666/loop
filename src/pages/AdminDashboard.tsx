@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Crown, Eye, EyeOff, Search, Shield, Trash2, Trophy, Users, Zap } from "lucide-react";
+import { Archive, Crown, Eye, EyeOff, Search, Shield, Sparkles, Trash2, Trophy, Users, Zap } from "lucide-react";
 import adminHero from "../images/hero1.png";
 import Hero from "../components/Hero";
 import { useI18n } from "../i18n";
 import { useAuthStore } from "../store/useAuthStore";
 import { postJSON } from "../utils/routeUtils";
 
-type AdminTab = "metrics" | "riders" | "night" | "proofs";
+type AdminTab = "metrics" | "riders" | "night" | "proofs" | "packs" | "requests";
 
 type AdminOverview = {
   admin_email: string;
@@ -69,6 +69,61 @@ type AdminProof = {
   created_at: string;
 };
 
+type AdminCityPack = {
+  id: string;
+  slug: string;
+  name: string;
+  route_note?: string | null;
+  finish_label?: string | null;
+  safety_note?: string | null;
+  is_active?: boolean;
+  checkpoint_count?: number;
+  active_checkpoint_count?: number;
+  district_count?: number;
+  readiness_status?: string;
+  copy_ready?: boolean;
+  can_publish?: boolean;
+};
+
+type AdminCityCheckpoint = {
+  id?: string;
+  pack_id?: string;
+  slug: string;
+  name: string;
+  lat: number | string;
+  lng: number | string;
+  district?: string;
+  category?: string;
+  vibe?: string;
+  hint?: string;
+  task_local?: string;
+  task_fast?: string;
+  task_chaotic?: string;
+  sort_weight?: number | string;
+  is_active?: boolean;
+};
+
+type AdminCityRequest = {
+  id: string;
+  requested_city?: string | null;
+  requested_location?: string | null;
+  rider_name?: string | null;
+  email?: string | null;
+  status?: string | null;
+  admin_note?: string | null;
+  created_at?: string | null;
+  handled_at?: string | null;
+};
+
+type PreviewManifest = {
+  manifest_title?: string;
+  checkpoint_count?: number;
+  estimated_minutes?: number;
+  route_note?: string;
+  finish_label?: string;
+  ghost_label?: string | null;
+};
+
 const AdminDashboard: React.FC = () => {
   const { t, formatDate } = useI18n();
   const { user } = useAuthStore();
@@ -79,7 +134,44 @@ const AdminDashboard: React.FC = () => {
   const [riders, setRiders] = useState<AdminRider[]>([]);
   const [nightPosts, setNightPosts] = useState<AdminNightPost[]>([]);
   const [proofs, setProofs] = useState<AdminProof[]>([]);
+  const [packs, setPacks] = useState<AdminCityPack[]>([]);
+  const [selectedPackId, setSelectedPackId] = useState("");
+  const [checkpoints, setCheckpoints] = useState<AdminCityCheckpoint[]>([]);
+  const [requests, setRequests] = useState<AdminCityRequest[]>([]);
   const [riderSearch, setRiderSearch] = useState("");
+  const [archiveMonth, setArchiveMonth] = useState("");
+  const [packForm, setPackForm] = useState({
+    id: "",
+    slug: "",
+    name: "",
+    route_note: "",
+    finish_label: "",
+    safety_note: "",
+    is_active: false,
+  });
+  const [checkpointForm, setCheckpointForm] = useState<AdminCityCheckpoint>({
+    slug: "",
+    name: "",
+    lat: "",
+    lng: "",
+    district: "",
+    category: "",
+    vibe: "",
+    hint: "",
+    task_local: "",
+    task_fast: "",
+    task_chaotic: "",
+    sort_weight: 100,
+    is_active: true,
+  });
+  const [requestDrafts, setRequestDrafts] = useState<Record<string, { status: string; admin_note: string }>>({});
+  const [previewState, setPreviewState] = useState({
+    style: "local",
+    difficulty: "medium",
+    checkpoint_count: "6",
+  });
+  const [previewManifest, setPreviewManifest] = useState<PreviewManifest | null>(null);
+  const [aiDraft, setAiDraft] = useState<any>(null);
   const [riderDrafts, setRiderDrafts] = useState<Record<string, { credits: string; free_used: string }>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [actionStatus, setActionStatus] = useState<{ tone: "success" | "error" | "info"; text: string } | null>(null);
@@ -144,6 +236,60 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  const fetchPacks = async () => {
+    setIsLoading(true);
+    try {
+      const data = await postJSON<{ packs: AdminCityPack[] }>("/api/admin/city-packs", {});
+      const nextPacks = data.packs || [];
+      setPacks(nextPacks);
+      if (!selectedPackId && nextPacks[0]?.id) {
+        setSelectedPackId(nextPacks[0].id);
+      }
+    } catch (error: any) {
+      pushStatus("error", error.message || t("common.requestFailed"));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchCheckpoints = async (packId: string) => {
+    if (!packId) {
+      setCheckpoints([]);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const data = await postJSON<{ checkpoints: AdminCityCheckpoint[] }>("/api/admin/city-checkpoints", { pack_id: packId });
+      setCheckpoints(data.checkpoints || []);
+    } catch (error: any) {
+      pushStatus("error", error.message || t("common.requestFailed"));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchRequests = async () => {
+    setIsLoading(true);
+    try {
+      const data = await postJSON<{ requests: AdminCityRequest[] }>("/api/admin/city-requests", {});
+      const nextRequests = data.requests || [];
+      setRequests(nextRequests);
+      setRequestDrafts(
+        nextRequests.reduce<Record<string, { status: string; admin_note: string }>>((acc, request) => {
+          acc[request.id] = {
+            status: String(request.status || "new"),
+            admin_note: String(request.admin_note || ""),
+          };
+          return acc;
+        }, {})
+      );
+    } catch (error: any) {
+      pushStatus("error", error.message || t("common.requestFailed"));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     async function checkAdmin() {
       if (!user) {
@@ -168,7 +314,41 @@ const AdminDashboard: React.FC = () => {
     if (activeTab === "riders") void fetchRiders();
     if (activeTab === "night") void fetchNightPosts();
     if (activeTab === "proofs") void fetchProofs();
+    if (activeTab === "packs") void fetchPacks();
+    if (activeTab === "requests") void fetchRequests();
   }, [activeTab, isAdmin]);
+
+  useEffect(() => {
+    if (activeTab !== "packs" || !selectedPackId) return;
+    const selectedPack = packs.find((pack) => pack.id === selectedPackId);
+    if (selectedPack) {
+      setPackForm({
+        id: selectedPack.id,
+        slug: selectedPack.slug || "",
+        name: selectedPack.name || "",
+        route_note: selectedPack.route_note || "",
+        finish_label: selectedPack.finish_label || "",
+        safety_note: selectedPack.safety_note || "",
+        is_active: selectedPack.is_active !== false,
+      });
+    }
+    setCheckpointForm({
+      slug: "",
+      name: "",
+      lat: "",
+      lng: "",
+      district: "",
+      category: "",
+      vibe: "",
+      hint: "",
+      task_local: "",
+      task_fast: "",
+      task_chaotic: "",
+      sort_weight: 100,
+      is_active: true,
+    });
+    void fetchCheckpoints(selectedPackId);
+  }, [activeTab, selectedPackId, packs]);
 
   const filteredRiders = useMemo(() => {
     const query = riderSearch.trim().toLowerCase();
@@ -208,6 +388,145 @@ const AdminDashboard: React.FC = () => {
       pushStatus("success", t("admin.messages.proofDeleted"));
       await fetchProofs();
       if (overview) await fetchOverview();
+    } catch (error: any) {
+      pushStatus("error", error.message || t("common.requestFailed"));
+    }
+  };
+
+  const handleArchiveMonth = async () => {
+    if (!archiveMonth) return;
+    try {
+      pushStatus("info", t("admin.messages.updating"));
+      const data = await postJSON<{ archived: number }>("/api/admin/proof-archive-month", { month: archiveMonth });
+      pushStatus("success", t("admin.messages.archiveDone", { count: data.archived || 0, month: archiveMonth }));
+      await fetchProofs();
+    } catch (error: any) {
+      pushStatus("error", error.message || t("common.requestFailed"));
+    }
+  };
+
+  const handlePackSave = async () => {
+    try {
+      pushStatus("info", t("admin.messages.updating"));
+      await postJSON("/api/admin/city-packs", {
+        action: "save",
+        ...packForm,
+      });
+      pushStatus("success", t("admin.messages.packSaved"));
+      await fetchPacks();
+    } catch (error: any) {
+      pushStatus("error", error.message || t("common.requestFailed"));
+    }
+  };
+
+  const handleCheckpointSave = async () => {
+    if (!selectedPackId) return;
+    try {
+      pushStatus("info", t("admin.messages.updating"));
+      await postJSON("/api/admin/city-checkpoints", {
+        action: "save",
+        ...checkpointForm,
+        pack_id: selectedPackId,
+        lat: Number(checkpointForm.lat),
+        lng: Number(checkpointForm.lng),
+        sort_weight: Number(checkpointForm.sort_weight || 100),
+      });
+      pushStatus("success", t("admin.messages.checkpointSaved"));
+      await fetchCheckpoints(selectedPackId);
+      await fetchPacks();
+      setCheckpointForm({
+        slug: "",
+        name: "",
+        lat: "",
+        lng: "",
+        district: "",
+        category: "",
+        vibe: "",
+        hint: "",
+        task_local: "",
+        task_fast: "",
+        task_chaotic: "",
+        sort_weight: 100,
+        is_active: true,
+      });
+    } catch (error: any) {
+      pushStatus("error", error.message || t("common.requestFailed"));
+    }
+  };
+
+  const handlePreviewManifest = async () => {
+    try {
+      pushStatus("info", t("admin.messages.updating"));
+      const data = await postJSON<{ manifest: PreviewManifest }>("/api/admin/preview-manifest", {
+        pack_id: selectedPackId || undefined,
+        city: packForm.name,
+        style: previewState.style,
+        difficulty: previewState.difficulty,
+        checkpoint_count: Number(previewState.checkpoint_count || 6),
+      });
+      setPreviewManifest(data.manifest || null);
+      pushStatus("success", t("admin.messages.previewReady"));
+    } catch (error: any) {
+      pushStatus("error", error.message || t("common.requestFailed"));
+    }
+  };
+
+  const handleAIDraftPack = async () => {
+    try {
+      pushStatus("info", t("admin.messages.updating"));
+      const data = await postJSON<{ draft: any }>("/api/admin/ai-draft", {
+        kind: "pack",
+        city: packForm.name,
+        route_note: packForm.route_note,
+        finish_label: packForm.finish_label,
+      });
+      setAiDraft(data.draft || null);
+      if (data.draft) {
+        setPackForm((current) => ({
+          ...current,
+          route_note: String(data.draft.route_note || current.route_note || ""),
+          finish_label: String(data.draft.finish_label || current.finish_label || ""),
+        }));
+      }
+      pushStatus("success", t("admin.messages.aiDraftReady"));
+    } catch (error: any) {
+      pushStatus("error", error.message || t("common.requestFailed"));
+    }
+  };
+
+  const handleRequestUpdate = async (requestId: string) => {
+    const draft = requestDrafts[requestId];
+    if (!draft) return;
+    try {
+      pushStatus("info", t("admin.messages.updating"));
+      await postJSON("/api/admin/city-requests", {
+        action: "update",
+        request_id: requestId,
+        status: draft.status,
+        admin_note: draft.admin_note,
+      });
+      pushStatus("success", t("admin.messages.requestUpdated"));
+      await fetchRequests();
+    } catch (error: any) {
+      pushStatus("error", error.message || t("common.requestFailed"));
+    }
+  };
+
+  const handleRequestDraft = async (requestId: string) => {
+    try {
+      pushStatus("info", t("admin.messages.updating"));
+      const data = await postJSON<{ draft?: any; pack?: AdminCityPack }>("/api/admin/city-requests", {
+        action: "ai_draft",
+        request_id: requestId,
+      });
+      setAiDraft(data.draft || null);
+      pushStatus("success", t("admin.messages.aiDraftReady"));
+      await fetchRequests();
+      await fetchPacks();
+      if (data.pack?.id) {
+        setActiveTab("packs");
+        setSelectedPackId(data.pack.id);
+      }
     } catch (error: any) {
       pushStatus("error", error.message || t("common.requestFailed"));
     }
@@ -275,6 +594,12 @@ const AdminDashboard: React.FC = () => {
             </button>
             <button className={`pill ${activeTab === "proofs" ? "active" : ""}`} onClick={() => setActiveTab("proofs")}>
               {t("admin.tabs.proofs")}
+            </button>
+            <button className={`pill ${activeTab === "packs" ? "active" : ""}`} onClick={() => setActiveTab("packs")}>
+              {t("admin.tabs.packs")}
+            </button>
+            <button className={`pill ${activeTab === "requests" ? "active" : ""}`} onClick={() => setActiveTab("requests")}>
+              {t("admin.tabs.requests")}
             </button>
           </div>
         }
@@ -500,6 +825,16 @@ const AdminDashboard: React.FC = () => {
                 </div>
                 <Shield size={18} className="text-muted" />
               </div>
+              <div className="admin-archive-shell">
+                <label className="field admin-mini-field">
+                  <span>{t("admin.proofs.archiveMonth")}</span>
+                  <input type="month" value={archiveMonth} onChange={(event) => setArchiveMonth(event.target.value)} />
+                </label>
+                <button type="button" className="ghost-button small" onClick={handleArchiveMonth} disabled={!archiveMonth}>
+                  <Archive size={14} />
+                  {t("admin.proofs.archiveAction")}
+                </button>
+              </div>
               <div className="history-list">
                 {proofs.map((proof) => (
                   <div key={proof.id} className="history-row admin-moderation-row">
@@ -524,6 +859,276 @@ const AdminDashboard: React.FC = () => {
                         <Trash2 size={14} />
                         {t("admin.proofs.delete")}
                       </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "packs" && (
+          <div className="account-grid admin-pack-grid">
+            <div className="glass-card form-card account-purchases-card">
+              <div className="form-header">
+                <div>
+                  <div className="form-title">{t("admin.packs.title")}</div>
+                  <div className="form-subtitle">{t("admin.packs.subtitle")}</div>
+                </div>
+                <Shield size={18} className="text-muted" />
+              </div>
+              <label className="field">
+                <span>{t("admin.packs.selectPack")}</span>
+                <select value={selectedPackId} onChange={(event) => setSelectedPackId(event.target.value)}>
+                  <option value="">{t("admin.packs.newPack")}</option>
+                  {packs.map((pack) => (
+                    <option key={pack.id} value={pack.id}>
+                      {pack.name} · {pack.readiness_status || "draft"}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="profile-grid">
+                <label className="field">
+                  <span>{t("admin.packs.slug")}</span>
+                  <input value={packForm.slug} onChange={(event) => setPackForm((current) => ({ ...current, slug: event.target.value }))} />
+                </label>
+                <label className="field">
+                  <span>{t("admin.packs.name")}</span>
+                  <input value={packForm.name} onChange={(event) => setPackForm((current) => ({ ...current, name: event.target.value }))} />
+                </label>
+              </div>
+              <label className="field">
+                <span>{t("admin.packs.routeNote")}</span>
+                <textarea value={packForm.route_note} onChange={(event) => setPackForm((current) => ({ ...current, route_note: event.target.value }))} />
+              </label>
+              <label className="field">
+                <span>{t("admin.packs.finishLabel")}</span>
+                <input value={packForm.finish_label} onChange={(event) => setPackForm((current) => ({ ...current, finish_label: event.target.value }))} />
+              </label>
+              <label className="field">
+                <span>{t("admin.packs.safetyNote")}</span>
+                <textarea value={packForm.safety_note} onChange={(event) => setPackForm((current) => ({ ...current, safety_note: event.target.value }))} />
+              </label>
+              <label className="field admin-checkbox-field">
+                <span>{t("admin.packs.active")}</span>
+                <input
+                  type="checkbox"
+                  checked={packForm.is_active}
+                  onChange={(event) => setPackForm((current) => ({ ...current, is_active: event.target.checked }))}
+                />
+              </label>
+              <div className="admin-action-row admin-action-row-left">
+                <button type="button" className="primary-button small" onClick={handlePackSave}>
+                  {t("admin.packs.save")}
+                </button>
+                <button type="button" className="ghost-button small" onClick={handleAIDraftPack} disabled={!packForm.name.trim()}>
+                  <Sparkles size={14} />
+                  {t("admin.packs.aiDraft")}
+                </button>
+                <button type="button" className="ghost-button small" onClick={handlePreviewManifest} disabled={!selectedPackId && !packForm.name.trim()}>
+                  {t("admin.packs.preview")}
+                </button>
+              </div>
+              <div className="admin-preview-controls">
+                <label className="field admin-mini-field">
+                  <span>{t("alleycat.streetTone")}</span>
+                  <select value={previewState.style} onChange={(event) => setPreviewState((current) => ({ ...current, style: event.target.value }))}>
+                    <option value="local">{t("alleycat.style.local")}</option>
+                    <option value="fast">{t("alleycat.style.fast")}</option>
+                    <option value="chaotic">{t("alleycat.style.chaotic")}</option>
+                  </select>
+                </label>
+                <label className="field admin-mini-field">
+                  <span>{t("alleycat.pressure")}</span>
+                  <select value={previewState.difficulty} onChange={(event) => setPreviewState((current) => ({ ...current, difficulty: event.target.value }))}>
+                    <option value="easy">{t("difficulty.easy")}</option>
+                    <option value="medium">{t("difficulty.medium")}</option>
+                    <option value="hard">{t("difficulty.hard")}</option>
+                  </select>
+                </label>
+                <label className="field admin-mini-field">
+                  <span>{t("admin.packs.checkpointCount")}</span>
+                  <input value={previewState.checkpoint_count} onChange={(event) => setPreviewState((current) => ({ ...current, checkpoint_count: event.target.value }))} />
+                </label>
+              </div>
+              {previewManifest && (
+                <div className="glass-card admin-preview-card">
+                  <strong>{previewManifest.manifest_title}</strong>
+                  <span>{previewManifest.route_note}</span>
+                  <span>{previewManifest.finish_label}</span>
+                  <div className="admin-preview-metrics">
+                    <span>{t("admin.packs.checkpointCount")}: {previewManifest.checkpoint_count || 0}</span>
+                    <span>{t("admin.preview.eta")}: {previewManifest.estimated_minutes || 0}m</span>
+                    <span>{t("alleycat.ghostRider")}: {previewManifest.ghost_label || t("common.off")}</span>
+                  </div>
+                </div>
+              )}
+              {aiDraft && (
+                <div className="glass-card admin-ai-card">
+                  <strong>{t("admin.packs.aiDraft")}</strong>
+                  <pre>{JSON.stringify(aiDraft, null, 2)}</pre>
+                </div>
+              )}
+            </div>
+
+            <div className="glass-card form-card account-purchases-card">
+              <div className="form-header">
+                <div>
+                  <div className="form-title">{t("admin.checkpoints.title")}</div>
+                  <div className="form-subtitle">{t("admin.checkpoints.subtitle")}</div>
+                </div>
+                <Zap size={18} className="text-muted" />
+              </div>
+              <div className="profile-grid">
+                <label className="field">
+                  <span>{t("admin.checkpoints.slug")}</span>
+                  <input value={String(checkpointForm.slug || "")} onChange={(event) => setCheckpointForm((current) => ({ ...current, slug: event.target.value }))} />
+                </label>
+                <label className="field">
+                  <span>{t("admin.checkpoints.name")}</span>
+                  <input value={String(checkpointForm.name || "")} onChange={(event) => setCheckpointForm((current) => ({ ...current, name: event.target.value }))} />
+                </label>
+              </div>
+              <div className="profile-grid">
+                <label className="field">
+                  <span>{t("admin.checkpoints.lat")}</span>
+                  <input value={String(checkpointForm.lat || "")} onChange={(event) => setCheckpointForm((current) => ({ ...current, lat: event.target.value }))} />
+                </label>
+                <label className="field">
+                  <span>{t("admin.checkpoints.lng")}</span>
+                  <input value={String(checkpointForm.lng || "")} onChange={(event) => setCheckpointForm((current) => ({ ...current, lng: event.target.value }))} />
+                </label>
+              </div>
+              <div className="profile-grid">
+                <label className="field">
+                  <span>{t("admin.checkpoints.district")}</span>
+                  <input value={String(checkpointForm.district || "")} onChange={(event) => setCheckpointForm((current) => ({ ...current, district: event.target.value }))} />
+                </label>
+                <label className="field">
+                  <span>{t("admin.checkpoints.category")}</span>
+                  <input value={String(checkpointForm.category || "")} onChange={(event) => setCheckpointForm((current) => ({ ...current, category: event.target.value }))} />
+                </label>
+              </div>
+              <div className="profile-grid">
+                <label className="field">
+                  <span>{t("admin.checkpoints.vibe")}</span>
+                  <input value={String(checkpointForm.vibe || "")} onChange={(event) => setCheckpointForm((current) => ({ ...current, vibe: event.target.value }))} />
+                </label>
+                <label className="field">
+                  <span>{t("admin.checkpoints.sortWeight")}</span>
+                  <input value={String(checkpointForm.sort_weight || "")} onChange={(event) => setCheckpointForm((current) => ({ ...current, sort_weight: event.target.value }))} />
+                </label>
+              </div>
+              <label className="field">
+                <span>{t("admin.checkpoints.hint")}</span>
+                <textarea value={String(checkpointForm.hint || "")} onChange={(event) => setCheckpointForm((current) => ({ ...current, hint: event.target.value }))} />
+              </label>
+              <label className="field">
+                <span>{t("admin.checkpoints.taskLocal")}</span>
+                <textarea value={String(checkpointForm.task_local || "")} onChange={(event) => setCheckpointForm((current) => ({ ...current, task_local: event.target.value }))} />
+              </label>
+              <label className="field">
+                <span>{t("admin.checkpoints.taskFast")}</span>
+                <textarea value={String(checkpointForm.task_fast || "")} onChange={(event) => setCheckpointForm((current) => ({ ...current, task_fast: event.target.value }))} />
+              </label>
+              <label className="field">
+                <span>{t("admin.checkpoints.taskChaotic")}</span>
+                <textarea value={String(checkpointForm.task_chaotic || "")} onChange={(event) => setCheckpointForm((current) => ({ ...current, task_chaotic: event.target.value }))} />
+              </label>
+              <label className="field admin-checkbox-field">
+                <span>{t("admin.checkpoints.active")}</span>
+                <input
+                  type="checkbox"
+                  checked={checkpointForm.is_active !== false}
+                  onChange={(event) => setCheckpointForm((current) => ({ ...current, is_active: event.target.checked }))}
+                />
+              </label>
+              <div className="admin-action-row admin-action-row-left">
+                <button type="button" className="primary-button small" onClick={handleCheckpointSave} disabled={!selectedPackId}>
+                  {t("admin.checkpoints.save")}
+                </button>
+              </div>
+              <div className="history-list">
+                {checkpoints.map((checkpoint) => (
+                  <button
+                    key={checkpoint.id || checkpoint.slug}
+                    type="button"
+                    className="history-row admin-checkpoint-row"
+                    onClick={() => setCheckpointForm(checkpoint)}
+                  >
+                    <div>
+                      <strong>{checkpoint.name}</strong>
+                      <span>{checkpoint.district || "--"} · {checkpoint.category || "--"} · {checkpoint.vibe || "--"}</span>
+                    </div>
+                    <div className="history-actions">
+                      <strong>{checkpoint.is_active === false ? t("common.off") : t("common.on")}</strong>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "requests" && (
+          <div className="account-grid">
+            <div className="glass-card form-card account-purchases-card">
+              <div className="form-header">
+                <div>
+                  <div className="form-title">{t("admin.requests.title")}</div>
+                  <div className="form-subtitle">{t("admin.requests.subtitle")}</div>
+                </div>
+                <Users size={18} className="text-muted" />
+              </div>
+              <div className="history-list">
+                {requests.map((request) => (
+                  <div key={request.id} className="history-row admin-request-row">
+                    <div>
+                      <strong>{request.requested_city || request.requested_location || "--"}</strong>
+                      <span>{request.rider_name || request.email || "--"} · {formatDate(request.created_at)}</span>
+                      <span>{request.admin_note || "--"}</span>
+                    </div>
+                    <div className="admin-request-controls">
+                      <label className="field admin-mini-field">
+                        <span>{t("admin.requests.status")}</span>
+                        <input
+                          value={requestDrafts[request.id]?.status || ""}
+                          onChange={(event) =>
+                            setRequestDrafts((current) => ({
+                              ...current,
+                              [request.id]: {
+                                status: event.target.value,
+                                admin_note: current[request.id]?.admin_note || "",
+                              },
+                            }))
+                          }
+                        />
+                      </label>
+                      <label className="field admin-mini-field">
+                        <span>{t("admin.requests.note")}</span>
+                        <input
+                          value={requestDrafts[request.id]?.admin_note || ""}
+                          onChange={(event) =>
+                            setRequestDrafts((current) => ({
+                              ...current,
+                              [request.id]: {
+                                status: current[request.id]?.status || "reviewing",
+                                admin_note: event.target.value,
+                              },
+                            }))
+                          }
+                        />
+                      </label>
+                      <div className="admin-action-row">
+                        <button type="button" className="ghost-button small" onClick={() => handleRequestDraft(request.id)}>
+                          <Sparkles size={14} />
+                          {t("admin.requests.aiDraft")}
+                        </button>
+                        <button type="button" className="primary-button small" onClick={() => handleRequestUpdate(request.id)}>
+                          {t("admin.requests.update")}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}

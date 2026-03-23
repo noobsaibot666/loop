@@ -11,7 +11,7 @@ interface FeedState {
   
   setSelectedCity: (city: string) => void;
   fetchWall: (city: string) => Promise<void>;
-  fetchNightRide: () => Promise<void>;
+  fetchNightRide: (city?: string) => Promise<void>;
   addNightRidePost: (post: NightRideFeedPost) => void;
 }
 
@@ -20,7 +20,7 @@ export const useFeedStore = create<FeedState>((set, get) => ({
   nightRidePosts: [],
   isLoadingWall: false,
   isLoadingNight: false,
-  selectedCity: "BARCELONA", // Default
+  selectedCity: "",
 
   setSelectedCity: (city) => set({ selectedCity: city }),
 
@@ -36,10 +36,10 @@ export const useFeedStore = create<FeedState>((set, get) => ({
     }
   },
 
-  fetchNightRide: async () => {
+  fetchNightRide: async (city = "") => {
     set({ isLoadingNight: true });
     try {
-      const data = await postJSON<any>("/api/night-ride/feed", {});
+      const data = await postJSON<any>("/api/night-ride/feed", { city });
       set({ nightRidePosts: data.posts || [] });
     } catch {
       set({ nightRidePosts: [] });

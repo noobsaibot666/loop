@@ -202,6 +202,7 @@ Conclusion:
   - wired profile update, password update/reset, membership actions, purchases, activity, quarter board, ride history, crew history, and feedback
 - [AdminDashboard.tsx](/Users/alan/_localDEV/Loop/src/pages/AdminDashboard.tsx)
   - added translated rider controls and wired proof visibility/delete moderation actions
+  - expanded the modular admin surface to expose backend-backed city pack controls, checkpoint controls, city request handling, AI drafting, manifest preview, and proof month archiving
 - [MainLayout.tsx](/Users/alan/_localDEV/Loop/src/components/MainLayout.tsx)
   - mobile header/menu now responds to scroll direction and idle time instead of staying static
 - [LoopBuilder.tsx](/Users/alan/_localDEV/Loop/src/pages/LoopBuilder.tsx)
@@ -231,13 +232,21 @@ Conclusion:
   - corrected shared button palette, typography, and hover states so route CTAs no longer drift into the lighter gray rebuild treatment
   - tightened builder-specific inputs, pills, section spacing, and CTA sizing so Loop, Street Hunt, and Night Ride sit closer to the original production rhythm
   - added real builder grid primitives and per-count option layouts so 2-, 3-, 4-, and 6-option sections stay aligned across translations instead of falling back to oversized fixed pills
+- [Leaderboard.tsx](/Users/alan/_localDEV/Loop/src/pages/Leaderboard.tsx)
+  - now restores city scope from the route query so public leaderboard views are shareable and stable
+- [WallOfFame.tsx](/Users/alan/_localDEV/Loop/src/pages/WallOfFame.tsx)
+  - now restores city scope from the route query and applies the same scope to Night Ride feed pulls
+- [useFeedStore.ts](/Users/alan/_localDEV/Loop/src/store/useFeedStore.ts)
+  - no longer defaults public feeds to Barcelona; wall state now starts from an all-cities neutral scope
+- [RiderAccount.tsx](/Users/alan/_localDEV/Loop/src/pages/RiderAccount.tsx)
+  - added a direct public rider-profile handoff from the modular account hero actions
 - [useCreditStore.ts](/Users/alan/_localDEV/Loop/src/store/useCreditStore.ts)
   - fixed usage loading to call `/api/usage/check`, which matches the backend
 
 ## Recommended Phase 5 order
 
 1. Validate live night-post moderation actions when QA data contains night posts.
-2. Replace or refactor bespoke route pages that are still reduced rebuilds:
+2. Finish visual one-to-one review for the remaining bespoke or high-touch routes:
    - Home
    - Loop Builder
    - Street Hunt / Messenger

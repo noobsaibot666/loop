@@ -318,6 +318,9 @@ const RiderAccount: React.FC = () => {
         image={accountHero}
         actions={
           <div className="hero-actions">
+            <button className="ghost-button small" onClick={() => navigate(`/rider/${user.id}`)}>
+              {t("nav.rider")}
+            </button>
             {(usage?.is_admin || accountSummary?.is_admin) && (
               <button className="ghost-button small" onClick={() => navigate("/admin")}>
                 {t("footer.admin")}

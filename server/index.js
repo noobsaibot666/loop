@@ -2764,15 +2764,18 @@ app.post("/api/messenger/wall", async (req, res) => {
   }
 });
 
-app.post("/api/night-ride/feed", async (_req, res) => {
+app.post("/api/night-ride/feed", async (req, res) => {
+  const city = String(req.body?.city || "").trim();
   try {
-    const { data: posts, error } = await supabase
+    const query = supabase
       .from("night_ride_posts")
       .select("id, user_id, rider_name, crew_name, city_name, route_title, distance_km, caption, image_url, aspect_ratio, moderation_status, created_at")
       .eq("is_public", true)
       .neq("moderation_status", "hidden")
       .order("created_at", { ascending: false })
       .limit(24);
+    if (city) query.ilike("city_name", `%${city}%`);
+    const { data: posts, error } = await query;
 
     if (error) return res.status(500).json({ error: error.message });
     return res.json({ posts: posts || [] });

@@ -71,6 +71,8 @@
 - [x] Night Ride builder controls now inherit the Street Hunt reference sizing, and join-by-code now follows the same modal-based pattern instead of an inline field.
 - [x] Shared React API calls now resolve through `API_BASE`, so local modular route validation hits the real backend.
 - [x] Public backend alias gaps are patched for Night Ride feed and public leaderboard.
+- [x] Public Wall and Leaderboard routes now restore city scope from the URL instead of relying on stale local feed defaults.
+- [x] Night Ride feed now respects the active Wall city scope.
 - [x] Direct route navigation has been verified across the modular public and protected routes.
 - [x] Admin login/logout and account summary behavior are verified in the modular runtime.
 - [x] Street Hunt manifest generation and run start are verified against the real backend.
@@ -82,6 +84,7 @@
 - [x] Supabase query-builder crash paths exposed by live validation are hardened in `server/index.js`.
 - [x] Remaining inline guest/login shell styling is pushed into shared CSS classes.
 - [x] Shared button palette and state styling are corrected back toward the production dark treatment.
+- [x] Admin now exposes the backend control lanes for city packs, checkpoints, city requests, AI drafting, manifest preview, and proof month archive.
 - [ ] Admin Night Ride moderation still needs explicit live validation with available night posts.
 
 ## Phase 5.B: Page Parity Targets

@@ -66,6 +66,9 @@ Related docs:
 - [x] Audit Night Ride builder options end to end
 - [x] Restore Street Hunt city-prefill from `/messenger?city=...`
 - [x] Harden Street Hunt share-code modal flow
+- [x] Restore public city scope from route query on Wall and Leaderboard
+- [x] Apply Wall city scope to the Night Ride feed
+- [x] Expand Admin to expose city pack, checkpoint, request, preview, and archive controls already present in the backend
 - [ ] Verify admin moderation end to end
 
 Remaining admin gap:
