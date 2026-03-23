@@ -23,6 +23,7 @@ type CitiesPageProps = {
   onOpenWallCity: (cityName?: string) => void;
   onOpenLeaderboardCity: (cityName?: string) => void;
   onOpenCityRequest: (cityName?: string) => void;
+  requestStatus?: string;
   heroImage?: string;
 };
 
@@ -32,6 +33,7 @@ export default function CitiesPage({
   onOpenWallCity,
   onOpenLeaderboardCity,
   onOpenCityRequest,
+  requestStatus,
   heroImage,
 }: CitiesPageProps) {
   const { t } = useI18n();
@@ -216,6 +218,7 @@ export default function CitiesPage({
                 <div className="form-title">{t("cities.nextTitle")}</div>
                 <div className="form-subtitle">{t("cities.nextSubtitle")}</div>
               </section>
+              {requestStatus && <div className="status-message success">{requestStatus}</div>}
               {nextCities.length === 0 && <div className="empty-state" />}
               {nextCities.length > 0 && (
                 <div className="city-lane-grid compact-grid">

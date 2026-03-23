@@ -1,60 +1,107 @@
-# Gimme The Loop: V1.5 Modular Upgrade Roadmap
+# Gimme The Loop: V1.5 Modular Upgrade Roadmap - STATUS UPDATE
 
 **Date:** March 2026  
-**Purpose:** Execute "Option A" - Trashing the `App.tsx` monolith in favor of a clean, structured React Router architecture. This roadmap also explicitly targets and completes the outstanding features from V1.2 (Night Ride moderation, Community Membership, and Offline Resilience).
+**Status:** Phase 4 Complete, Phase 5 Reframed Around Production Parity.
 
 ---
 
-## Phase 1: Structural Foundation & Routing
-*Goal: Introduce professional state management and URL routing without breaking existing functionality.*
+## Phase 1: Structural Foundation & Routing (COMPLETE)
+- [x] Install `react-router-dom` and `zustand` dependencies.
+- [x] Create directory structure.
+- [x] Configure `BrowserRouter`.
+- [x] Establish base App `<Layout />`.
 
-- [ ] Install `react-router-dom` and `zustand` dependencies.
-- [ ] Create directory structure: `/src/pages/`, `/src/components/`, `/src/store/`, `/src/hooks/`.
-- [ ] Configure `BrowserRouter` inside `main.tsx`.
-- [ ] Establish base App `<Layout />` containing TopBar and BurgerMenu.
-- [ ] Wire empty route stubs for `/`, `/loop`, `/messenger`, `/account`, `/cities`, `/wall`, `/leaderboard`, `/night`, `/admin`.
+## Phase 2: State Extraction (COMPLETE)
+- [x] **`useAuthStore`:** Authentication and sessions.
+- [x] **`useCreditStore`:** Credits and membership summaries.
+- [x] **`useAlleycatStore`:** Local runs and offline persistence.
+- [x] **`useUIStore`:** Navigation and global UI.
 
----
+## Phase 3: Slicing the Monolith (COMPLETE)
+- [x] Extract all pages (Home, Loop Builder, Alleycat, Wall, Cities, Leaderboard, Account, Admin).
 
-## Phase 2: State Extraction (The Zustand Move)
-*Goal: Remove global states from React render cycles.*
-
-- [ ] **`useAuthStore`:** Extract `supabase.auth.getSession()` logic, `accessToken`, and `user` state.
-- [ ] **`useCreditStore`:** Extract `Usage` polling, `donation` success listener, and credit balance limits.
-- [ ] **`useAlleycatStore`:** Localize `messengerManifest`, `messengerRun`, check-in validations, and `clockNow` logic.
-- [ ] **`useUIStore`:** Extract global UI states (`showLanguageMenu`, `menuOpen`, `mobileHeaderVisible`).
-
----
-
-## Phase 3: Slicing the Monolith
-*Goal: Move 4.6k lines of `App.tsx` logic into isolated, fast rendering pages.*
-
-- [ ] Extract **Home Page** (`/`): Move Hero badges, swift product cards, and step counts.
-- [ ] Extract **Loop Builder** (`/loop`): Move map generation logic, coordinate extraction, and suggestion dropdowns.
-- [ ] Extract **Alleycat Mode** (`/messenger`): Move manifest generation, share code logic, and the "live run" interface.
-- [ ] Extract **Wall of Fame** (`/wall`): Move public proof grid, city filter modals, and thumbnail components.
-- [ ] Extract **Cities Directory** (`/cities`): Move live/ready lane views and city demand requests.
-- [ ] Extract **Leaderboards** (`/leaderboard`): Move ranking queries and public rider profile overlay.
-- [ ] Extract **Account Suite** (`/account`): Move profile editing, credit top-ups, loop history, and quarter ranks.
-- [ ] Extract **Admin Dashboard** (`/admin.html`): Segment into `/admin` route with nested views for moderations and credits.
+## Phase 4: Completing V1.2 Outstanding Features (COMPLETE)
+- [x] **Night Ride Moderation Integration:** Dashboard functional with `live/flagged/hidden` controls.
+- [x] **Community Membership Launch:** Handle Stripe session verify + Home page conversion funnel.
+- [x] **Offline Alleycat Validation:** Manual retry for proof drafts implemented in UI.
+- [x] **Mobile Navigation Rethink:** Scroll lock on menu open verified.
 
 ---
 
-## Phase 4: Completing V1.2 Outstanding Features
-*Goal: Dedicate focus to the features that lagged behind the rollout, solidifying community and offline stability.*
+## Phase 5: Production Parity Audit & Hardening (IN PROGRESS)
+- [x] Local build verification.
+- [x] React route shell is live with `react-router-dom`.
+- [x] Initial parity audit started across pages, stores, and backend contracts.
+- [x] Rebuild the major protected/product routes onto production-capable React surfaces.
+- [ ] Remove remaining hardcoded copy and finish translation parity for `en`, `pt`, `es`.
+- [ ] Align shared UI exactly with the production version:
+  - builders
+  - cards
+  - hero treatments
+  - auth modal
+  - login/account/admin surfaces
+  - shared button palette and states
+- [ ] Validate desktop and mobile interaction parity page by page.
+- [ ] Validate image parity:
+  - hero assets
+  - card imagery
+  - wall/feed presentation
+- [ ] Validate backend parity for all React routes against `server/index.js`.
+- [ ] Close missing API gaps before any Cloudflare staging deploy.
+- [ ] Run final end-to-end walkthrough only after parity blockers are closed.
 
-- [ ] **Night Ride Moderation Integration:** Connect the existing backend `api/admin/night-ride-moderation.js` logic completely with the Admin Dashboard UI. Render proper flag/delete controls.
-- [ ] **Community Membership Launch:** Handle the Discord `/membership=success` stripe callback cleanly within the new routing setup. Explicitly render the "Community Funnel Card" on Home for eligible users.
-- [ ] **Offline Alleycat Validation:** Expand `useAlleycatStore` to persist active manifest details and validated checkpoint images locally to `localStorage` (or `IndexedDB` if heavy) so progress survives cellular dropouts in heavy urban routes.
-- [ ] **Mobile Navigation Rethink (V1.2 Phase 6):** Ensure the final extracted burger menu overlay is glitch-free on mobile dimensions without triggering horizontal scrolling.
+## Phase 5.A: Blockers Found In Audit
+- [x] `AdminDashboard` endpoint blockers added to `server/index.js`:
+  - `/api/admin/check`
+  - `/api/admin/night-rides`
+  - `/api/admin/night-ride-moderation`
+- [x] `RiderAccount` server support added for `/api/stripe/portal`.
+- [x] `NightRide` history and create/join compatibility are wired.
+- [ ] `Home`, `LoopBuilder`, and `AlleycatMode` are still the largest bespoke rebuilds, not exact production ports.
+- [x] `RiderAccount` and `AdminDashboard` are rebuilt around the current backend contracts and functionally validated.
+- [x] Shared mobile header behavior in `MainLayout` is now wired to scroll-state logic.
+- [x] Shared route-shell classes now replace the old inline layout wrappers in `LoopBuilder` and `AlleycatMode`.
+- [x] Loop Builder and Street Hunt store-driven status copy now runs through `en`, `pt`, and `es` translation keys.
+- [x] Street Hunt route now restores production-grade share/reset/challenge surface behavior already supported by the backend.
+- [x] Night Ride route is now aligned to the crew-only product model and no longer carries a dead membership handoff.
+- [x] Shared builder controls are tightened back toward production sizing and spacing across Loop, Street Hunt, and Night Ride.
+- [x] Builder option groups now use dynamic per-count layouts instead of fixed oversized pill rows, so translated labels stay inside the original production rhythm.
+- [x] Street Hunt builder options were re-audited end to end; city deep-link prefill and share-code modal/auth flow are now restored.
+- [x] Loop builder controls now inherit the Street Hunt reference sizing, mobile margins, and no longer carry the dead membership handoff.
+- [x] Night Ride builder controls now inherit the Street Hunt reference sizing, and join-by-code now follows the same modal-based pattern instead of an inline field.
+- [x] Shared React API calls now resolve through `API_BASE`, so local modular route validation hits the real backend.
+- [x] Public backend alias gaps are patched for Night Ride feed and public leaderboard.
+- [x] Direct route navigation has been verified across the modular public and protected routes.
+- [x] Admin login/logout and account summary behavior are verified in the modular runtime.
+- [x] Street Hunt manifest generation and run start are verified against the real backend.
+- [x] Night Ride crew build and history loading are verified against the real backend.
+- [x] Rider login is verified in the modular runtime.
+- [x] Rider credit grant, consumption, and summary sync are verified against the real backend.
+- [x] Rider Night Ride join flow is verified against the real backend.
+- [x] Admin proof visibility moderation is verified end to end with restore.
+- [x] Supabase query-builder crash paths exposed by live validation are hardened in `server/index.js`.
+- [x] Remaining inline guest/login shell styling is pushed into shared CSS classes.
+- [x] Shared button palette and state styling are corrected back toward the production dark treatment.
+- [ ] Admin Night Ride moderation still needs explicit live validation with available night posts.
 
----
+## Phase 5.B: Page Parity Targets
+- [ ] Home
+- [ ] Loop Builder
+- [ ] Street Hunt / Messenger
+- [ ] Night Ride visual parity signoff
+- [ ] Wall
+- [ ] Cities
+- [ ] Leaderboard
+- [ ] Rider Profile
+- [ ] Account visual parity signoff
+- [ ] Admin visual parity signoff
 
-## Phase 5: Final QA & Cloudflare Validation
-*Goal: Ensure the API connections and builds match Cloudflare's requirements.*
-
-- [ ] Trigger local `npm run build` to verify no TypeScript/Vite routing compilation errors exist.
-- [ ] Deploy staging build to Cloudflare Pages.
-- [ ] Verify Direct URL Navigation (Ensure hitting `/messenger` directly from the address bar loads correctly without 404ing). 
-- [ ] End-to-end Alleycat Check-in test.
-- [ ] End-to-end Stripe Membership verify test.
+## Phase 5.C: Exit Criteria Before Deploy
+- [ ] Visual parity confirmed against the current production app.
+- [x] Functional parity confirmed for the core authenticated and admin workflows in local modular runtime.
+- [ ] All user-facing copy translated and consistent.
+- [ ] No placeholder links, fake billing URLs, or TODO admin actions remain.
+- [x] No React page currently under validation depends on a missing backend endpoint.
+- [x] Direct route navigation verified for every public and protected page.
+- [ ] Live Night Ride moderation must be verified before backend parity can be signed off.
+- [ ] Only after all items above are complete: stage to Cloudflare Pages.

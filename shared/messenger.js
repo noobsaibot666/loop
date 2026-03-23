@@ -5119,6 +5119,7 @@ export function distanceBetweenMeters(pointA, pointB) {
 export const buildMessengerManifestFromPack = ({
   pack,
   checkpoints: sourceCheckpoints,
+  ghostEnabled = true,
   difficulty = "medium",
   style = "local",
   seed = Date.now(),
@@ -5131,9 +5132,9 @@ export const buildMessengerManifestFromPack = ({
     return { error: "City pack is empty." };
   }
 
-  const difficultyKey = difficultyConfig[difficulty] ? difficulty : "medium";
+  const difficultyKey = ghostEnabled && difficultyConfig[difficulty] ? difficulty : null;
   const styleKey = ["local", "fast", "chaotic"].includes(style) ? style : "local";
-  const config = difficultyConfig[difficultyKey];
+  const config = difficultyKey ? difficultyConfig[difficultyKey] : difficultyConfig.medium;
   const requestedCount = Number.isFinite(Number(checkpointCount)) ? Math.round(Number(checkpointCount)) : null;
   const normalizedRequestedCount = requestedCount ? Math.max(1, requestedCount) : config.count;
   const resolvedRangeKm = Number.isFinite(Number(rangeKm)) ? Math.max(1, Number(rangeKm)) : null;
@@ -5159,7 +5160,7 @@ export const buildMessengerManifestFromPack = ({
     if (effectiveRangeKm) {
       if (inRange.length < targetCount) {
         return {
-          error: `${pack.name} cannot fit ${targetCount} checkpoints within ${resolvedRangeKm} km of ${startLabel || "that start area"}. Widen the range, lower the checkpoint count, or drop the difficulty.`,
+          error: `${pack.name} cannot fit ${targetCount} checkpoints within ${resolvedRangeKm} km of ${startLabel || "that start area"}. Widen the range, lower the checkpoint count, or ease the ghost pressure.`,
         };
       }
       const denseWindow = Math.min(
@@ -5182,7 +5183,7 @@ export const buildMessengerManifestFromPack = ({
 
   const checkpoints = ordered.map((checkpoint, index) => {
     const taskType = inferTaskType(checkpoint);
-    const pressureScore = inferPressureScore({ checkpoint, difficulty: difficultyKey, style: styleKey });
+    const pressureScore = inferPressureScore({ checkpoint, difficulty: difficultyKey || "medium", style: styleKey });
     return {
       id: checkpoint.id,
       order: index + 1,
@@ -5213,23 +5214,29 @@ export const buildMessengerManifestFromPack = ({
   }
 
   const districtCount = new Set(checkpoints.map((checkpoint) => checkpoint.district).filter(Boolean)).size;
-  const title = `${pack.name} ${titleTokens[styleKey]} ${difficultyKey.charAt(0).toUpperCase()}${difficultyKey.slice(1)}`;
+  const title = difficultyKey
+    ? `${pack.name} ${titleTokens[styleKey]} ${difficultyKey.charAt(0).toUpperCase()}${difficultyKey.slice(1)}`
+    : `${pack.name} ${titleTokens[styleKey]}`;
   const estimatedMinutes = Math.max(20, Math.round((config.estimatedMinutes / config.count) * checkpoints.length));
   const difficultyFactor = difficultyKey === "hard" ? 0.92 : difficultyKey === "medium" ? 0.97 : 1;
   const styleFactor = styleKey === "chaotic" ? 0.95 : styleKey === "fast" ? 0.97 : 1;
   const spreadFactor = districtCount >= Math.max(4, checkpoints.length - 1) ? 0.97 : 1;
-  const ghostSeconds = Math.max(
-    18 * 60,
-    Math.round((config.ghostSeconds / config.count) * checkpoints.length * difficultyFactor * styleFactor * spreadFactor)
-  );
+  const ghostSeconds = difficultyKey
+    ? Math.max(
+        18 * 60,
+        Math.round((config.ghostSeconds / config.count) * checkpoints.length * difficultyFactor * styleFactor * spreadFactor)
+      )
+    : null;
   const totalScore = checkpoints.reduce((sum, checkpoint) => sum + (checkpoint.score_points || 0), 0);
   const taskMix = buildTaskMixSummary(checkpoints);
-  const ghostLabel = buildGhostLabel({
-    difficulty: difficultyKey,
-    style: styleKey,
-    checkpointCount: checkpoints.length,
-    districtCount,
-  });
+  const ghostLabel = difficultyKey
+    ? buildGhostLabel({
+        difficulty: difficultyKey,
+        style: styleKey,
+        checkpointCount: checkpoints.length,
+        districtCount,
+      })
+    : null;
 
   return {
     manifest: {
@@ -5237,6 +5244,7 @@ export const buildMessengerManifestFromPack = ({
       city: pack.name,
       city_slug: pack.slug,
       difficulty: difficultyKey,
+      ghost_enabled: Boolean(difficultyKey),
       style: styleKey,
       manifest_title: title,
       estimated_minutes: estimatedMinutes,
@@ -5264,6 +5272,7 @@ export const buildMessengerManifestFromPack = ({
 
 export const buildMessengerManifest = ({
   city,
+  ghostEnabled = true,
   difficulty = "medium",
   style = "local",
   seed = Date.now(),
@@ -5282,6 +5291,7 @@ export const buildMessengerManifest = ({
   return buildMessengerManifestFromPack({
     pack,
     checkpoints: pack.checkpoints,
+    ghostEnabled,
     difficulty,
     style,
     seed,

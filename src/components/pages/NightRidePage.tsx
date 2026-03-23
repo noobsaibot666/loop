@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import Hero from "../Hero";
 import { useI18n } from "../../i18n";
 import { 
-  Moon, Users, MapPin, Zap, Camera, 
-  ChevronRight, Filter, Share2, Compass, Award, 
-  Image as ImageIcon, Upload, Info, CheckCircle, X
+  Users, Zap, Camera, 
+  Compass, 
+  Image as ImageIcon, X
 } from "lucide-react";
 
 type Suggestion = {
@@ -66,7 +66,6 @@ type Props = {
   totalCredits: number;
   hasUnlimitedCredits: boolean;
   requireLogin: (message: string) => void;
-  handleDonate: () => void;
   postJSON: <T>(path: string, body: Record<string, unknown>) => Promise<T>;
   formatDate: (value?: string | null) => string;
   feed: NightRidePost[];
@@ -83,7 +82,6 @@ const NightRidePage = ({
   totalCredits,
   hasUnlimitedCredits,
   requireLogin,
-  handleDonate,
   postJSON,
   formatDate,
   feed,
@@ -97,120 +95,81 @@ const NightRidePage = ({
   const [unit, setUnit] = useState<"km" | "mi">("km");
   const [distance, setDistance] = useState(16);
   const [startLabel, setStartLabel] = useState("");
+  const [startCoords, setStartCoords] = useState<Suggestion | null>(null);
+  const [startSuggestions, setStartSuggestions] = useState<Suggestion[]>([]);
   const [endLabel, setEndLabel] = useState("");
-  const [rideCity, setRideCity] = useState("");
+  const [endCoords, setEndCoords] = useState<Suggestion | null>(null);
+  const [endSuggestions, setEndSuggestions] = useState<Suggestion[]>([]);
   const [crewName, setCrewName] = useState("");
   const [crewMembersInput, setCrewMembersInput] = useState("");
-  const [startCoords, setStartCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [endCoords, setEndCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [startSuggestions, setStartSuggestions] = useState<Suggestion[]>([]);
-  const [endSuggestions, setEndSuggestions] = useState<Suggestion[]>([]);
-  const [session, setSession] = useState<NightRideSession | null>(null);
-  const [status, setStatus] = useState("");
   const [shareInput, setShareInput] = useState("");
+  const [showCodeModal, setShowCodeModal] = useState(false);
+  const [status, setStatus] = useState("");
   const [isBuilding, setIsBuilding] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
+  const [session, setSession] = useState<NightRideSession | null>(null);
+
+  const [showPostModal, setShowPostModal] = useState(false);
   const [postCaption, setPostCaption] = useState("");
   const [postFile, setPostFile] = useState<File | null>(null);
-  const [postStatus, setPostStatus] = useState("");
   const [isPosting, setIsPosting] = useState(false);
-  const [showPostModal, setShowPostModal] = useState(false);
+  const [postStatus, setPostStatus] = useState("");
 
-  const distanceKm = unit === "km" ? distance : distance * 1.60934;
-  const crewMembers = useMemo(
-    () =>
-      crewMembersInput
-        .split(",")
-        .map((item) => item.trim().replace(/^@+/, ""))
-        .filter(Boolean),
-    [crewMembersInput]
-  );
-
-  const geocode = async (text: string) => {
-    const res = await fetch(`${apiBase}/api/geocode`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
-    });
-    const data = await res.json().catch(() => ({}));
-    return data?.features || [];
+  const searchLocations = async (query: string, setResults: (results: Suggestion[]) => void) => {
+    if (query.trim().length < 3) return;
+    try {
+      const data = await postJSON<{ features?: Array<{ properties?: { label?: string; name?: string }; geometry: { coordinates: [number, number] } }> }>(
+        "/api/geocode",
+        { text: query },
+      );
+      const suggestions =
+        data.features?.slice(0, 5).map((feature) => ({
+          label: feature.properties?.label || feature.properties?.name || "Unknown",
+          lat: feature.geometry.coordinates[1],
+          lng: feature.geometry.coordinates[0],
+        })) || [];
+      setResults(suggestions);
+    } catch (error) {
+      console.error("Search failed:", error);
+      setResults([]);
+    }
   };
 
   useEffect(() => {
-    if (startLabel.trim().length < 3) {
-      setStartSuggestions([]);
-      return;
-    }
-    let cancelled = false;
-    const timer = window.setTimeout(async () => {
-      try {
-        const features = await geocode(startLabel.trim());
-        if (cancelled) return;
-        setStartSuggestions(
-          features.slice(0, 4).map((item: any) => ({
-            label: item?.properties?.label || startLabel,
-            lng: Number(item?.geometry?.coordinates?.[0]),
-            lat: Number(item?.geometry?.coordinates?.[1]),
-          }))
-        );
-      } catch {
-        if (!cancelled) setStartSuggestions([]);
-      }
-    }, 220);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [startLabel, apiBase]);
+    const timer = setTimeout(() => searchLocations(startLabel, setStartSuggestions), 400);
+    return () => clearTimeout(timer);
+  }, [startLabel]);
 
   useEffect(() => {
-    if (mode !== "roulette" || endLabel.trim().length < 3) {
-      setEndSuggestions([]);
-      return;
-    }
-    let cancelled = false;
-    const timer = window.setTimeout(async () => {
-      try {
-        const features = await geocode(endLabel.trim());
-        if (cancelled) return;
-        setEndSuggestions(
-          features.slice(0, 4).map((item: any) => ({
-            label: item?.properties?.label || endLabel,
-            lng: Number(item?.geometry?.coordinates?.[0]),
-            lat: Number(item?.geometry?.coordinates?.[1]),
-          }))
-        );
-      } catch {
-        if (!cancelled) setEndSuggestions([]);
-      }
-    }, 220);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [mode, endLabel, apiBase]);
+    const timer = setTimeout(() => searchLocations(endLabel, setEndSuggestions), 400);
+    return () => clearTimeout(timer);
+  }, [endLabel]);
 
-  const flow = useMemo(
-    () => [
-      { number: "01", title: t("night.flow1.title"), body: t("night.flow1.body") },
-      { number: "02", title: t("night.flow2.title"), body: t("night.flow2.body") },
-      { number: "03", title: t("night.flow3.title"), body: t("night.flow3.body") },
-      { number: "04", title: t("night.flow4.title"), body: t("night.flow4.body") },
-    ],
-    [t]
-  );
+  useEffect(() => {
+    if (!showCodeModal) return;
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowCodeModal(false);
+    };
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showCodeModal]);
 
   const handleBuild = async () => {
     if (!user?.id) {
       requireLogin(t("night.messages.loginBuild"));
       return;
     }
-    if (!startCoords || !startLabel.trim()) {
-      setStatus(t("night.messages.startRequired"));
+    if (!startCoords) {
+      setStatus(t("night.messages.originRequired"));
       return;
     }
-    if (mode === "roulette" && (!endCoords || !endLabel.trim())) {
-      setStatus(t("night.messages.endRequired"));
+    if (mode === "roulette" && !endCoords) {
+      setStatus(t("night.messages.destinationRequired"));
       return;
     }
     if (!crewName.trim()) {
@@ -221,28 +180,29 @@ const NightRidePage = ({
     setIsBuilding(true);
     setStatus("");
     try {
-      const data = await postJSON<{
-        session: NightRideSession;
-        route_url: string;
-        share_code: string;
-      }>("/api/night-rides/generate", {
+      const members = crewMembersInput.split(",").map((m) => m.trim()).filter(Boolean);
+      const payload = {
+        user_id: user.id,
+        title: crewName.trim(),
         session_type: "crew",
         mode,
         difficulty,
-        unit,
-        distance_km: Number(distanceKm.toFixed(2)),
-        origin_label: startLabel.trim(),
+        distance_km: unit === "km" ? distance : distance * 1.60934,
+        origin_label: startLabel,
         origin_lat: startCoords.lat,
         origin_lng: startCoords.lng,
-        destination_label: mode === "roulette" ? endLabel.trim() : "",
-        destination_lat: mode === "roulette" ? endCoords?.lat : null,
-        destination_lng: mode === "roulette" ? endCoords?.lng : null,
-        ride_city: rideCity.trim(),
+        destination_label: mode === "roulette" ? endLabel : null,
+        destination_lat: mode === "roulette" ? (endCoords?.lat || null) : null,
+        destination_lng: mode === "roulette" ? (endCoords?.lng || null) : null,
         crew_name: crewName.trim(),
-        crew_members: crewMembers,
-      });
-      setSession(data.session || null);
-      setStatus(t("night.messages.built"));
+        crew_members: members.length > 0 ? members : null,
+      };
+
+      const results = await postJSON<{ session: NightRideSession }>("/api/night-rides/create", payload);
+      if (results?.session) {
+        setSession(results.session);
+        setStatus(t("night.messages.built"));
+      }
     } catch (error) {
       setStatus(error instanceof Error ? error.message : t("night.messages.buildFailed"));
     } finally {
@@ -255,16 +215,21 @@ const NightRidePage = ({
       requireLogin(t("night.messages.loginJoin"));
       return;
     }
-    if (!shareInput.trim()) return;
+    const code = shareInput.trim().toUpperCase();
+    if (!code) return;
+
     setIsJoining(true);
     setStatus("");
     try {
-      const data = await postJSON<{ session: NightRideSession; already_joined?: boolean }>("/api/night-rides/join", {
-        code: shareInput.trim().toUpperCase(),
+      const results = await postJSON<{ session: NightRideSession }>("/api/night-rides/join", {
+        user_id: user.id,
+        share_code: code,
       });
-      setSession(data.session || null);
-      setStatus(data.already_joined ? t("night.messages.joinedAgain") : t("night.messages.joined"));
-      setShareInput("");
+      if (results?.session) {
+        setSession(results.session);
+        setStatus(t("night.messages.joined"));
+        setShowCodeModal(false);
+      }
     } catch (error) {
       setStatus(error instanceof Error ? error.message : t("night.messages.joinFailed"));
     } finally {
@@ -272,11 +237,16 @@ const NightRidePage = ({
     }
   };
 
-  const handlePost = async () => {
+  const handleOpenCodeModal = () => {
     if (!user?.id) {
-      requireLogin(t("night.messages.loginPost"));
+      requireLogin(t("night.messages.loginJoin"));
       return;
     }
+    setStatus("");
+    setShowCodeModal(true);
+  };
+
+  const handlePostSubmit = async () => {
     if (!supabase) {
       setPostStatus(t("night.messages.uploadUnavailable"));
       return;
@@ -294,7 +264,7 @@ const NightRidePage = ({
     setPostStatus("");
     try {
       const extension = postFile.name.split(".").pop()?.toLowerCase() || "jpg";
-      const storagePath = `${user.id}/${session.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`;
+      const storagePath = `${user?.id}/${session.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`;
       const upload = await supabase.storage.from(bucketName).upload(storagePath, postFile, {
         cacheControl: "3600",
         upsert: false,
@@ -322,6 +292,16 @@ const NightRidePage = ({
     }
   };
 
+  const flow = useMemo(
+    () => [
+      { number: "01", title: t("night.flow1.title"), body: t("night.flow1.body"), icon: <Users size={22} /> },
+      { number: "02", title: t("night.flow2.title"), body: t("night.flow2.body"), icon: <Compass size={22} /> },
+      { number: "03", title: t("night.flow3.title"), body: t("night.flow3.body"), icon: <Zap size={22} /> },
+      { number: "04", title: t("night.flow4.title"), body: t("night.flow4.body"), icon: <ImageIcon size={22} /> },
+    ],
+    [t]
+  );
+
   return (
     <div className="sequential-layout sub-page page-night page-stage-enter">
       <Hero 
@@ -330,28 +310,31 @@ const NightRidePage = ({
         image={heroImage || ""}
         actions={
           <div className="hero-actions-group">
-            <button className="accent-text-button" onClick={() => document.getElementById('night-builder')?.scrollIntoView({ behavior: 'smooth' })}>
+            <button 
+              className="accent-text-button" 
+              onClick={() => document.getElementById('night-builder')?.scrollIntoView({ behavior: 'smooth' })}
+            >
               <span>{t("night.hero.action")}</span>
             </button>
           </div>
         }
       />
 
-      <section className="modular-grid flow-grid flow-grid-four reveals">
+      <section className="modular-grid flow-grid flow-grid-four reveals route-steps-shell route-steps-shell-wide">
         {flow.map((step) => (
-          <div key={step.number} className="module-card">
-            <div className="module-header">
-              <span className="module-number">{step.number}</span>
-              <h3 className="module-title">{step.title}</h3>
+          <div key={step.number} className="module-card route-step-card">
+            <div className="module-header route-step-header">
+              <span className="module-number route-step-number">{step.number}</span>
+              <h3 className="module-title route-step-title">{step.title}</h3>
             </div>
-            <p className="module-body">{step.body}</p>
+            <p className="module-body route-step-body">{step.body}</p>
           </div>
         ))}
       </section>
 
-      <section className="split-module reveals" id="night-builder">
-        <div className="builder-grid single">
-          <div className="glass-card form-card night-ride-shell crew-mode">
+      <section className="split-module reveals route-builder-section" id="night-builder">
+        <div className="module-content">
+          <div className="glass-card form-card night-ride-shell">
             <div className="form-header">
               <div>
                 <h2 className="form-title">
@@ -360,228 +343,221 @@ const NightRidePage = ({
                 <p className="form-subtitle">{t("night.builder.subtitle")}</p>
               </div>
               <div className="loops-left">
-                <span className="loops-left-line">{hasUnlimitedCredits ? t("credits.unlimited") : t("credits.balance", { count: totalCredits })}</span>
+                <span className="loops-left-line-focus">{hasUnlimitedCredits ? t("credits.unlimited") : t("credits.balance", { count: totalCredits })}</span>
                 <span className="loops-left-line">{t("night.builder.creditLine")}</span>
               </div>
             </div>
 
-            <div className="form-section section-block">
-              <label className="field range-field">
-                <span>{t("night.builder.routeMode")}</span>
-                <div className="pill-group range-unit-toggle">
-                  <button className={`pill ${mode === "loop" ? "active" : ""}`} type="button" onClick={() => setMode("loop")}>
-                    {t("night.builder.modeLoop")}
-                  </button>
-                  <button className={`pill ${mode === "roulette" ? "active" : ""}`} type="button" onClick={() => setMode("roulette")}>
-                    {t("night.builder.modeRoulette")}
-                  </button>
-                </div>
-              </label>
-            </div>
-
-            <div className="form-section section-block">
-              <div className="field-grid-two">
-                <label className="field">
-                  <span>{t("night.builder.crewName")}</span>
-                  <input value={crewName} onChange={(event) => setCrewName(event.target.value)} placeholder={t("night.builder.crewNamePlaceholder")} />
-                </label>
-                <label className="field">
-                  <span>{t("night.builder.city")}</span>
-                  <input value={rideCity} onChange={(event) => setRideCity(event.target.value)} placeholder={t("night.builder.cityPlaceholder")} />
-                </label>
-              </div>
-              <label className="field">
-                <span>{t("night.builder.members")}</span>
-                <input
-                  value={crewMembersInput}
-                  onChange={(event) => setCrewMembersInput(event.target.value)}
-                  placeholder={t("night.builder.membersPlaceholder")}
-                />
-              </label>
-              <div className="night-ride-helper">{t("night.builder.memberHelper")}</div>
-            </div>
-
-            <div className="form-section section-block">
-              <label className="field">
-                <span>{t("night.builder.startPoint")}</span>
-                <input
-                  value={startLabel}
-                  onChange={(event) => {
-                    setStartLabel(event.target.value);
-                    setStartCoords(null);
-                  }}
-                  placeholder={t("night.builder.startPlaceholder")}
-                />
-              </label>
-              {startSuggestions.length > 0 && (
-                <div className="suggestion-stack">
-                  {startSuggestions.map((item) => (
-                    <button
-                      key={`${item.label}-${item.lat}`}
-                      className="ghost-button small suggestion-button"
-                      type="button"
-                      onClick={() => {
-                        setStartLabel(item.label);
-                        setStartCoords({ lat: item.lat, lng: item.lng });
-                        setStartSuggestions([]);
-                      }}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {mode === "roulette" && (
-                <>
+            <div className="form-body">
+              <div className="form-section section-block-clean">
+                <div className="field-grid-two">
                   <label className="field">
-                    <span>{t("night.builder.endPoint")}</span>
+                    <span>{t("night.builder.crewName")}</span>
                     <input
-                      value={endLabel}
-                      onChange={(event) => {
-                        setEndLabel(event.target.value);
-                        setEndCoords(null);
-                      }}
-                      placeholder={t("night.builder.endPlaceholder")}
+                      value={crewName}
+                      onChange={(event) => setCrewName(event.target.value)}
+                      placeholder={t("night.builder.crewNamePlaceholder")}
                     />
                   </label>
-                  {endSuggestions.length > 0 && (
-                    <div className="suggestion-stack">
-                      {endSuggestions.map((item) => (
-                        <button
-                          key={`${item.label}-${item.lat}`}
-                          className="ghost-button small suggestion-button"
-                          type="button"
-                          onClick={() => {
-                            setEndLabel(item.label);
-                            setEndCoords({ lat: item.lat, lng: item.lng });
-                            setEndSuggestions([]);
-                          }}
-                        >
-                          {item.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            <div className="form-section section-block">
-              <label className="field range-field">
-                <span>{t("night.builder.distance")}</span>
-                <div className="pill-group range-unit-toggle">
-                  <button className={`pill ${unit === "km" ? "active" : ""}`} type="button" onClick={() => setUnit("km")}>
-                    KM
-                  </button>
-                  <button className={`pill ${unit === "mi" ? "active" : ""}`} type="button" onClick={() => setUnit("mi")}>
-                    MI
-                  </button>
+                  <label className="field">
+                    <span>{t("night.builder.members")}</span>
+                    <input
+                      value={crewMembersInput}
+                      onChange={(event) => setCrewMembersInput(event.target.value)}
+                      placeholder={t("night.builder.membersPlaceholder")}
+                    />
+                  </label>
                 </div>
-              <input
-                type="range"
-                min={unit === "km" ? 5 : 3}
-                max={unit === "km" ? 40 : 25}
-                step={0.5}
-                value={distance}
-                onChange={(event) => setDistance(Number(event.target.value))}
-              />
-              <div className="range-labels">
-                <span>{unit === "km" ? 5 : 3} {unit}</span>
-                <div className="range-focus-card">
-                  <strong>{Number(distance.toFixed(1))} {unit}</strong>
+                <div className="night-ride-helper">
+                  {t("night.builder.memberHelper")}
                 </div>
-                <span>{unit === "km" ? 40 : 25} {unit}</span>
               </div>
-              </label>
 
-              <label className="field">
-                <span>{t("night.builder.difficulty")}</span>
-                <div className="pill-grid pill-grid-three" style={{ justifyContent: 'center' }}>
-                  {["easy", "medium", "hard"].map((value) => (
-                    <button
-                      key={value}
-                      className={`pill difficulty-pill difficulty-${value} ${difficulty === value ? "active" : ""}`}
-                      type="button"
-                      onClick={() => setDifficulty(value as "easy" | "medium" | "hard")}
+              <div className="form-section section-block">
+                <label className="field">
+                  <span>{t("night.builder.routeMode")}</span>
+                  <div className="pill-group range-unit-toggle builder-option-grid builder-option-grid-2 night-ride-mode-toggle">
+                    <button 
+                      className={`pill ${mode === "loop" ? "active" : ""}`} 
+                      type="button" 
+                      onClick={() => setMode("loop")}
                     >
-                      {t(`difficulty.${value}`)}
+                      {t("night.builder.modeLoop")}
                     </button>
-                  ))}
-                </div>
-              </label>
-            </div>
+                    <button 
+                      className={`pill ${mode === "roulette" ? "active" : ""}`} 
+                      type="button" 
+                      onClick={() => setMode("roulette")}
+                    >
+                      {t("night.builder.modeRoulette")}
+                    </button>
+                  </div>
+                </label>
 
-            <div className="form-actions">
-              <button className="accent-text-button" type="button" onClick={handleBuild} disabled={isBuilding}>
-                {isBuilding ? t("common.building") : t("night.builder.buildAction")}
-              </button>
-              <button className="ghost-button" type="button" onClick={handleDonate}>
-                {t("account.credits.add")}
-              </button>
-            </div>
+                <label className="field">
+                  <span>{t("night.builder.startPoint")}</span>
+                  <div className="search-input-wrapper">
+                    <input
+                      value={startLabel}
+                      onChange={(event) => {
+                        setStartLabel(event.target.value);
+                        setStartCoords(null);
+                      }}
+                      placeholder={t("night.builder.startPlaceholder")}
+                    />
+                    {startSuggestions.length > 0 && !startCoords && (
+                      <div className="suggestions glass-card">
+                        {startSuggestions.map((item) => (
+                          <button
+                            key={`${item.label}-${item.lat}`}
+                            className="suggestion-item"
+                            type="button"
+                            onClick={() => {
+                              setStartLabel(item.label);
+                              setStartCoords({ label: item.label, lat: item.lat, lng: item.lng });
+                              setStartSuggestions([]);
+                            }}
+                          >
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </label>
 
-            <div className="night-ride-join">
-              <label className="field compact-field">
-                <span>{t("night.builder.joinCode")}</span>
-                <input
-                  value={shareInput}
-                  onChange={(event) => setShareInput(event.target.value.toUpperCase())}
-                  placeholder={t("night.builder.joinPlaceholder")}
-                />
-              </label>
-              <button className="ghost-button small" type="button" onClick={handleJoin} disabled={isJoining || !shareInput.trim()}>
-                {isJoining ? t("night.builder.joining") : t("night.builder.loadCode")}
-              </button>
+                {mode === "roulette" && (
+                  <div className="animation-fade-in">
+                    <label className="field">
+                      <span>{t("night.builder.endPoint")}</span>
+                      <div className="search-input-wrapper">
+                        <input
+                          value={endLabel}
+                          onChange={(event) => {
+                            setEndLabel(event.target.value);
+                            setEndCoords(null);
+                          }}
+                          placeholder={t("night.builder.endPlaceholder")}
+                        />
+                        {endSuggestions.length > 0 && !endCoords && (
+                          <div className="suggestions glass-card">
+                            {endSuggestions.map((item) => (
+                              <button
+                                key={`${item.label}-${item.lat}`}
+                                className="suggestion-item"
+                                type="button"
+                                onClick={() => {
+                                  setEndLabel(item.label);
+                                  setEndCoords({ label: item.label, lat: item.lat, lng: item.lng });
+                                  setEndSuggestions([]);
+                                }}
+                              >
+                                {item.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              <div className="form-section section-block">
+                <label className="field range-field">
+                  <span>{t("night.builder.distance")}</span>
+                  <div className="pill-group range-unit-toggle builder-option-grid builder-option-grid-2 night-ride-unit-toggle">
+                    <button className={`pill ${unit === "km" ? "active" : ""}`} type="button" onClick={() => setUnit("km")}>{t("common.km")}</button>
+                    <button className={`pill ${unit === "mi" ? "active" : ""}`} type="button" onClick={() => setUnit("mi")}>{t("common.miles")}</button>
+                  </div>
+                  <input
+                    type="range"
+                    min={unit === "km" ? 5 : 3}
+                    max={unit === "km" ? 40 : 25}
+                    step={0.5}
+                    value={distance}
+                    onChange={(event) => setDistance(Number(event.target.value))}
+                    style={{ "--range-progress": `${((distance - (unit === 'km' ? 5 : 3)) / (unit === 'km' ? 35 : 22)) * 100}%` } as any}
+                  />
+                  <div className="range-labels">
+                    <span>{unit === "km" ? 5 : 3} {unit}</span>
+                    <div className="range-focus-card"><strong>{Number(distance.toFixed(1))} {unit}</strong></div>
+                    <span>{unit === "km" ? 40 : 25} {unit}</span>
+                  </div>
+                </label>
+
+                <label className="field night-ride-difficulty-field">
+                  <span>{t("night.builder.difficulty")}</span>
+                  <div className="pill-group checkpoint-count-grid builder-option-grid builder-option-grid-3 night-ride-difficulty-grid">
+                    {["easy", "medium", "hard"].map((value) => (
+                      <button
+                        key={value}
+                        className={`pill ${difficulty === value ? "active" : ""}`}
+                        type="button"
+                        onClick={() => setDifficulty(value as any)}
+                      >
+                        {t(`difficulty.${value}`)}
+                      </button>
+                    ))}
+                  </div>
+                </label>
+              </div>
+
+              <div className="form-actions join-action-row">
+                <button 
+                  className="primary-button ready" 
+                  type="button" 
+                  onClick={handleBuild} 
+                  disabled={isBuilding}
+                >
+                  {isBuilding ? t("night.builder.building") : t("night.builder.buildAction")}
+                </button>
+              </div>
+              <div className="form-actions compact-actions messenger-code-entry night-ride-code-entry">
+                <button
+                  className="text-link-button"
+                  type="button"
+                  onClick={handleOpenCodeModal}
+                >
+                  {t("night.builder.haveCode")}
+                </button>
+              </div>
             </div>
 
             {status ? <div className="status-message compact-status">{status}</div> : null}
+
+            {session && (
+              <div className="manifest-result-overlay glass-card animation-slide-up">
+                <h3 className="card-title">{session.crew_name || session.title}</h3>
+                <div className="result-grid-mini">
+                  <span>{session.mode.toUpperCase()}</span>
+                  <span>{Number(session.distance_km).toFixed(1)} KM</span>
+                  <span>{session.ride_city}</span>
+                </div>
+                <div className="share-code-box">
+                  <span>{t("night.result.crewCode")}</span>
+                  <strong>{session.share_code}</strong>
+                </div>
+                <div className="form-actions">
+                  <a className="primary-button" href={session.route_url} target="_blank" rel="noreferrer">
+                    {t("loop.openMaps")}
+                  </a>
+                  <button className="secondary-button" type="button" onClick={() => setShowPostModal(true)}>
+                    <Camera size={16} />
+                    <span>{t("night.result.postShot")}</span>
+                  </button>
+                  <button className="ghost-button small" onClick={() => setSession(null)}>
+                    {t("night.result.reset")}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-
-          {session && (
-            <div className="glass-card form-card night-ride-result-card">
-              <div className="form-title">{session.crew_name || session.title}</div>
-              <div className="result-grid result-grid-three">
-                <div>
-                  <span>{t("night.result.rideLabel")}</span>
-                  <strong>{t("night.result.rideCrew")}</strong>
-                </div>
-                <div>
-                  <span>{t("night.result.modeLabel")}</span>
-                  <strong>{session.mode === "loop" ? t("night.builder.modeLoop") : t("night.builder.modeRoulette")}</strong>
-                </div>
-                <div>
-                  <span>{t("night.result.distanceLabel")}</span>
-                  <strong>{Number(session.distance_km).toFixed(1)} km</strong>
-                </div>
-              </div>
-              <div className="night-ride-route-note">
-                <strong>{session.ride_city || session.origin_label}</strong>
-                <span>{session.destination_label ? `${session.origin_label} to ${session.destination_label}` : t("night.result.loopFallback")}</span>
-              </div>
-              <div className="share-code-box run-progress">
-                <span>{t("night.result.crewCode")}</span>
-                <strong>{session.share_code}</strong>
-                <em>{t("night.result.crewCodeNote")}</em>
-              </div>
-              <div className="form-actions">
-                <a className="accent-text-button" href={session.route_url} target="_blank" rel="noreferrer">
-                  {t("loop.openMaps")}
-                </a>
-                <button className="secondary-button" type="button" onClick={() => setShowPostModal(true)}>
-                  <Camera size={16} />
-                  <span>{t("night.result.postShot")}</span>
-                </button>
-              </div>
-
-            </div>
-          )}
         </div>
       </section>
-
       {showPostModal && (
         <div className="modal-overlay" role="dialog" aria-modal="true">
-          <div className="modal-card">
+          <div className="modal-card animation-slide-up">
             <div className="modal-header">
               <div className="modal-title">{t("night.modal.title")}</div>
               <button className="modal-close" type="button" onClick={() => setShowPostModal(false)}>
@@ -590,21 +566,14 @@ const NightRidePage = ({
             </div>
             <div className="modal-body form-card">
               <div className="form-section section-block">
-                <div className="manifest-brief mini-brief">
-                  <strong>{session?.crew_name || session?.title}</strong>
-                  <span>{session?.ride_city || t("night.modal.cityFallback")} · {Number(session?.distance_km || 0).toFixed(1)} km</span>
-                </div>
-                
                 <label className="field">
                   <span>{t("night.modal.caption")}</span>
-                  <textarea
+                  <input
                     value={postCaption}
-                    onChange={(event) => setPostCaption(event.target.value.slice(0, 280))}
+                    onChange={(event) => setPostCaption(event.target.value)}
                     placeholder={t("night.modal.captionPlaceholder")}
-                    rows={3}
                   />
                 </label>
-
                 <label className="field">
                   <span>{t("night.modal.photo")}</span>
                   <input
@@ -613,19 +582,75 @@ const NightRidePage = ({
                     onChange={(event) => setPostFile(event.target.files?.[0] || null)}
                   />
                 </label>
+                {postStatus && <div className="status-message">{postStatus}</div>}
               </div>
               <div className="form-actions">
-                <button className="primary-button" type="button" onClick={handlePost} disabled={isPosting}>
+                <button 
+                  className="primary-button" 
+                  type="button" 
+                  onClick={handlePostSubmit} 
+                  disabled={isPosting}
+                >
                   {isPosting ? t("night.modal.posting") : t("night.modal.postAction")}
                 </button>
+                <button 
+                  className="ghost-button" 
+                  type="button" 
+                  onClick={() => setShowPostModal(false)}
+                >
+                  {t("common.cancel")}
+                </button>
               </div>
-              {postStatus ? <div className="status-message compact-status">{postStatus}</div> : null}
             </div>
           </div>
         </div>
       )}
-
-      {/* Night wall removed */}
+      {showCodeModal && (
+        <div
+          className="modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setShowCodeModal(false);
+          }}
+        >
+          <div className="modal-card animation-slide-up messenger-code-modal night-ride-code-modal">
+            <div className="modal-header">
+              <div className="modal-title">{t("share.title")}</div>
+              <button className="modal-close" type="button" onClick={() => setShowCodeModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="modal-body form-card">
+              <div className="form-section section-block-clean">
+                <label className="field">
+                  <span>{t("share.code")}</span>
+                  <input
+                    autoFocus
+                    value={shareInput}
+                    onChange={(event) => setShareInput(event.target.value)}
+                    placeholder={t("night.builder.joinPlaceholder")}
+                  />
+                </label>
+                {status ? <div className="status-message compact-status">{status}</div> : null}
+              </div>
+              <div className="form-actions">
+                <button
+                  className="primary-button"
+                  type="button"
+                  onClick={handleJoin}
+                  disabled={isJoining || !shareInput.trim()}
+                >
+                  {isJoining ? t("night.builder.joining") : t("night.builder.loadCode")}
+                </button>
+                <button className="ghost-button" type="button" onClick={() => setShowCodeModal(false)}>
+                  {t("common.cancel")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

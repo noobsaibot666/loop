@@ -85,6 +85,22 @@ const getAuthUser = async (req) => {
   return data?.user || null;
 };
 
+const safeMaybeSingle = async (builder) => {
+  try {
+    return await builder.maybeSingle();
+  } catch {
+    return { data: null, error: null };
+  }
+};
+
+const safeNoThrow = async (promise) => {
+  try {
+    return await promise;
+  } catch {
+    return null;
+  }
+};
+
 const consumeMessengerCredits = async (user_id, user_email = "") => {
   if (isAdminEmail(user_email)) {
     return {
@@ -164,7 +180,7 @@ const getDbPackCheckpoints = async (packId, activeOnly = true) => {
   return data || [];
 };
 
-const buildManifestFromDatabasePack = ({ pack, checkpoints, difficulty, style, seed, startPoint, startLabel, rangeKm, checkpointCount }) =>
+const buildManifestFromDatabasePack = ({ pack, checkpoints, ghostEnabled = true, difficulty, style, seed, startPoint, startLabel, rangeKm, checkpointCount }) =>
   buildMessengerManifestFromPack({
     pack: {
       slug: pack.slug,
@@ -186,6 +202,7 @@ const buildManifestFromDatabasePack = ({ pack, checkpoints, difficulty, style, s
       task_fast: checkpoint.task_fast,
       task_chaotic: checkpoint.task_chaotic,
     })),
+    ghostEnabled,
     difficulty,
     style,
     seed,
@@ -291,12 +308,12 @@ app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async
     const creditAdd = creditsFromAmount(amount);
 
     if (user_id) {
-      const { data: existingSession } = await supabase
-        .from("stripe_sessions")
-        .select("session_id, status")
-        .eq("session_id", session.id)
-        .maybeSingle()
-        .catch(() => ({ data: null }));
+      const { data: existingSession } = await safeMaybeSingle(
+        supabase
+          .from("stripe_sessions")
+          .select("session_id, status")
+          .eq("session_id", session.id)
+      );
       if (existingSession?.status === "credited") {
         return res.json({ received: true, duplicate: true });
       }
@@ -312,13 +329,13 @@ app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async
         .from("user_credits")
         .upsert({ user_id, credits: currentCredits + creditAdd }, { onConflict: "user_id" });
 
-      await supabase.from("stripe_sessions").upsert({
+      await safeNoThrow(supabase.from("stripe_sessions").upsert({
         session_id: session.id,
         user_id,
         amount_cents: amount,
         credits_to_grant: creditAdd,
         status: "credited",
-      }, { onConflict: "session_id" }).catch(() => null);
+      }, { onConflict: "session_id" }));
 
       await supabase.from("donations").insert({
         user_id,
@@ -330,12 +347,12 @@ app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async
 
   if (event.type === "customer.subscription.updated" || event.type === "customer.subscription.deleted") {
     const subscription = event.data.object;
-    const { data: membership } = await supabase
-      .from("community_memberships")
-      .select("user_id, stripe_checkout_session_id")
-      .eq("stripe_subscription_id", subscription.id)
-      .maybeSingle()
-      .catch(() => ({ data: null }));
+    const { data: membership } = await safeMaybeSingle(
+      supabase
+        .from("community_memberships")
+        .select("user_id, stripe_checkout_session_id")
+        .eq("stripe_subscription_id", subscription.id)
+    );
     if (membership?.user_id) {
       await supabase
         .from("community_memberships")
@@ -444,7 +461,7 @@ const recordModerationAction = async ({
   details = {},
 }) => {
   if (!adminUser?.email) return;
-  await supabase.from("moderation_action_history").insert({
+  await safeNoThrow(supabase.from("moderation_action_history").insert({
     admin_user_id: adminUser.id || null,
     admin_email: adminUser.email,
     action,
@@ -452,8 +469,23 @@ const recordModerationAction = async ({
     target_id: targetId,
     target_label: targetLabel,
     details,
-  }).catch(() => null);
+  }));
 };
+
+app.post("/api/admin/check", async (req, res) => {
+  const authUser = await getAuthUser(req);
+  const requestedUserId = String(req.body?.user_id || "").trim();
+  if (!authUser) return res.json({ ok: true, is_admin: false });
+  if (requestedUserId && requestedUserId !== authUser.id) {
+    return res.status(403).json({ error: "session mismatch" });
+  }
+  return res.json({
+    ok: true,
+    is_admin: isAdminEmail(authUser.email || ""),
+    user_id: authUser.id,
+    email: authUser.email || "",
+  });
+});
 
 app.post("/api/admin/rider-list", requireAdmin, async (req, res) => {
   try {
@@ -587,6 +619,64 @@ app.post("/api/admin/overview", requireAdmin, async (req, res) => {
       leaders: quarterLeaderboard.slice(0, 3),
     },
   });
+});
+
+app.post("/api/admin/night-rides", requireAdmin, async (_req, res) => {
+  const { data, error } = await supabase
+    .from("night_ride_posts")
+    .select("id, user_id, rider_name, crew_name, city_name, route_title, distance_km, caption, image_url, aspect_ratio, is_public, moderation_status, created_at")
+    .order("created_at", { ascending: false })
+    .limit(48);
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ ok: true, posts: data || [] });
+});
+
+app.post("/api/admin/night-ride-moderation", requireAdmin, async (req, res) => {
+  const post_id = String(req.body?.post_id || "").trim();
+  const moderation_status = String(req.body?.moderation_status || "").trim().toLowerCase();
+  if (!post_id) return res.status(400).json({ error: "post_id required" });
+  if (!["live", "flagged", "hidden"].includes(moderation_status)) {
+    return res.status(400).json({ error: "invalid moderation_status" });
+  }
+
+  const { data: existing, error: existingError } = await supabase
+    .from("night_ride_posts")
+    .select("id, rider_name, crew_name, city_name, route_title, moderation_status, is_public")
+    .eq("id", post_id)
+    .maybeSingle();
+  if (existingError) return res.status(500).json({ error: existingError.message });
+  if (!existing) return res.status(404).json({ error: "post not found" });
+
+  const nextPublic = moderation_status === "hidden" ? false : existing.is_public !== false;
+  const { data, error } = await supabase
+    .from("night_ride_posts")
+    .update({
+      moderation_status,
+      is_public: nextPublic,
+    })
+    .eq("id", post_id)
+    .select("*")
+    .limit(1);
+  if (error) return res.status(500).json({ error: error.message });
+
+  await recordModerationAction({
+    adminUser: req.adminUser,
+    action: `night_ride_${moderation_status}`,
+    targetType: "night_ride_post",
+    targetId: post_id,
+    targetLabel: existing.route_title || existing.city_name || existing.crew_name || post_id,
+    details: {
+      rider_name: existing.rider_name || "",
+      crew_name: existing.crew_name || "",
+      city_name: existing.city_name || "",
+      previous_status: existing.moderation_status || "pending",
+      next_status: moderation_status,
+      previous_public: existing.is_public,
+      next_public: nextPublic,
+    },
+  });
+
+  return res.json({ ok: true, post: data?.[0] || null });
 });
 
 app.post("/api/admin/city-packs", requireAdmin, async (req, res) => {
@@ -1420,13 +1510,13 @@ app.post("/api/create-checkout-session", async (req, res) => {
     metadata: { user_id },
   });
 
-  await supabase.from("stripe_sessions").upsert({
+  await safeNoThrow(supabase.from("stripe_sessions").upsert({
     session_id: session.id,
     user_id,
     amount_cents: amountInCents,
     credits_to_grant: creditsToGrant,
     status: "checkout_created",
-  }, { onConflict: "session_id" }).catch(() => null);
+  }, { onConflict: "session_id" }));
 
   res.json({ url: session.url });
 });
@@ -1468,7 +1558,7 @@ app.post("/api/create-membership-session", async (req, res) => {
     },
   });
 
-  await supabase.from("community_memberships").upsert({
+  await safeNoThrow(supabase.from("community_memberships").upsert({
     user_id,
     stripe_checkout_session_id: session.id,
     plan_code: COMMUNITY_PLAN_CODE,
@@ -1477,7 +1567,7 @@ app.post("/api/create-membership-session", async (req, res) => {
     currency: COMMUNITY_CURRENCY,
     interval: COMMUNITY_INTERVAL,
     discord_invite_url: COMMUNITY_INVITE_URL,
-  }, { onConflict: "user_id" }).catch(() => null);
+  }, { onConflict: "user_id" }));
 
   res.json({ url: session.url });
 });
@@ -1489,12 +1579,12 @@ app.post("/api/stripe/verify-session", async (req, res) => {
   if (!user_id) return res.status(401).json({ error: "auth required" });
   if (!session_id) return res.status(400).json({ error: "session_id required" });
 
-  const { data: existingSession } = await supabase
-    .from("stripe_sessions")
-    .select("session_id,user_id,status,credits_to_grant")
-    .eq("session_id", session_id)
-    .maybeSingle()
-    .catch(() => ({ data: null }));
+  const { data: existingSession } = await safeMaybeSingle(
+    supabase
+      .from("stripe_sessions")
+      .select("session_id,user_id,status,credits_to_grant")
+      .eq("session_id", session_id)
+  );
   if (existingSession?.user_id && existingSession.user_id !== user_id) {
     return res.status(403).json({ error: "session mismatch" });
   }
@@ -1521,19 +1611,19 @@ app.post("/api/stripe/verify-session", async (req, res) => {
     .from("user_credits")
     .upsert({ user_id, credits: currentCredits + creditAdd }, { onConflict: "user_id" });
 
-  await supabase.from("stripe_sessions").upsert({
+  await safeNoThrow(supabase.from("stripe_sessions").upsert({
     session_id,
     user_id,
     amount_cents: amount,
     credits_to_grant: creditAdd,
     status: "credited",
-  }, { onConflict: "session_id" }).catch(() => null);
+  }, { onConflict: "session_id" }));
 
-  await supabase.from("donations").insert({
+  await safeNoThrow(supabase.from("donations").insert({
     user_id,
     amount,
     stripe_session_id: session_id,
-  }).catch(() => null);
+  }));
 
   res.json({ ok: true, credited: true, credits_added: creditAdd });
 });
@@ -1579,12 +1669,12 @@ app.post("/api/community-membership/access", async (req, res) => {
   const user_id = authUser?.id || "";
   if (!user_id) return res.status(401).json({ error: "auth required" });
 
-  const { data: membership } = await supabase
-    .from("community_memberships")
-    .select("*")
-    .eq("user_id", user_id)
-    .maybeSingle()
-    .catch(() => ({ data: null }));
+  const { data: membership } = await safeMaybeSingle(
+    supabase
+      .from("community_memberships")
+      .select("*")
+      .eq("user_id", user_id)
+  );
   if (!membership) return res.status(404).json({ error: "membership not found", access_state: "inactive" });
 
   let currentMembership = membership;
@@ -1600,7 +1690,7 @@ app.post("/api/community-membership/access", async (req, res) => {
         cancel_at_period_end: Boolean(subscription.cancel_at_period_end),
         discord_invite_url: subscription?.metadata?.discord_invite_url || membership.discord_invite_url || COMMUNITY_INVITE_URL,
       };
-      await supabase.from("community_memberships").upsert(currentMembership, { onConflict: "user_id" }).catch(() => null);
+      await safeNoThrow(supabase.from("community_memberships").upsert(currentMembership, { onConflict: "user_id" }));
     } catch {}
   }
 
@@ -1614,6 +1704,47 @@ app.post("/api/community-membership/access", async (req, res) => {
     access_state: accessState,
     url: currentMembership.discord_invite_url || COMMUNITY_INVITE_URL,
   });
+});
+
+app.post("/api/stripe/portal", async (req, res) => {
+  const authUser = await getAuthUser(req);
+  const user_id = authUser?.id || "";
+  if (!user_id) return res.status(401).json({ error: "auth required" });
+
+  const { data: membership, error } = await supabase
+    .from("community_memberships")
+    .select("*")
+    .eq("user_id", user_id)
+    .maybeSingle();
+  if (error) return res.status(500).json({ error: error.message });
+  if (!membership) return res.status(404).json({ error: "membership not found" });
+
+  let customerId = membership.stripe_customer_id || null;
+  if (!customerId && membership.stripe_subscription_id) {
+    try {
+      const subscription = await stripe.subscriptions.retrieve(membership.stripe_subscription_id);
+      customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer?.id || null;
+      if (customerId) {
+        await safeNoThrow(supabase
+          .from("community_memberships")
+          .update({ stripe_customer_id: customerId })
+          .eq("user_id", user_id));
+      }
+    } catch (subscriptionError) {
+      return res.status(500).json({
+        error: subscriptionError instanceof Error ? subscriptionError.message : "Could not resolve subscription customer",
+      });
+    }
+  }
+
+  if (!customerId) return res.status(400).json({ error: "customer portal unavailable" });
+
+  const session = await stripe.billingPortal.sessions.create({
+    customer: customerId,
+    return_url: `${APP_URL}/account`,
+  });
+
+  return res.json({ ok: true, url: session.url });
 });
 
 app.post("/api/geocode", async (req, res) => {
@@ -1630,17 +1761,33 @@ app.post("/api/geocode", async (req, res) => {
 });
 
 app.post("/api/loop", async (req, res) => {
-  const { coords, distance_km, seed } = req.body || {};
+  const { coords, distance_km, seed, terrain, surface, vibe } = req.body || {};
   if (!coords || coords.length !== 2) return res.status(400).json({ error: "coords required" });
   if (!ORS_API_KEY) return res.status(500).json({ error: "ORS_API_KEY missing" });
+
+  const terrainKey = String(terrain || "").trim().toLowerCase();
+  const surfaceKey = String(surface || "").trim().toLowerCase();
+  const vibeKey = String(vibe || "").trim().toLowerCase();
+
+  const pointBias =
+    terrainKey === "climb"
+      ? 5
+      : terrainKey === "coast" || surfaceKey === "gravel" || vibeKey === "scenic"
+        ? 4
+        : 3;
+
+  const seedOffset =
+    (terrainKey === "road" ? 11 : terrainKey === "mix" ? 5 : 0) +
+    (surfaceKey === "mixed" ? 17 : surfaceKey === "gravel" ? 29 : 0) +
+    (vibeKey === "energy" ? 7 : vibeKey === "climb" ? 13 : vibeKey === "elegant" ? 3 : 0);
 
   const body = {
     coordinates: [[coords[0], coords[1]]],
     options: {
       round_trip: {
         length: Math.max(1000, distance_km * 1000),
-        points: 3,
-        seed: seed || 1,
+        points: pointBias,
+        seed: (seed || 1) + seedOffset,
       },
     },
   };
@@ -1694,7 +1841,7 @@ app.post("/api/loop-history", async (req, res) => {
   return res.json({ ok: true, loop: data?.[0] || null });
 });
 
-app.post("/api/night-rides/generate", async (req, res) => {
+app.post(["/api/night-rides/create", "/api/night-rides/generate"], async (req, res) => {
   const authUser = await getAuthUser(req);
   const user_id = authUser?.id || "";
   if (!user_id) return res.status(401).json({ error: "login required" });
@@ -1792,12 +1939,12 @@ app.post("/api/night-rides/generate", async (req, res) => {
     share_code = createNightRideCode();
   }
 
-  const { data: profile } = await supabase
-    .from("user_profiles")
-    .select("rider_name")
-    .eq("user_id", user_id)
-    .maybeSingle()
-    .catch(() => ({ data: null }));
+  const { data: profile } = await safeMaybeSingle(
+    supabase
+      .from("user_profiles")
+      .select("rider_name")
+      .eq("user_id", user_id)
+  );
 
   const { data: sessions, error } = await supabase
     .from("night_ride_sessions")
@@ -1832,13 +1979,13 @@ app.post("/api/night-rides/generate", async (req, res) => {
   const session = sessions?.[0] || null;
 
   if (session?.id) {
-    await supabase.from("night_ride_participants").insert({
+    await safeNoThrow(supabase.from("night_ride_participants").insert({
       session_id: session.id,
       user_id,
       rider_name: profile?.rider_name?.trim() || riderLabelFromEmail(authUser.email || ""),
       joined_via: "creator",
       credits_spent: session_type === "crew" ? NIGHT_RIDE_CREW_BUILD_COST : 1,
-    }).catch(() => null);
+    }));
   }
 
   return res.json({
@@ -1857,7 +2004,7 @@ app.post("/api/night-rides/join", async (req, res) => {
   const user_id = authUser?.id || "";
   if (!user_id) return res.status(401).json({ error: "login required" });
 
-  const code = String(req.body?.code || "").trim().toUpperCase();
+  const code = String(req.body?.code || req.body?.share_code || "").trim().toUpperCase();
   if (!code) return res.status(400).json({ error: "code required" });
 
   const { data: session, error } = await supabase
@@ -1883,12 +2030,12 @@ app.post("/api/night-rides/join", async (req, res) => {
     const consume = await consumeNightRideCredit(authUser, "join");
     if (!consume.ok) return res.status(402).json({ error: consume.error });
     creditResult = consume;
-    const { data: profile } = await supabase
-      .from("user_profiles")
-      .select("rider_name")
-      .eq("user_id", user_id)
-      .maybeSingle()
-      .catch(() => ({ data: null }));
+    const { data: profile } = await safeMaybeSingle(
+      supabase
+        .from("user_profiles")
+        .select("rider_name")
+        .eq("user_id", user_id)
+    );
     await supabase.from("night_ride_participants").insert({
       session_id: session.id,
       user_id,
@@ -1907,37 +2054,6 @@ app.post("/api/night-rides/join", async (req, res) => {
     is_admin: creditResult.is_admin,
     unlimited_credits: creditResult.unlimited_credits,
   });
-});
-
-app.get("/api/night-rides/feed", async (_req, res) => {
-  const { data, error } = await supabase
-    .from("night_ride_posts")
-    .select("id, session_id, rider_name, crew_name, city_name, route_title, distance_km, aspect_ratio, caption, image_url, moderation_status, created_at")
-    .eq("is_public", true)
-    .eq("moderation_status", "live")
-    .order("created_at", { ascending: false })
-    .limit(24);
-  if (error) return res.status(500).json({ error: error.message });
-  const sessionIds = Array.from(new Set((data || []).map((row) => row.session_id).filter(Boolean)));
-  let sessionsById = {};
-  if (sessionIds.length) {
-    const { data: sessions } = await supabase
-      .from("night_ride_sessions")
-      .select("id, title, ride_city, crew_name, distance_km")
-      .in("id", sessionIds);
-    sessionsById = Object.fromEntries((sessions || []).map((session) => [session.id, session]));
-  }
-  const posts = (data || []).map((row) => {
-    const session = row.session_id ? sessionsById[row.session_id] : null;
-    return {
-      ...row,
-      crew_name: row.crew_name || session?.crew_name || null,
-      city_name: row.city_name || session?.ride_city || null,
-      route_title: row.route_title || session?.title || null,
-      distance_km: row.distance_km ?? session?.distance_km ?? null,
-    };
-  });
-  return res.json({ posts });
 });
 
 app.post("/api/night-rides/post", async (req, res) => {
@@ -2047,6 +2163,7 @@ app.post("/api/messenger/generate", async (req, res) => {
   if (!user_id) return res.status(401).json({ error: "login required" });
 
   const { city, difficulty, style, start_lat, start_lng, start_label, range_km, checkpoint_count } = req.body || {};
+  const ghostEnabled = req.body?.ghost_enabled !== false && req.body?.ghost_enabled !== "false" && req.body?.ghost_enabled !== 0;
   if (!String(start_label || "").trim() || !Number.isFinite(Number(start_lat)) || !Number.isFinite(Number(start_lng))) {
     return res.status(400).json({ error: "start area required" });
   }
@@ -2059,10 +2176,11 @@ app.post("/api/messenger/generate", async (req, res) => {
   const dbCheckpoints = dbPack ? await getDbPackCheckpoints(dbPack.id, true) : [];
   const dbBuilt =
     dbPack && dbCheckpoints.length
-      ? buildManifestFromDatabasePack({
+        ? buildManifestFromDatabasePack({
           pack: dbPack,
           checkpoints: dbCheckpoints,
-          difficulty,
+          ghostEnabled,
+          difficulty: ghostEnabled ? difficulty : null,
           style,
           seed,
           startPoint,
@@ -2073,7 +2191,8 @@ app.post("/api/messenger/generate", async (req, res) => {
       : null;
   const fallbackBuilt = buildMessengerManifest({
     city,
-    difficulty,
+    ghostEnabled,
+    difficulty: ghostEnabled ? difficulty : null,
     style,
     seed,
     startPoint,
@@ -2412,7 +2531,12 @@ app.post("/api/messenger/finish", async (req, res) => {
     status: updated.status,
     finished_at: updated.finished_at,
     finish_seconds: finishSeconds,
-    ghost_seconds: manifest?.ghost_seconds || manifest?.manifest?.ghost_seconds || 0,
+    ghost_seconds:
+      typeof manifest?.ghost_seconds === "number"
+        ? manifest.ghost_seconds
+        : typeof manifest?.manifest?.ghost_seconds === "number"
+          ? manifest.manifest.ghost_seconds
+          : null,
   });
 });
 
@@ -2544,12 +2668,12 @@ app.post("/api/messenger/proof", async (req, res) => {
   const checkpoint = checkpoints.find((item) => item.id === checkpointId);
   if (!checkpoint) return res.status(400).json({ error: "checkpoint not part of manifest" });
 
-  const { data: profile } = await supabase
-    .from("user_profiles")
-    .select("rider_name, bike_name, bike_ratio")
-    .eq("user_id", user_id)
-    .maybeSingle()
-    .catch(() => ({ data: null }));
+  const { data: profile } = await safeMaybeSingle(
+    supabase
+      .from("user_profiles")
+      .select("rider_name, bike_name, bike_ratio")
+      .eq("user_id", user_id)
+  );
   const riderName = profile?.rider_name?.trim()
     ? profile.rider_name.trim().slice(0, 40)
     : String(authUser?.email || "rider").split("@")[0].slice(0, 24) || "rider";
@@ -2605,33 +2729,164 @@ app.post("/api/messenger/proof", async (req, res) => {
 });
 
 app.get("/api/wall", async (req, res) => {
-  const city = String(req.query.city || "").trim().toLowerCase();
-  const applyCity = (query) => (city ? query.eq("city_slug", city) : query);
-  let { data, error } = await applyCity(
-    supabase
+  const city = req.query.city || "";
+  try {
+    const { data: posts, error } = await supabase
       .from("messenger_proof_posts")
-      .select("id, user_id, rider_name, city_name, city_slug, checkpoint_name, location_label, public_url, created_at, bike_name, bike_ratio")
+      .select("id, rider_name, city_name, checkpoint_name, is_public, created_at, public_url, storage_path")
       .eq("is_public", true)
-      .is("archived_at", null)
+      .ilike("city_name", `%${city}%`)
       .order("created_at", { ascending: false })
-      .limit(40)
-  );
-  if (error) {
-    ({ data, error } = await applyCity(
-      supabase
-        .from("messenger_proof_posts")
-        .select("id, user_id, rider_name, city_name, city_slug, checkpoint_name, location_label, public_url, created_at")
-        .eq("is_public", true)
-        .order("created_at", { ascending: false })
-        .limit(40)
-    ));
+      .limit(60);
+
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ posts: posts || [] });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
   }
-  if (error) return res.status(500).json({ error: error.message });
-  return res.json({ posts: data || [] });
+});
+
+app.post("/api/messenger/wall", async (req, res) => {
+  const city = req.body.city || "";
+  try {
+    const { data: posts, error } = await supabase
+      .from("messenger_proof_posts")
+      .select("id, rider_name, city_name, checkpoint_name, is_public, created_at, public_url, storage_path")
+      .eq("is_public", true)
+      .ilike("city_name", `%${city}%`)
+      .order("created_at", { ascending: false })
+      .limit(60);
+
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ posts: posts || [] });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/night-ride/feed", async (_req, res) => {
+  try {
+    const { data: posts, error } = await supabase
+      .from("night_ride_posts")
+      .select("id, user_id, rider_name, crew_name, city_name, route_title, distance_km, caption, image_url, aspect_ratio, moderation_status, created_at")
+      .eq("is_public", true)
+      .neq("moderation_status", "hidden")
+      .order("created_at", { ascending: false })
+      .limit(24);
+
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ posts: posts || [] });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
 });
 
 app.get("/api/rider-profile", async (req, res) => {
   const userId = String(req.query.user_id || "").trim();
+  if (!userId) return res.status(400).json({ error: "user_id required" });
+
+  const quarter = getQuarterWindow();
+  const [profileRes, proofsRes, runsRes, quarterProofsRes, quarterRunsRes, communityRes] = await Promise.all([
+    supabase
+      .from("user_profiles")
+      .select("user_id, rider_name, home_location, bike_name, bike_ratio")
+      .eq("user_id", userId)
+      .maybeSingle(),
+    supabase
+      .from("messenger_proof_posts")
+      .select("id, user_id, rider_name, city_name, city_slug, checkpoint_name, location_label, public_url, created_at, bike_name, bike_ratio")
+      .eq("user_id", userId)
+      .eq("is_public", true)
+      .is("archived_at", null)
+      .order("created_at", { ascending: false })
+      .limit(18),
+    supabase
+      .from("messenger_runs")
+      .select("id, finished_at, finish_seconds")
+      .eq("user_id", userId)
+      .eq("status", "finished")
+      .order("finished_at", { ascending: false }),
+    supabase
+      .from("messenger_proof_posts")
+      .select("user_id, rider_name, city_name, created_at")
+      .eq("is_public", true)
+      .gte("created_at", quarter.start.toISOString())
+      .lt("created_at", quarter.end.toISOString()),
+    supabase
+      .from("messenger_runs")
+      .select("user_id, finished_at")
+      .eq("status", "finished")
+      .gte("finished_at", quarter.start.toISOString())
+      .lt("finished_at", quarter.end.toISOString()),
+    supabase
+      .from("community_memberships")
+      .select("status")
+      .eq("user_id", userId)
+      .eq("status", "active")
+      .maybeSingle(),
+  ]);
+
+  if (proofsRes.error) return res.status(500).json({ error: proofsRes.error.message });
+  if (runsRes.error) return res.status(500).json({ error: runsRes.error.message });
+
+  const proofs = proofsRes.data || [];
+  const runs = runsRes.data || [];
+  const riderName = profileRes.data?.rider_name || proofs[0]?.rider_name || "Rider";
+  const quarterBoard = buildQuarterLeaderboard({
+    proofs: quarterProofsRes.data || [],
+    finishedRuns: quarterRunsRes.data || [],
+  });
+  const quarterEntry = quarterBoard.find((entry) => entry.user_id === userId) || null;
+  const proofsByCity = new Map();
+  for (const proof of proofs) {
+    const key = proof.city_name || "Unknown city";
+    proofsByCity.set(key, (proofsByCity.get(key) || 0) + 1);
+  }
+  const topCity = [...proofsByCity.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "";
+  const bestFinish = runs
+    .map((run) => Number(run.finish_seconds || 0))
+    .filter((value) => value > 0)
+    .sort((a, b) => a - b)[0] || null;
+
+  const isCommunityMember = !!communityRes?.data;
+
+  return res.json({
+    profile: {
+      user_id: userId,
+      rider_name: riderName,
+      home_location: profileRes.data?.home_location || proofs[0]?.city_name || "",
+      bike_name: profileRes.data?.bike_name || proofs[0]?.bike_name || "",
+      bike_ratio: profileRes.data?.bike_ratio || proofs[0]?.bike_ratio || "",
+      is_community_member: isCommunityMember,
+    },
+    stats: {
+      public_proofs: proofs.length,
+      finished_runs: runs.length,
+      cities: new Set(proofs.map((proof) => proof.city_name).filter(Boolean)).size,
+      top_city: topCity,
+      best_finish_seconds: bestFinish,
+      quarter_rank: quarterEntry?.rank || null,
+      quarter_public_proofs: quarterEntry?.public_proofs || 0,
+      quarter_finishes: quarterEntry?.finished_runs || 0,
+    },
+    badges: deriveBadges({
+      quarterStats: quarterEntry
+        ? {
+            rank: quarterEntry.rank,
+            public_proofs: quarterEntry.public_proofs,
+            finished_runs: quarterEntry.finished_runs,
+          }
+        : null,
+      proofs,
+      manifests: [],
+      challenges: [],
+    }),
+    recent_proofs: proofs,
+  });
+});
+
+app.post("/api/rider/profile", async (req, res) => {
+  const userId = String(req.body.user_id || "").trim();
   if (!userId) return res.status(400).json({ error: "user_id required" });
 
   const quarter = getQuarterWindow();
@@ -2775,9 +3030,9 @@ app.post("/api/admin/proof-archive-month", requireAdmin, async (req, res) => {
   return res.json({ ok: true, month, archived: data?.length || 0 });
 });
 
-app.get("/api/leaderboard", async (req, res) => {
-  const city = String(req.query.city || "").trim().toLowerCase();
-  const country = String(req.query.country || "").trim().toLowerCase();
+async function handlePublicLeaderboard(req, res, input = {}) {
+  const city = String(input.city ?? req.query.city ?? "").trim().toLowerCase();
+  const country = String(input.country ?? req.query.country ?? "").trim().toLowerCase();
   const cityCountryMap = {
     amsterdam: "netherlands",
     bangkok: "thailand",
@@ -2881,6 +3136,15 @@ app.get("/api/leaderboard", async (req, res) => {
       })),
     },
   });
+}
+
+app.get("/api/leaderboard", async (req, res) => handlePublicLeaderboard(req, res));
+
+app.post("/api/messenger/public-leaderboard", async (req, res) => {
+  return handlePublicLeaderboard(req, res, {
+    city: req.body?.city,
+    country: req.body?.country,
+  });
 });
 
 app.post("/api/city-request", async (req, res) => {
@@ -2953,7 +3217,10 @@ app.get("/api/city-demand", async (_req, res) => {
   });
 });
 
-app.get("/api/city-lanes", async (_req, res) => {
+app.get("/api/city-lanes", handleGetCityLanes);
+app.post("/api/cities/lanes", handleGetCityLanes);
+
+async function handleGetCityLanes(_req, res) {
   const normalizeCityKey = (value = "") =>
     String(value)
       .trim()
@@ -3074,7 +3341,7 @@ app.get("/api/city-lanes", async (_req, res) => {
   });
 
   return res.json({ lanes });
-});
+}
 
 app.post("/api/messenger/share", async (req, res) => {
   const authUser = await getAuthUser(req);
