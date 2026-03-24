@@ -13,6 +13,35 @@ import { CSSProperties } from "react";
 const Home: React.FC = () => {
   const { t } = useI18n();
   const navigate = useNavigate();
+  const badgeCities = React.useMemo(() => ["Curitiba/BR", "Munich/DE", "Guarulhos/BR"], []);
+  const [currentBadgeIndex, setCurrentBadgeIndex] = React.useState(0);
+  const [leavingBadgeIndex, setLeavingBadgeIndex] = React.useState<number | null>(null);
+  const badgeSlideDurationMs = 520;
+  const badgeHoldDurationMs = 2200;
+  const badgeTotalDurationMs = badgeHoldDurationMs * badgeCities.length + 200;
+
+  React.useEffect(() => {
+    if (badgeCities.length <= 1) return;
+    const timers: number[] = [];
+
+    badgeCities.slice(1).forEach((_, nextOffset) => {
+      const nextIndex = nextOffset + 1;
+      timers.push(
+        window.setTimeout(() => {
+          setLeavingBadgeIndex(nextIndex - 1);
+          setCurrentBadgeIndex(nextIndex);
+        }, badgeHoldDurationMs * nextIndex)
+      );
+    });
+
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [badgeCities, badgeHoldDurationMs]);
+
+  React.useEffect(() => {
+    if (leavingBadgeIndex === null) return;
+    const clearTimer = window.setTimeout(() => setLeavingBadgeIndex(null), badgeSlideDurationMs);
+    return () => window.clearTimeout(clearTimer);
+  }, [leavingBadgeIndex, badgeSlideDurationMs]);
 
   return (
     <div className="sequential-layout page-home page-stage-enter">
@@ -21,10 +50,18 @@ const Home: React.FC = () => {
         subtitle={t("hero.subtitle")}
         image={homeHero}
         actions={null}
+        badgeDurationMs={badgeTotalDurationMs}
         badge={
           <div className="hero-badge-pill">
             <span className="badge-tag">{t("cities.newCity")}</span>
-            <span className="badge-label">{t("hero.badgeCities")}</span>
+            <span className="badge-label-viewport" aria-live="polite">
+              {leavingBadgeIndex !== null ? (
+                <span className="badge-label badge-label-leaving badge-label-out">{badgeCities[leavingBadgeIndex]}</span>
+              ) : null}
+              <span className={`badge-label badge-label-current ${leavingBadgeIndex !== null ? "badge-label-in" : ""}`}>
+                {badgeCities[currentBadgeIndex]}
+              </span>
+            </span>
           </div>
         }
       />

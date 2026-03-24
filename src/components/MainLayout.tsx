@@ -328,23 +328,19 @@ const MainLayout: React.FC = () => {
         <div className="nav-container">
           <div className="footer-meta">
             <h4 className="footer-title">GIMME THE LOOP</h4>
-            <span className="footer-meta-info">© {new Date().getFullYear()} All rights reserved</span>
+            <span className="footer-meta-info">V1.2.0 · {new Date().getFullYear()}</span>
           </div>
           <nav className="footer-nav">
-            <div className="footer-nav-group">
-              <Link to="/messenger" className="footer-nav-link">{t("nav.alleycat")}</Link>
-              <Link to="/loop" className="footer-nav-link">{t("nav.loop")}</Link>
-              <Link to="/night" className="footer-nav-link">{t("nav.night")}</Link>
+            <div className="footer-nav-group footer-nav-group-actions">
+              <Link to="/account" className="footer-nav-link footer-nav-button">{t("nav.account")}</Link>
+              <Link to="/account" className="footer-nav-link footer-nav-button">{t("nav.addCredits")}</Link>
             </div>
             <div className="footer-nav-group">
-              <Link to="/leaderboard" className="footer-nav-link">{t("nav.leaderboard")}</Link>
-              <Link to="/wall" className="footer-nav-link">{t("nav.wallShort")}</Link>
-              <Link to="/cities" className="footer-nav-link">{t("nav.cities")}</Link>
-            </div>
-            <div className="footer-nav-group">
-              <Link to="/account" className="footer-nav-link">{t("nav.account")}</Link>
-              <span className="footer-nav-link footer-nav-link-muted">{t("footer.privacy")}</span>
-              <span className="footer-nav-link footer-nav-link-muted">{t("footer.terms")}</span>
+              <a href="/how.html" className="footer-nav-link">{t("footer.how")}</a>
+              <a href="/privacy.html" className="footer-nav-link">{t("footer.privacy")}</a>
+              <a href="/terms.html" className="footer-nav-link">{t("footer.terms")}</a>
+              <a href="/coffee.html" className="footer-nav-link">{t("footer.coffee")}</a>
+              <Link to="/admin" className="footer-nav-link">{t("footer.admin")}</Link>
             </div>
           </nav>
         </div>

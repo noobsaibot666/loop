@@ -15,6 +15,7 @@ const AlleycatMode: React.FC = () => {
   const [showCodeModal, setShowCodeModal] = useState(false);
   const [showCityMenu, setShowCityMenu] = useState(false);
   const cityMenuRef = useRef<HTMLDivElement | null>(null);
+  const suggestionShellRef = useRef<HTMLDivElement | null>(null);
   const {
     config, setConfig,
     manifest,
@@ -61,6 +62,24 @@ const AlleycatMode: React.FC = () => {
     }, 400);
     return () => clearTimeout(timer);
   }, [config.location, config.selectedCoords, fetchSuggestions]);
+
+  useEffect(() => {
+    if (!suggestions.length) return;
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!suggestionShellRef.current?.contains(event.target as Node)) {
+        fetchSuggestions("");
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") fetchSuggestions("");
+    };
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [suggestions.length, fetchSuggestions]);
 
   useEffect(() => {
     if (!showCityMenu) return;
@@ -234,7 +253,7 @@ const AlleycatMode: React.FC = () => {
                 </div>
                 <label className="field">
                   <span>{t("alleycat.startArea")}</span>
-                  <div className="search-input-wrapper">
+                  <div className="search-input-wrapper" ref={suggestionShellRef}>
                     <input 
                       value={config.location} 
                       onChange={(e) => setConfig({ location: e.target.value, selectedCoords: null })} 
@@ -299,6 +318,7 @@ const AlleycatMode: React.FC = () => {
               <div className="form-section section-block">
                 <label className="field">
                   <span>{t("alleycat.ghostRider")}</span>
+                  <div className="field-kicker field-kicker-ghost">{t("alleycat.ghostRiderIntro")}</div>
                   <div className="field-hint">{t("alleycat.ghostRiderHint")}</div>
                   <div className="pill-group builder-option-grid builder-option-grid-2 messenger-ghost-toggle">
                     {[

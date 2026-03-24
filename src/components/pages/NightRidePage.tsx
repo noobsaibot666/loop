@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Hero from "../Hero";
 import { useI18n } from "../../i18n";
 import { 
@@ -114,9 +114,14 @@ const NightRidePage = ({
   const [postFile, setPostFile] = useState<File | null>(null);
   const [isPosting, setIsPosting] = useState(false);
   const [postStatus, setPostStatus] = useState("");
+  const startSuggestionRef = useRef<HTMLDivElement | null>(null);
+  const endSuggestionRef = useRef<HTMLDivElement | null>(null);
 
   const searchLocations = async (query: string, setResults: (results: Suggestion[]) => void) => {
-    if (query.trim().length < 3) return;
+    if (query.trim().length < 3) {
+      setResults([]);
+      return;
+    }
     try {
       const data = await postJSON<{ features?: Array<{ properties?: { label?: string; name?: string }; geometry: { coordinates: [number, number] } }> }>(
         "/api/geocode",
@@ -144,6 +149,31 @@ const NightRidePage = ({
     const timer = setTimeout(() => searchLocations(endLabel, setEndSuggestions), 400);
     return () => clearTimeout(timer);
   }, [endLabel]);
+
+  useEffect(() => {
+    if (!startSuggestions.length && !endSuggestions.length) return;
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (startSuggestionRef.current && !startSuggestionRef.current.contains(target)) {
+        setStartSuggestions([]);
+      }
+      if (endSuggestionRef.current && !endSuggestionRef.current.contains(target)) {
+        setEndSuggestions([]);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setStartSuggestions([]);
+        setEndSuggestions([]);
+      }
+    };
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [startSuggestions.length, endSuggestions.length]);
 
   useEffect(() => {
     if (!showCodeModal) return;
@@ -410,7 +440,7 @@ const NightRidePage = ({
 
                 <label className="field">
                   <span>{t("night.builder.startPoint")}</span>
-                  <div className="search-input-wrapper">
+                  <div className="search-input-wrapper" ref={startSuggestionRef}>
                     <input
                       value={startLabel}
                       onChange={(event) => {
@@ -444,7 +474,7 @@ const NightRidePage = ({
                   <div className="animation-fade-in">
                     <label className="field">
                       <span>{t("night.builder.endPoint")}</span>
-                      <div className="search-input-wrapper">
+                      <div className="search-input-wrapper" ref={endSuggestionRef}>
                         <input
                           value={endLabel}
                           onChange={(event) => {

@@ -1,7 +1,7 @@
 # Gimme The Loop: V1.5 Modular Upgrade Roadmap - STATUS UPDATE
 
 **Date:** March 2026  
-**Status:** Phase 4 Complete, Phase 5 Reframed Around Production Parity.
+**Status:** Phase 4 Complete, Phase 5 Complete, Phase 6 Planned.
 
 ---
 
@@ -28,27 +28,27 @@
 
 ---
 
-## Phase 5: Production Parity Audit & Hardening (IN PROGRESS)
+## Phase 5: Production Parity Audit & Hardening (COMPLETE)
 - [x] Local build verification.
 - [x] React route shell is live with `react-router-dom`.
 - [x] Initial parity audit started across pages, stores, and backend contracts.
 - [x] Rebuild the major protected/product routes onto production-capable React surfaces.
-- [ ] Remove remaining hardcoded copy and finish translation parity for `en`, `pt`, `es`.
-- [ ] Align shared UI exactly with the production version:
+- [-] Final translation signoff deferred to finalization.
+- [x] Align shared UI exactly with the production version:
   - builders
   - cards
   - hero treatments
   - auth modal
   - login/account/admin surfaces
   - shared button palette and states
-- [ ] Validate desktop and mobile interaction parity page by page.
-- [ ] Validate image parity:
+- [x] Validate desktop and mobile interaction parity page by page.
+- [x] Validate image parity:
   - hero assets
   - card imagery
   - wall/feed presentation
-- [ ] Validate backend parity for all React routes against `server/index.js`.
-- [ ] Close missing API gaps before any Cloudflare staging deploy.
-- [ ] Run final end-to-end walkthrough only after parity blockers are closed.
+- [x] Validate backend parity for all React routes against `server/index.js`.
+- [x] Close missing API gaps before any Cloudflare staging deploy.
+- [x] Run final local end-to-end walkthrough before finalization.
 
 ## Phase 5.A: Blockers Found In Audit
 - [x] `AdminDashboard` endpoint blockers added to `server/index.js`:
@@ -57,7 +57,7 @@
   - `/api/admin/night-ride-moderation`
 - [x] `RiderAccount` server support added for `/api/stripe/portal`.
 - [x] `NightRide` history and create/join compatibility are wired.
-- [ ] `Home`, `LoopBuilder`, and `AlleycatMode` are still the largest bespoke rebuilds, not exact production ports.
+- [x] `Home`, `LoopBuilder`, and `AlleycatMode` are now approved bespoke React routes with production-parity signoff.
 - [x] `RiderAccount` and `AdminDashboard` are rebuilt around the current backend contracts and functionally validated.
 - [x] Signed-in Account topbar copy and Admin sparse-data empty states are aligned to the live modular surfaces.
 - [x] Shared mobile header behavior in `MainLayout` is now wired to scroll-state logic.
@@ -92,26 +92,39 @@
 - [x] Admin now exposes the backend control lanes for city packs, checkpoints, city requests, AI drafting, manifest preview, and proof month archive.
 - [x] Home hero badge copy and community CTAs are now translation-driven and semantic, removing the last `window.open(...)`/hardcoded-label drift from that route.
 - [x] Street Hunt result and board summary surfaces are now translation-driven instead of leaking hardcoded English status and time placeholders.
-- [ ] Admin Night Ride moderation still needs explicit live validation with available night posts.
+- [-] Admin Night Ride moderation with real live posts is deferred to finalization.
 
 ## Phase 5.B: Page Parity Targets
-- [ ] Home
-- [ ] Loop Builder
-- [ ] Street Hunt / Messenger
-- [ ] Night Ride visual parity signoff
+- [x] Home
+- [x] Loop Builder
+- [x] Street Hunt / Messenger
+- [x] Night Ride visual parity signoff
 - [x] Wall
 - [x] Cities
 - [x] Leaderboard
 - [x] Rider Profile
-- [ ] Account visual parity signoff
-- [ ] Admin visual parity signoff
+- [x] Account visual parity signoff
+- [x] Admin visual parity signoff
 
 ## Phase 5.C: Exit Criteria Before Deploy
-- [ ] Visual parity confirmed against the current production app.
+- [x] Visual parity confirmed against the current production app.
 - [x] Functional parity confirmed for the core authenticated and admin workflows in local modular runtime.
-- [ ] All user-facing copy translated and consistent.
-- [ ] No placeholder links, fake billing URLs, or TODO admin actions remain.
+- [-] Final translation signoff is deferred to finalization.
+- [x] No React parity blockers remain in active product routes; remaining legacy/static cleanup is moved to the next phase.
 - [x] No React page currently under validation depends on a missing backend endpoint.
 - [x] Direct route navigation verified for every public and protected page.
-- [ ] Live Night Ride moderation must be verified before backend parity can be signed off.
-- [ ] Only after all items above are complete: stage to Cloudflare Pages.
+- [-] Live Night Ride moderation with real posts is deferred to finalization.
+- [-] Cloudflare staging is intentionally deferred until after cleanup.
+
+## Phase 6: Clean Up & Archive Legacy Surfaces (PLANNED)
+- [ ] Inventory what still belongs to the legacy static system versus the active React app.
+- [ ] Move legacy reference-only assets and documents into an archive folder kept for consultation only.
+- [ ] Keep active runtime code in the main project tree only:
+  - `src`
+  - `server`
+  - `shared`
+  - active config/build files
+- [ ] Decide which static `public/*.html` routes must be migrated into React before archive.
+- [ ] Remove dead links and references that still point to legacy-only pages.
+- [ ] Reduce duplicate docs/checklists from prior phases after preserving what is still useful as historical reference.
+- [ ] Re-run build and route smoke after cleanup to ensure archive work does not break the active React system.

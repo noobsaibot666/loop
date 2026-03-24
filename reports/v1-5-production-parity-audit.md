@@ -18,6 +18,12 @@ The modular migration is structurally successful, but Phase 5 cannot be treated 
 
 This means the current Phase 5 target must shift from “final QA and Cloudflare validation” to “production parity hardening.”
 
+Phase 5 is now being closed by product approval:
+
+- visual parity is accepted
+- local functional parity is accepted
+- remaining work moves forward as finalization/cleanup, not as a Phase 5 blocker
+
 After local live validation, the structural migration is no longer the main risk:
 
 - admin authentication is working
@@ -29,10 +35,17 @@ After local live validation, the structural migration is no longer the main risk
 - rider credit grant, consumption, and summary sync are working against the real backend
 - rider Night Ride join flow is working against the real backend
 - admin proof moderation toggle and restore are working against the real backend
+- public feed and route APIs are working against the local backend
+- Loop route generation is working against the local backend
+- Street Hunt manifest generation is working against the local backend
+- Night Ride crew creation and history loading are working against the local backend
+- admin overview, proofs, city-pack, checkpoint, request, and night endpoints are working against the local backend
 
 The main remaining blocker is now narrower:
 
 - admin night-post moderation still needs explicit live validation against real night posts
+- translation signoff still needs an explicit final pass
+- legacy static surfaces still need a cleanup/archive phase before the React system can stand alone as the only active app
 
 ## What is already in place
 
@@ -168,6 +181,8 @@ Conclusion:
 - Messenger core endpoints are present in [server/index.js](/Users/alan/_localDEV/Loop/server/index.js)
 - Loop generation endpoints are present in [server/index.js](/Users/alan/_localDEV/Loop/server/index.js)
 - public wall, rider profile, city lanes, and public leaderboard endpoints are present in [server/index.js](/Users/alan/_localDEV/Loop/server/index.js)
+- public smoke on `wall`, `leaderboard`, `city-demand`, `city-lanes`, `night-ride/feed`, `messenger/public-leaderboard`, and `geocode` returned `200` against the local backend
+- auth-backed smoke on `account/summary`, `loop`, `messenger/generate`, `night-rides/create`, `night-rides/mine`, and core admin endpoints returned successful responses locally once the rider credit lane was restored
 
 ### Confirmed mismatches
 
@@ -205,6 +220,7 @@ Conclusion:
   - moved step-shell layout off inline styles and into shared route-shell classes
 - [NightRidePage.tsx](/Users/alan/_localDEV/Loop/src/components/pages/NightRidePage.tsx)
   - replaced broken `/api/locations` calls with the real `/api/geocode` backend contract
+  - hardened start/end suggestion behavior so stale search dropdowns now clear on short queries, outside click, and `Esc`
 - [RiderAccount.tsx](/Users/alan/_localDEV/Loop/src/pages/RiderAccount.tsx)
   - rebuilt around the account summary contract and existing `account.*` translation keys
   - wired profile update, password update/reset, membership actions, purchases, activity, quarter board, ride history, crew history, and feedback
@@ -226,6 +242,7 @@ Conclusion:
 - [LoopBuilder.tsx](/Users/alan/_localDEV/Loop/src/pages/LoopBuilder.tsx)
   - brought unit toggles, label sizing, and mobile builder rhythm closer to the Street Hunt reference
   - removed the dead `/membership.html` handoff and replaced it with the real crew Discord join lane
+  - hardened suggestion behavior so stale location search dropdowns now clear on outside click and `Esc`
 - [useLoopStore.ts](/Users/alan/_localDEV/Loop/src/store/useLoopStore.ts)
   - Loop generation now sends `terrain`, `surface`, and `vibe` through to the backend instead of treating those builder controls as history-only metadata
 - [NightRidePage.tsx](/Users/alan/_localDEV/Loop/src/components/pages/NightRidePage.tsx)
@@ -238,12 +255,14 @@ Conclusion:
   - removed the remaining hardcoded hero badge city label and non-semantic external CTA behavior from the community cards
 - [AlleycatMode.tsx](/Users/alan/_localDEV/Loop/src/pages/AlleycatMode.tsx)
   - Street Hunt result and board surfaces no longer leak hardcoded English summary/status/time placeholders; those route-visible fragments now run through the shared translation layer
+  - hardened suggestion behavior so stale start-area dropdowns now clear on outside click and `Esc`
 - [MainLayout.tsx](/Users/alan/_localDEV/Loop/src/components/MainLayout.tsx)
   - removed the remaining inline guest/login control styling and moved it into shared CSS classes
 - [styles.css](/Users/alan/_localDEV/Loop/src/styles.css)
   - corrected shared button palette, typography, and hover states so route CTAs no longer drift into the lighter gray rebuild treatment
   - tightened builder-specific inputs, pills, section spacing, and CTA sizing so Loop, Street Hunt, and Night Ride sit closer to the original production rhythm
   - added real builder grid primitives and per-count option layouts so 2-, 3-, 4-, and 6-option sections stay aligned across translations instead of falling back to oversized fixed pills
+  - unified route-step, credit-card, button-fit, and mobile card-width behavior across Loop, Street Hunt, and Night Ride so the three builder routes now share the same visual system
 - [Leaderboard.tsx](/Users/alan/_localDEV/Loop/src/pages/Leaderboard.tsx)
   - now restores city scope from the route query so public leaderboard views are shareable and stable
 - [WallOfFame.tsx](/Users/alan/_localDEV/Loop/src/pages/WallOfFame.tsx)
@@ -258,6 +277,24 @@ Conclusion:
   - added a direct public rider-profile handoff from the modular account hero actions
 - [useCreditStore.ts](/Users/alan/_localDEV/Loop/src/store/useCreditStore.ts)
   - fixed usage loading to call `/api/usage/check`, which matches the backend
+
+## Next planned phase: Clean Up
+
+Before any deploy, the repo needs a cleanup phase so the React app becomes the clearly active system and the legacy static surface becomes consultation-only reference material.
+
+Current likely cleanup targets:
+
+- `public/*.html` legacy static pages still referenced by footer links
+- duplicate historical roadmap/checklist docs from earlier phases
+- root-level reference notes such as [data.md](/Users/alan/_localDEV/Loop/data.md)
+- any leftover legacy-only assets that are no longer part of the active React runtime
+
+Cleanup must not remove active runtime dependencies:
+
+- [src](/Users/alan/_localDEV/Loop/src)
+- [server](/Users/alan/_localDEV/Loop/server)
+- [shared](/Users/alan/_localDEV/Loop/shared)
+- active config/build files
 
 ## Recommended Phase 5 order
 

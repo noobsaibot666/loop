@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from "react";
+import React, { useMemo, useEffect, useRef } from "react";
 import loopHero from "../images/hero_9.png";
 import Hero from "../components/Hero";
 import { useI18n } from "../i18n";
@@ -26,6 +26,7 @@ const LoopBuilder: React.FC = () => {
   const { user } = useAuthStore();
   const { deviceId } = useUIStore();
   const { usage, updateUsage } = useCreditStore();
+  const suggestionShellRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -35,6 +36,24 @@ const LoopBuilder: React.FC = () => {
     }, 400);
     return () => clearTimeout(timer);
   }, [loopPoint, selectedCoords, fetchSuggestions]);
+
+  useEffect(() => {
+    if (!suggestions.length) return;
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!suggestionShellRef.current?.contains(event.target as Node)) {
+        fetchSuggestions("");
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") fetchSuggestions("");
+    };
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [suggestions.length, fetchSuggestions]);
 
   const handleGenerate = () => {
     if (!user) {
@@ -129,7 +148,7 @@ const LoopBuilder: React.FC = () => {
               <div className="form-section section-block-clean">
                 <label className="field">
                   <span>{t("loop.startPoint")}</span>
-                  <div className="search-input-wrapper">
+                  <div className="search-input-wrapper" ref={suggestionShellRef}>
                     <input
                       type="text"
                       value={loopPoint}

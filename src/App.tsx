@@ -7,17 +7,32 @@ import { useCreditStore } from "./store/useCreditStore";
 import { postJSON } from "./utils/routeUtils";
 import MainLayout from "./components/MainLayout";
 
-// Lazy load pages for better performance
-const Home = lazy(() => import("./pages/Home"));
-const LoopBuilder = lazy(() => import("./pages/LoopBuilder"));
-const AlleycatMode = lazy(() => import("./pages/AlleycatMode"));
-const WallOfFame = lazy(() => import("./pages/WallOfFame"));
-const CitiesHub = lazy(() => import("./pages/CitiesHub"));
-const RiderAccount = lazy(() => import("./pages/RiderAccount"));
-const Leaderboard = lazy(() => import("./pages/Leaderboard"));
-const NightRide = lazy(() => import("./pages/NightRide"));
-const RiderProfile = lazy(() => import("./pages/RiderProfile"));
-const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const routeModuleLoaders = {
+  Home: () => import("./pages/Home"),
+  LoopBuilder: () => import("./pages/LoopBuilder"),
+  AlleycatMode: () => import("./pages/AlleycatMode"),
+  WallOfFame: () => import("./pages/WallOfFame"),
+  CitiesHub: () => import("./pages/CitiesHub"),
+  RiderAccount: () => import("./pages/RiderAccount"),
+  Leaderboard: () => import("./pages/Leaderboard"),
+  NightRide: () => import("./pages/NightRide"),
+  RiderProfile: () => import("./pages/RiderProfile"),
+  AdminDashboard: () => import("./pages/AdminDashboard"),
+} as const;
+
+const Home = lazy(routeModuleLoaders.Home);
+const LoopBuilder = lazy(routeModuleLoaders.LoopBuilder);
+const AlleycatMode = lazy(routeModuleLoaders.AlleycatMode);
+const WallOfFame = lazy(routeModuleLoaders.WallOfFame);
+const CitiesHub = lazy(routeModuleLoaders.CitiesHub);
+const RiderAccount = lazy(routeModuleLoaders.RiderAccount);
+const Leaderboard = lazy(routeModuleLoaders.Leaderboard);
+const NightRide = lazy(routeModuleLoaders.NightRide);
+const RiderProfile = lazy(routeModuleLoaders.RiderProfile);
+const AdminDashboard = lazy(routeModuleLoaders.AdminDashboard);
+
+const preloadRouteModules = () =>
+  Promise.allSettled(Object.values(routeModuleLoaders).map((loadRoute) => loadRoute()));
 
 const App: React.FC = () => {
   const { initialize: initAuth, accessToken } = useAuthStore();
@@ -31,6 +46,37 @@ const App: React.FC = () => {
     initAuth();
     initializeDeviceId();
   }, [initAuth, initializeDeviceId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let idleHandle: number | null = null;
+    let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+
+    const warmRoutes = () => {
+      if (cancelled) return;
+      void preloadRouteModules();
+    };
+
+    if ("requestIdleCallback" in window) {
+      idleHandle = (window as Window & typeof globalThis & {
+        requestIdleCallback: (callback: IdleRequestCallback) => number;
+      }).requestIdleCallback(() => warmRoutes());
+    } else {
+      timeoutHandle = globalThis.setTimeout(warmRoutes, 900);
+    }
+
+    return () => {
+      cancelled = true;
+      if (idleHandle !== null && "cancelIdleCallback" in window) {
+        (window as Window & typeof globalThis & {
+          cancelIdleCallback: (handle: number) => void;
+        }).cancelIdleCallback(idleHandle);
+      }
+      if (timeoutHandle !== null) {
+        globalThis.clearTimeout(timeoutHandle);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
