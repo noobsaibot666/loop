@@ -91,6 +91,7 @@
 - [x] Shared button palette and state styling are corrected back toward the production dark treatment.
 - [x] Admin now exposes the backend control lanes for city packs, checkpoints, city requests, AI drafting, manifest preview, and proof month archive.
 - [x] Home hero badge copy and community CTAs are now translation-driven and semantic, removing the last `window.open(...)`/hardcoded-label drift from that route.
+- [x] Street Hunt result and board summary surfaces are now translation-driven instead of leaking hardcoded English status and time placeholders.
 - [ ] Admin Night Ride moderation still needs explicit live validation with available night posts.
 
 ## Phase 5.B: Page Parity Targets

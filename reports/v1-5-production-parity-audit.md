@@ -236,6 +236,8 @@ Conclusion:
 - [Home.tsx](/Users/alan/_localDEV/Loop/src/pages/Home.tsx)
   - removed the last one-off inline Strava logo sizing so the route is fully driven by shared classes
   - removed the remaining hardcoded hero badge city label and non-semantic external CTA behavior from the community cards
+- [AlleycatMode.tsx](/Users/alan/_localDEV/Loop/src/pages/AlleycatMode.tsx)
+  - Street Hunt result and board surfaces no longer leak hardcoded English summary/status/time placeholders; those route-visible fragments now run through the shared translation layer
 - [MainLayout.tsx](/Users/alan/_localDEV/Loop/src/components/MainLayout.tsx)
   - removed the remaining inline guest/login control styling and moved it into shared CSS classes
 - [styles.css](/Users/alan/_localDEV/Loop/src/styles.css)

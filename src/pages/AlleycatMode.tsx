@@ -418,8 +418,18 @@ const AlleycatMode: React.FC = () => {
                     <div>
                       <div className="manifest-title">{manifest.manifest_title}</div>
                       <div className="manifest-subtitle">
-                        {manifest.city} · {manifest.checkpoint_count} stops · {manifest.estimated_minutes} min est.
-                        {manifest.start_label ? ` · near ${manifest.start_label}` : ""}
+                        {manifest.start_label
+                          ? t("alleycat.result.summaryWithStart", {
+                              city: manifest.city,
+                              count: manifest.checkpoint_count,
+                              minutes: manifest.estimated_minutes,
+                              start: manifest.start_label,
+                            })
+                          : t("alleycat.result.summary", {
+                              city: manifest.city,
+                              count: manifest.checkpoint_count,
+                              minutes: manifest.estimated_minutes,
+                            })}
                       </div>
                     </div>
                     <div className="manifest-metrics">
@@ -505,7 +515,13 @@ const AlleycatMode: React.FC = () => {
                           <div className="challenge-stats-grid">
                             <div className="challenge-stat">
                               <span>{t("alleycat.board.status")}</span>
-                              <strong>{challengeSummary?.status || challenge.status || "open"}</strong>
+                              <strong>
+                                {challengeSummary?.status
+                                  ? t(`share.status.${challengeSummary.status}`)
+                                  : challenge.status
+                                    ? t(`share.status.${challenge.status}`)
+                                    : t("share.status.open")}
+                              </strong>
                             </div>
                             <div className="challenge-stat">
                               <span>{t("alleycat.board.riders")}</span>
@@ -520,7 +536,7 @@ const AlleycatMode: React.FC = () => {
                               <strong>
                                 {boardLeader?.best_seconds !== null && boardLeader?.best_seconds !== undefined
                                   ? `${Math.floor(boardLeader.best_seconds / 60)}m`
-                                  : "--:--"}
+                                  : t("common.emptyTime")}
                               </strong>
                             </div>
                           </div>
@@ -550,7 +566,7 @@ const AlleycatMode: React.FC = () => {
                                     <strong>
                                       {entry.best_seconds !== null && entry.best_seconds !== undefined
                                         ? `${Math.floor(entry.best_seconds / 60)}m`
-                                        : "--:--"}
+                                        : t("common.emptyTime")}
                                     </strong>
                                   </div>
                                 </div>
