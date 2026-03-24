@@ -159,6 +159,20 @@ const NightRidePage = ({
     };
   }, [showCodeModal]);
 
+  useEffect(() => {
+    if (!showPostModal) return;
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowPostModal(false);
+    };
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showPostModal]);
+
   const handleBuild = async () => {
     if (!user?.id) {
       requireLogin(t("night.messages.loginBuild"));
@@ -556,10 +570,18 @@ const NightRidePage = ({
         </div>
       </section>
       {showPostModal && (
-        <div className="modal-overlay" role="dialog" aria-modal="true">
+        <div
+          className="modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="night-post-modal-title"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setShowPostModal(false);
+          }}
+        >
           <div className="modal-card animation-slide-up">
             <div className="modal-header">
-              <div className="modal-title">{t("night.modal.title")}</div>
+              <div className="modal-title" id="night-post-modal-title">{t("night.modal.title")}</div>
               <button className="modal-close" type="button" onClick={() => setShowPostModal(false)}>
                 <X size={20} />
               </button>
@@ -610,13 +632,14 @@ const NightRidePage = ({
           className="modal-overlay"
           role="dialog"
           aria-modal="true"
+          aria-labelledby="night-code-modal-title"
           onClick={(event) => {
             if (event.target === event.currentTarget) setShowCodeModal(false);
           }}
         >
           <div className="modal-card animation-slide-up messenger-code-modal night-ride-code-modal">
             <div className="modal-header">
-              <div className="modal-title">{t("share.title")}</div>
+              <div className="modal-title" id="night-code-modal-title">{t("night.builder.haveCode")}</div>
               <button className="modal-close" type="button" onClick={() => setShowCodeModal(false)}>
                 <X size={20} />
               </button>

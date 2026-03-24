@@ -59,12 +59,14 @@
 - [x] `NightRide` history and create/join compatibility are wired.
 - [ ] `Home`, `LoopBuilder`, and `AlleycatMode` are still the largest bespoke rebuilds, not exact production ports.
 - [x] `RiderAccount` and `AdminDashboard` are rebuilt around the current backend contracts and functionally validated.
+- [x] Signed-in Account topbar copy and Admin sparse-data empty states are aligned to the live modular surfaces.
 - [x] Shared mobile header behavior in `MainLayout` is now wired to scroll-state logic.
 - [x] Shared route-shell classes now replace the old inline layout wrappers in `LoopBuilder` and `AlleycatMode`.
 - [x] Loop Builder and Street Hunt store-driven status copy now runs through `en`, `pt`, and `es` translation keys.
 - [x] Street Hunt route now restores production-grade share/reset/challenge surface behavior already supported by the backend.
 - [x] Street Hunt route now uses route-specific code-entry copy and closes the custom city picker on `Esc`.
 - [x] Night Ride route is now aligned to the crew-only product model and no longer carries a dead membership handoff.
+- [x] Night Ride post/code modals now match the shared route-modal behavior more closely.
 - [x] Shared builder controls are tightened back toward production sizing and spacing across Loop, Street Hunt, and Night Ride.
 - [x] Builder option groups now use dynamic per-count layouts instead of fixed oversized pill rows, so translated labels stay inside the original production rhythm.
 - [x] Street Hunt builder options were re-audited end to end; city deep-link prefill and share-code modal/auth flow are now restored.

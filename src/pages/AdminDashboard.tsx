@@ -787,7 +787,9 @@ const AdminDashboard: React.FC = () => {
                 <Shield size={18} className="text-muted" />
               </div>
               <div className="history-list">
-                {nightPosts.map((post) => (
+                {!nightPosts.length ? (
+                  <div className="account-note">{t("admin.night.empty")}</div>
+                ) : nightPosts.map((post) => (
                   <div key={post.id} className="history-row admin-moderation-row">
                     <div className="admin-proof-main">
                       <img src={post.image_url} className="admin-thumb" alt={post.route_title || post.rider_name} />
@@ -836,7 +838,9 @@ const AdminDashboard: React.FC = () => {
                 </button>
               </div>
               <div className="history-list">
-                {proofs.map((proof) => (
+                {!proofs.length ? (
+                  <div className="account-note">{t("admin.proofs.empty")}</div>
+                ) : proofs.map((proof) => (
                   <div key={proof.id} className="history-row admin-moderation-row">
                     <div className="admin-proof-main">
                       <img src={proof.public_url} className="admin-thumb" alt={proof.checkpoint_name} />
@@ -1082,7 +1086,9 @@ const AdminDashboard: React.FC = () => {
                 <Users size={18} className="text-muted" />
               </div>
               <div className="history-list">
-                {requests.map((request) => (
+                {!requests.length ? (
+                  <div className="account-note">{t("admin.requests.empty")}</div>
+                ) : requests.map((request) => (
                   <div key={request.id} className="history-row admin-request-row">
                     <div>
                       <strong>{request.requested_city || request.requested_location || "--"}</strong>

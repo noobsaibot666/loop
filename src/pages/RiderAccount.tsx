@@ -338,7 +338,7 @@ const RiderAccount: React.FC = () => {
           <div className="account-topbar">
             <div>
               <div className="form-title">{greeting}</div>
-              <div className="account-kicker">{t("account.subtitleGuest")}</div>
+              <div className="account-kicker">{t("account.topbar.kicker")}</div>
             </div>
             <div className="section-jump-strip account-topbar-actions">
               <a className="mini-chip active" href="#account-setup">{t("account.jump.setup")}</a>

@@ -90,16 +90,19 @@ These endpoint gaps are now patched in the server, but they still need route-lev
   - history wiring is now in place
   - route now enforces the crew-only product model
   - live build, join, and history validation are now proven
+  - code/post modals now match the shared modal behavior more closely: outside-close, `Esc` close, and body-scroll lock
   - remaining signoff is mostly visual parity and post/share review
 - [RiderAccount.tsx](/Users/alan/_localDEV/Loop/src/pages/RiderAccount.tsx)
   - rebuilt around the real `/api/account/summary` payload
   - profile save, password update/reset, community access, purchases, history, and feedback are now wired
   - login/logout, account summary behavior, and rider-side usage sync are now proven in local modular runtime
+  - signed-in topbar copy is now aligned to the authenticated account surface instead of leaking guest copy
   - remaining signoff depends on final visual parity review
 - [AdminDashboard.tsx](/Users/alan/_localDEV/Loop/src/pages/AdminDashboard.tsx)
   - rebuilt around the active admin endpoints already present in `server/index.js`
   - rider lookup, credit set/reset, night moderation, proof visibility, and proof delete are now wired
   - admin access, metrics, rider list, night moderation feed, proofs feed, rider credit set, and proof visibility moderation are now proven in local modular runtime
+  - empty-state gaps in Night, Proofs, and Requests are now closed so the route stays readable under sparse QA data
   - live night-post moderation still needs explicit end-to-end validation
 - [LoopBuilder.tsx](/Users/alan/_localDEV/Loop/src/pages/LoopBuilder.tsx)
   - route is bespoke, not a thin wrapper
