@@ -69,8 +69,15 @@ const AlleycatMode: React.FC = () => {
         setShowCityMenu(false);
       }
     };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowCityMenu(false);
+    };
     document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, [showCityMenu]);
 
   useEffect(() => {
@@ -153,7 +160,7 @@ const AlleycatMode: React.FC = () => {
               className="accent-text-button" 
               onClick={() => document.getElementById('manifest-killer')?.scrollIntoView({ behavior: 'smooth' })}
             >
-              <span>{t("home.alleycat.action")}</span>
+              <span>{t("alleycat.heroAction")}</span>
             </button>
           </div>
         }
@@ -397,7 +404,7 @@ const AlleycatMode: React.FC = () => {
                   type="button"
                   onClick={handleOpenCodeModal}
                 >
-                  {t("share.title")}
+                  {t("alleycat.haveCode")}
                 </button>
               </div>
             </div>
@@ -574,7 +581,7 @@ const AlleycatMode: React.FC = () => {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="modal-header">
-              <div className="modal-title" id="share-code-modal-title">{t("share.title")}</div>
+              <div className="modal-title" id="share-code-modal-title">{t("alleycat.haveCode")}</div>
             </div>
             <div className="modal-body">
               <div className="form-section section-block-clean">

@@ -63,11 +63,13 @@
 - [x] Shared route-shell classes now replace the old inline layout wrappers in `LoopBuilder` and `AlleycatMode`.
 - [x] Loop Builder and Street Hunt store-driven status copy now runs through `en`, `pt`, and `es` translation keys.
 - [x] Street Hunt route now restores production-grade share/reset/challenge surface behavior already supported by the backend.
+- [x] Street Hunt route now uses route-specific code-entry copy and closes the custom city picker on `Esc`.
 - [x] Night Ride route is now aligned to the crew-only product model and no longer carries a dead membership handoff.
 - [x] Shared builder controls are tightened back toward production sizing and spacing across Loop, Street Hunt, and Night Ride.
 - [x] Builder option groups now use dynamic per-count layouts instead of fixed oversized pill rows, so translated labels stay inside the original production rhythm.
 - [x] Street Hunt builder options were re-audited end to end; city deep-link prefill and share-code modal/auth flow are now restored.
 - [x] Loop builder controls now inherit the Street Hunt reference sizing, mobile margins, and no longer carry the dead membership handoff.
+- [x] Loop builder now restores the full four-step route flow and no longer leaks account-surface copy into the result lane.
 - [x] Night Ride builder controls now inherit the Street Hunt reference sizing, and join-by-code now follows the same modal-based pattern instead of an inline field.
 - [x] Shared React API calls now resolve through `API_BASE`, so local modular route validation hits the real backend.
 - [x] Public backend alias gaps are patched for Night Ride feed and public leaderboard.

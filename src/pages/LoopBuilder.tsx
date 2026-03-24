@@ -69,6 +69,7 @@ const LoopBuilder: React.FC = () => {
     { number: "01", title: t("loop.step1.title"), body: t("loop.step1.body") },
     { number: "02", title: t("loop.step2.title"), body: t("loop.step2.body") },
     { number: "03", title: t("loop.step3.title"), body: t("loop.step3.body") },
+    { number: "04", title: t("loop.step4.title"), body: t("loop.step4.body") },
   ], [t]);
   const totalCredits = usage?.credits_remaining ?? 0;
   const hasUnlimitedCredits = Boolean(usage?.unlimited_credits);
@@ -86,13 +87,13 @@ const LoopBuilder: React.FC = () => {
               className="accent-text-button" 
               onClick={() => document.getElementById('loop-builder')?.scrollIntoView({ behavior: 'smooth' })}
             >
-              <span>{t("home.loop.action")}</span>
+              <span>{t("loop.heroAction")}</span>
             </button>
           </div>
         }
       />
 
-      <section className="modular-grid flow-grid flow-grid-three reveals route-steps-shell">
+      <section className="modular-grid flow-grid flow-grid-four reveals route-steps-shell route-steps-shell-wide">
         {loopSteps.map((step) => (
           <div key={step.number} className="module-card route-step-card">
             <div className="module-header route-step-header">
@@ -262,6 +263,12 @@ const LoopBuilder: React.FC = () => {
 
             {lastRouteUrl && (
               <div className="route-output">
+                <div className="manifest-brief">
+                  <div>
+                    <div className="manifest-title">{t("loop.result.title")}</div>
+                    <div className="manifest-subtitle">{t("loop.result.body")}</div>
+                  </div>
+                </div>
                 <div className="route-actions">
                   <button className="ghost-button small" type="button" onClick={handleCopy}>
                     {t("loop.copyLink")}
@@ -271,11 +278,10 @@ const LoopBuilder: React.FC = () => {
                   </a>
                 </div>
                 <div className="loop-community-card">
-                  <strong>{t("account.community.finishTitle")}</strong>
-                  <span>{t("account.community.finishPrompt")}</span>
-                  <span>{t("account.community.heroTitle")}</span>
+                  <strong>{t("loop.result.communityTitle")}</strong>
+                  <span>{t("loop.result.communityBody")}</span>
                   <a className="ghost-button small" href="https://discord.gg/hardchain" target="_blank" rel="noreferrer">
-                    {t("account.community.joinCrew")}
+                    {t("loop.result.communityAction")}
                   </a>
                 </div>
               </div>

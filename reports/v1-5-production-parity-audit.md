@@ -105,12 +105,14 @@ These endpoint gaps are now patched in the server, but they still need route-lev
   - route is bespoke, not a thin wrapper
   - shared route-shell classes now replace the old inline section wrappers
   - logic depends on [useLoopStore.ts](/Users/alan/_localDEV/Loop/src/store/useLoopStore.ts), which required a loop route fallback fix in this audit
+  - route now restores the full four-step flow and no longer leaks account-surface copy into the loop result lane
 - [AlleycatMode.tsx](/Users/alan/_localDEV/Loop/src/pages/AlleycatMode.tsx)
   - bespoke route page with local flow assembly
   - shared route-shell classes now replace the old inline section wrappers
   - required a late fix so the React route now geocodes and sends `start_lat/start_lng` like the backend expects
   - rider manifest generation, credit consumption, and run start are now proven in local modular runtime
   - share-code creation/load and challenge-board summary are now restored against the live backend
+  - route now uses route-specific hero/code-entry copy and closes the custom city picker on `Esc`
   - likely parity drift risk now centers on final UI signoff rather than missing route behavior
 
 ### High-risk parity routes
