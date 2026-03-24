@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useI18n } from "../../i18n";
 import Hero from "../Hero";
@@ -122,6 +122,21 @@ export default function LeaderboardPage({
   const activeScopeLabel = selectedLeaderboardCity
     ? getCityLabel(selectedLeaderboardCity)
     : selectedLeaderboardCountry || t("leaderboard.allCitiesLower");
+
+  useEffect(() => {
+    if (!showCityPicker) return;
+
+    document.body.classList.add("menu-open-lock");
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowCityPicker(false);
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.classList.remove("menu-open-lock");
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [showCityPicker]);
 
   return (
     <div className="sequential-layout sub-page page-leaderboard page-stage-enter">
@@ -285,10 +300,10 @@ export default function LeaderboardPage({
       </section>
 
       {showCityPicker && createPortal(
-        <div className="modal-overlay" role="dialog" aria-modal="true">
-          <div className="modal-card">
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="leaderboard-city-picker-title" onClick={() => setShowCityPicker(false)}>
+          <div className="modal-card" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
-              <div className="modal-title">{t("leaderboard.chooseCity")}</div>
+              <div className="modal-title" id="leaderboard-city-picker-title">{t("leaderboard.chooseCity")}</div>
               <button className="modal-close" type="button" aria-label={t("common.close")} onClick={() => setShowCityPicker(false)}>
                 <X size={20} />
               </button>

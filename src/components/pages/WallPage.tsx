@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useI18n } from "../../i18n";
 import Hero from "../Hero";
@@ -88,6 +88,21 @@ export default function WallPage({
     },
   ].filter((group) => group.cities.length > 0), [cityPresets]);
 
+  useEffect(() => {
+    if (!showCityPicker) return;
+
+    document.body.classList.add("menu-open-lock");
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowCityPicker(false);
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.classList.remove("menu-open-lock");
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [showCityPicker]);
+
   return (
     <div className="sequential-layout sub-page page-wall page-stage-enter">
       <Hero 
@@ -97,7 +112,7 @@ export default function WallPage({
       />
 
       <section className="wall-section reveals" id="wall-feed">
-        <div className="filter-strip" id="wall-filter" style={{ marginBottom: '16px' }}>
+        <div className="filter-strip wall-filter-strip" id="wall-filter">
           <button type="button" className="primary-button small" onClick={() => setShowCityPicker(true)}>
             <Filter size={14} />
             <span>{selectedWallCity ? getCityLabel(selectedWallCity) : t("wall.allCities")}</span>
@@ -190,10 +205,10 @@ export default function WallPage({
       </section>
 
       {showCityPicker && createPortal(
-        <div className="modal-overlay" role="dialog" aria-modal="true">
-          <div className="modal-card">
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="wall-city-picker-title" onClick={() => setShowCityPicker(false)}>
+          <div className="modal-card" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
-              <div className="modal-title">{t("wall.chooseCity")}</div>
+              <div className="modal-title" id="wall-city-picker-title">{t("wall.chooseCity")}</div>
               <button className="modal-close" type="button" aria-label={t("common.close")} onClick={() => setShowCityPicker(false)}>
                 <X size={20} />
               </button>

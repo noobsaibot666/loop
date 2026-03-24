@@ -73,9 +73,11 @@ These endpoint gaps are now patched in the server, but they still need route-lev
   - low structural risk
 - [Leaderboard.tsx](/Users/alan/_localDEV/Loop/src/pages/Leaderboard.tsx)
   - thin wrapper around [LeaderboardPage.tsx](/Users/alan/_localDEV/Loop/src/components/pages/LeaderboardPage.tsx)
+  - city query restoration and city-picker modal behavior are now hardened
   - low structural risk
 - [WallOfFame.tsx](/Users/alan/_localDEV/Loop/src/pages/WallOfFame.tsx)
   - thin wrapper around [WallPage.tsx](/Users/alan/_localDEV/Loop/src/components/pages/WallPage.tsx)
+  - city query restoration, night-feed scoping, and city-picker modal behavior are now hardened
   - low structural risk
 - [RiderProfile.tsx](/Users/alan/_localDEV/Loop/src/pages/RiderProfile.tsx)
   - thin wrapper around [RiderProfilePage.tsx](/Users/alan/_localDEV/Loop/src/components/pages/RiderProfilePage.tsx)
@@ -205,6 +207,7 @@ Conclusion:
   - expanded the modular admin surface to expose backend-backed city pack controls, checkpoint controls, city request handling, AI drafting, manifest preview, and proof month archiving
 - [MainLayout.tsx](/Users/alan/_localDEV/Loop/src/components/MainLayout.tsx)
   - mobile header/menu now responds to scroll direction and idle time instead of staying static
+  - desktop nav and mobile footer controls have now been moved fully onto shared shell classes
 - [LoopBuilder.tsx](/Users/alan/_localDEV/Loop/src/pages/LoopBuilder.tsx)
   - removed route-level hardcoded result copy, moved route shell wrappers into shared CSS classes, and localized store-driven status messaging
 - [AlleycatMode.tsx](/Users/alan/_localDEV/Loop/src/pages/AlleycatMode.tsx)
@@ -236,6 +239,10 @@ Conclusion:
   - now restores city scope from the route query so public leaderboard views are shareable and stable
 - [WallOfFame.tsx](/Users/alan/_localDEV/Loop/src/pages/WallOfFame.tsx)
   - now restores city scope from the route query and applies the same scope to Night Ride feed pulls
+- [LeaderboardPage.tsx](/Users/alan/_localDEV/Loop/src/components/pages/LeaderboardPage.tsx)
+  - city picker now behaves like the rest of the production modal surfaces: outside-click close, `Esc` close, and body-scroll lock
+- [WallPage.tsx](/Users/alan/_localDEV/Loop/src/components/pages/WallPage.tsx)
+  - city picker now behaves like the rest of the production modal surfaces: outside-click close, `Esc` close, and body-scroll lock
 - [useFeedStore.ts](/Users/alan/_localDEV/Loop/src/store/useFeedStore.ts)
   - no longer defaults public feeds to Barcelona; wall state now starts from an all-cities neutral scope
 - [RiderAccount.tsx](/Users/alan/_localDEV/Loop/src/pages/RiderAccount.tsx)

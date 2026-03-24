@@ -73,6 +73,7 @@
 - [x] Public backend alias gaps are patched for Night Ride feed and public leaderboard.
 - [x] Public Wall and Leaderboard routes now restore city scope from the URL instead of relying on stale local feed defaults.
 - [x] Night Ride feed now respects the active Wall city scope.
+- [x] Wall and Leaderboard city pickers now match the production modal behavior: outside-close, `Esc` close, and body-scroll lock.
 - [x] Direct route navigation has been verified across the modular public and protected routes.
 - [x] Admin login/logout and account summary behavior are verified in the modular runtime.
 - [x] Street Hunt manifest generation and run start are verified against the real backend.
@@ -92,10 +93,10 @@
 - [ ] Loop Builder
 - [ ] Street Hunt / Messenger
 - [ ] Night Ride visual parity signoff
-- [ ] Wall
-- [ ] Cities
-- [ ] Leaderboard
-- [ ] Rider Profile
+- [x] Wall
+- [x] Cities
+- [x] Leaderboard
+- [x] Rider Profile
 - [ ] Account visual parity signoff
 - [ ] Admin visual parity signoff
 

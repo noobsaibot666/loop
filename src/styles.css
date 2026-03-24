@@ -503,6 +503,27 @@ textarea {
   color: #ffffff;
 }
 
+.mobile-auth-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 20px 20px;
+  width: 100%;
+}
+
+.mobile-nav-link-compact {
+  padding: 12px 0;
+}
+
+.mobile-nav-link-button {
+  border: 0 !important;
+  background: transparent;
+}
+
+.mobile-nav-link-icon {
+  margin-right: 8px;
+}
+
 .user-quick-stats {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1108,6 +1129,10 @@ p {
   color: #ffd8bf !important;
   border-color: rgba(191, 122, 77, 0.42) !important;
   background: rgba(122, 78, 48, 0.18) !important;
+}
+
+.wall-filter-strip {
+  margin-bottom: 16px;
 }
 
 .wall-filter-link {
@@ -5340,6 +5365,11 @@ input[type="range"]::-moz-range-thumb {
 
 .footer-nav-link:hover {
   color: #FFFFFF;
+}
+
+.footer-nav-link-muted {
+  cursor: default;
+  opacity: 0.5;
 }
 
 .footer-nav-group {

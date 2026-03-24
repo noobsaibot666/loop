@@ -21,7 +21,7 @@ Related docs:
 
 ## Phase 5B: Shared app-shell parity
 - [x] Recreate production mobile header visibility behavior in [MainLayout.tsx](/Users/alan/_localDEV/Loop/src/components/MainLayout.tsx)
-- [ ] Audit desktop navigation parity
+- [x] Audit desktop navigation parity
 - [x] Audit auth modal parity
 - [x] Remove route-level inline styling where it creates visual drift
 - [x] Remove remaining inline guest/login control styling in [MainLayout.tsx](/Users/alan/_localDEV/Loop/src/components/MainLayout.tsx)
@@ -34,10 +34,10 @@ Related docs:
 - [ ] Street Hunt / Messenger
 - [x] Night Ride route rebuilt and functionally validated
 - [ ] Night Ride visual parity signoff
-- [ ] Wall
-- [ ] Cities
-- [ ] Leaderboard
-- [ ] Rider Profile
+- [x] Wall
+- [x] Cities
+- [x] Leaderboard
+- [x] Rider Profile
 - [x] Account route rebuilt and functionally validated
 - [ ] Account visual parity signoff
 - [x] Admin route rebuilt and functionally validated

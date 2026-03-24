@@ -277,14 +277,14 @@ const MainLayout: React.FC = () => {
           </nav>
 
           <div className="mobile-nav-footer">
-            <div className="mobile-auth-actions" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '0 20px 20px', width: '100%' }}>
+            <div className="mobile-auth-actions">
               {user ? (
                 <>
-                  <Link to="/account" className="mobile-nav-link" onClick={() => setMenuOpen(false)} style={{ padding: '12px 0' }}>
+                  <Link to="/account" className="mobile-nav-link mobile-nav-link-compact" onClick={() => setMenuOpen(false)}>
                     {t("nav.account")}
                   </Link>
-                  <button onClick={handleSignOut} className="mobile-nav-link" style={{ border: 'none', padding: '12px 0' }}>
-                    <LogOut size={20} style={{ marginRight: '8px' }} />
+                  <button onClick={handleSignOut} className="mobile-nav-link mobile-nav-link-compact mobile-nav-link-button">
+                    <LogOut size={20} className="mobile-nav-link-icon" />
                     {t("nav.out")}
                   </button>
                 </>
@@ -343,8 +343,8 @@ const MainLayout: React.FC = () => {
             </div>
             <div className="footer-nav-group">
               <Link to="/account" className="footer-nav-link">{t("nav.account")}</Link>
-              <span className="footer-nav-link" style={{ cursor: 'default', opacity: 0.5 }}>{t("footer.privacy")}</span>
-              <span className="footer-nav-link" style={{ cursor: 'default', opacity: 0.5 }}>{t("footer.terms")}</span>
+              <span className="footer-nav-link footer-nav-link-muted">{t("footer.privacy")}</span>
+              <span className="footer-nav-link footer-nav-link-muted">{t("footer.terms")}</span>
             </div>
           </nav>
         </div>
