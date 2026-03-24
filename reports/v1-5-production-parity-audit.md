@@ -123,6 +123,7 @@ These endpoint gaps are now patched in the server, but they still need route-lev
 - [Home.tsx](/Users/alan/_localDEV/Loop/src/pages/Home.tsx)
   - custom route implementation, not a direct production port
   - visual parity work is ongoing and still manually tuned
+  - hero badge copy is now translation-driven and community CTAs use proper external link semantics instead of `window.open(...)`
 - [AdminDashboard.tsx](/Users/alan/_localDEV/Loop/src/pages/AdminDashboard.tsx)
   - backend endpoint gaps are patched and core moderation controls are now wired
   - still remains a bespoke admin route, not yet a proven production-equivalent port
@@ -234,6 +235,7 @@ Conclusion:
   - Loop route generation now uses builder context to vary round-trip point count and seed bias, so terrain/surface/vibe have a live effect on the generated line
 - [Home.tsx](/Users/alan/_localDEV/Loop/src/pages/Home.tsx)
   - removed the last one-off inline Strava logo sizing so the route is fully driven by shared classes
+  - removed the remaining hardcoded hero badge city label and non-semantic external CTA behavior from the community cards
 - [MainLayout.tsx](/Users/alan/_localDEV/Loop/src/components/MainLayout.tsx)
   - removed the remaining inline guest/login control styling and moved it into shared CSS classes
 - [styles.css](/Users/alan/_localDEV/Loop/src/styles.css)

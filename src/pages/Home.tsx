@@ -24,7 +24,7 @@ const Home: React.FC = () => {
         badge={
           <div className="hero-badge-pill">
             <span className="badge-tag">{t("cities.newCity")}</span>
-            <span className="badge-label">Curitiba/BR · Munich/DE</span>
+            <span className="badge-label">{t("hero.badgeCities")}</span>
           </div>
         }
       />
@@ -81,9 +81,14 @@ const Home: React.FC = () => {
             <span>• {t("home.community.line2")}</span>
             <span>• {t("home.community.line3")}</span>
           </div>
-          <button className="ghost-button small home-card-button home-community-action" onClick={() => window.open('https://discord.gg/hardchain', '_blank')}>
+          <a
+            className="ghost-button small home-card-button home-community-action"
+            href="https://discord.gg/hardchain"
+            target="_blank"
+            rel="noreferrer"
+          >
             {t("home.community.action")}
-          </button>
+          </a>
           <div className="home-community-brand-footer" aria-hidden="true">
             <img className="home-community-brand-mark home-community-brand-mark-large" src={discordLogo} alt="" />
           </div>
@@ -104,12 +109,14 @@ const Home: React.FC = () => {
             <span className="home-community-ride-dot" aria-hidden="true" />
             <span>{t("home.community.strava.ride")}</span>
           </a>
-          <button
+          <a
             className="ghost-button small home-card-button home-card-button-inline home-community-action"
-            onClick={() => window.open('https://strava.app.link/Zw7TiN8vI1b', '_blank')}
+            href="https://strava.app.link/Zw7TiN8vI1b"
+            target="_blank"
+            rel="noreferrer"
           >
             <span>{t("home.community.strava.action")}</span>
-          </button>
+          </a>
           <div className="home-community-brand-footer" aria-hidden="true">
             <img className="home-community-brand-mark home-community-brand-mark-large" src={stravaLogo} alt="" />
           </div>
