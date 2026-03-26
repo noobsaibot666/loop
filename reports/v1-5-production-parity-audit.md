@@ -44,8 +44,7 @@ After local live validation, the structural migration is no longer the main risk
 The main remaining blocker is now narrower:
 
 - admin night-post moderation still needs explicit live validation against real night posts
-- translation signoff still needs an explicit final pass
-- legacy static surfaces still need a cleanup/archive phase before the React system can stand alone as the only active app
+- no further local parity blockers remain outside that live-data moderation check
 
 Cleanup update:
 
@@ -56,6 +55,13 @@ Cleanup update:
 - cleanup verification passed with:
   - `npm run build`
   - local route smoke on `/`, `/how`, `/privacy`, `/terms`, `/coffee`, `/loop`, `/messenger`, `/night`
+
+Finalization update:
+
+- locale coverage is now aligned across `en`, `pt`, and `es` for the active React routes
+- live signed-in account runtime no longer leaks raw translation keys such as `nav.rider`
+- public route navigation and signed-in rider/admin runtime were re-checked after cleanup without deploying
+- final local release-readiness sweep is complete for public, rider, and admin routes
 
 ## What is already in place
 
@@ -180,9 +186,9 @@ Confirmed translation risk:
   - route-level hardcoded drift has been removed, but final behavior validation is still pending
 
 Conclusion:
-- translation parity is not complete until all route-level hardcoded strings are removed
-- `en`, `pt`, and `es` route-level status keys are now in place for Loop, Street Hunt, Night Ride, Account, and Admin
-- final translation signoff still depends on full rider walkthrough and page-by-page visual review
+- translation parity is now complete for the active React routes
+- `en`, `pt`, and `es` route-level status keys are now in place for Loop, Street Hunt, Night Ride, Account, Admin, Wall, Leaderboard, and Cities
+- remaining release risk is operational signoff, not locale coverage
 
 ## Backend migration audit
 

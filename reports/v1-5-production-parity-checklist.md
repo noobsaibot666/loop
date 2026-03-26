@@ -51,7 +51,7 @@ Related docs:
 - [x] Remove hardcoded strings from `RiderAccount`
 - [x] Remove hardcoded strings from `AdminDashboard`
 - [x] Remove hardcoded Street Hunt challenge summary strings from `AlleycatMode`
-- [-] Final `en`, `pt`, `es` signoff deferred to finalization
+- [x] Final `en`, `pt`, `es` signoff completed in finalization
 
 ## Phase 5E: Functional parity
 - [x] Fix loop Google Maps fallback in [useLoopStore.ts](/Users/alan/_localDEV/Loop/src/store/useLoopStore.ts)
@@ -81,7 +81,7 @@ Remaining admin gap:
 - [x] Desktop parity signoff
 - [x] Mobile parity signoff
 - [x] Backend parity signoff for local modular runtime
-- [-] Final translation signoff deferred to finalization
+- [x] Final translation signoff completed in finalization
 - [-] Cloudflare staging deploy deferred until after cleanup
 
 ## Phase 6: Clean Up Planning
@@ -93,3 +93,14 @@ Remaining admin gap:
 - [x] Archive legacy footer help/legal/support HTML pages after migrating them into React routes
 - [x] Archive historical roadmaps, old checklists, and superseded readiness docs
 - [x] Re-run build and smoke after archive moves
+
+## Phase 7: Finalization
+- [x] Re-run local build after cleanup
+- [x] Re-check public route navigation after cleanup
+- [x] Re-check signed-in rider runtime after cleanup
+- [x] Re-check signed-in admin runtime after cleanup
+- [x] Remove remaining locale key leaks in live runtime
+- [x] Confirm `en`, `pt`, `es` key parity for active routes
+- [x] Final local release-readiness sweep for public, rider, and admin routes
+- [ ] Validate Night Ride moderation with real live posts
+- [x] Final pre-deploy release-readiness signoff

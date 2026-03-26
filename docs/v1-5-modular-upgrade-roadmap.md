@@ -1,7 +1,7 @@
 # Gimme The Loop: V1.5 Modular Upgrade Roadmap - STATUS UPDATE
 
 **Date:** March 2026  
-**Status:** Phase 4 Complete, Phase 5 Complete, Phase 6 In Progress.
+**Status:** Phase 4 Complete, Phase 5 Complete, Phase 6 Complete, Phase 7 In Progress.
 
 ---
 
@@ -116,7 +116,7 @@
 - [-] Live Night Ride moderation with real posts is deferred to finalization.
 - [-] Cloudflare staging is intentionally deferred until after cleanup.
 
-## Phase 6: Clean Up & Archive Legacy Surfaces (IN PROGRESS)
+## Phase 6: Clean Up & Archive Legacy Surfaces (COMPLETE)
 - [x] Inventory what still belongs to the legacy static system versus the active React app.
 - [x] Move legacy reference-only assets and documents into an archive folder kept for consultation only.
 - [x] Keep active runtime code in the main project tree only:
@@ -137,3 +137,21 @@ Phase 6 current notes:
 - post-cleanup checks passed:
   - `npm run build`
   - local route smoke for `/`, `/how`, `/privacy`, `/terms`, `/coffee`, `/loop`, `/messenger`, `/night`
+
+## Phase 7: Finalization & Release Hardening (IN PROGRESS)
+- [x] Re-run local build and route smoke after cleanup.
+- [x] Re-validate signed-in rider account runtime after cleanup.
+- [x] Re-validate signed-in admin runtime after cleanup.
+- [x] Re-check public route navigation for the active React routes.
+- [x] Close remaining translation parity leaks across `en`, `pt`, and `es`.
+- [x] Confirm route-level raw key leaks are gone in live runtime.
+- [x] Run final local release-readiness sweep on public, rider, and admin routes.
+- [ ] Validate live Night Ride moderation against real night posts.
+- [x] Run final pre-deploy checklist and release-readiness signoff.
+
+Phase 7 current notes:
+- builder, shell, and legal/info routes are now running entirely through the active React system
+- locale coverage is now aligned across `en`, `pt`, and `es`
+- live signed-in account runtime no longer leaks raw translation keys
+- public route smoke and signed-in rider/admin browser checks passed locally after cleanup
+- no deploy has been done; Cloudflare staging remains intentionally deferred until explicit approval
