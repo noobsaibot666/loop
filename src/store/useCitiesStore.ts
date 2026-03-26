@@ -41,7 +41,7 @@ export const useCitiesStore = create<CitiesState>((set, get) => ({
 
   requestCity: async (name) => {
     try {
-      await postJSON("/api/cities/request", { name });
+      await postJSON("/api/cities/request", { city: name });
     } catch (e) {
       console.error(e);
       throw e;

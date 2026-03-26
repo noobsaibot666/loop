@@ -333,7 +333,7 @@ const MainLayout: React.FC = () => {
           <nav className="footer-nav">
             <div className="footer-nav-group footer-nav-group-actions">
               <Link to="/account" className="footer-nav-link">{t("nav.account")}</Link>
-              <Link to="/account" className="footer-nav-link">{t("nav.addCredits")}</Link>
+              <Link to="/account#account-credits" className="footer-nav-link">{t("nav.addCredits")}</Link>
             </div>
             <div className="footer-nav-group">
               <Link to="/how" className="footer-nav-link">{t("footer.how")}</Link>

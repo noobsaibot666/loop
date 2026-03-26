@@ -2,9 +2,21 @@ import { json, supabaseRequest } from "../../_utils.js";
 
 export async function onRequest({ request, env }) {
   if (request.method !== "GET") return json({ error: "method not allowed" }, { status: 405 });
+  const url = new URL(request.url);
+  const city = String(url.searchParams.get("city") || "").trim();
+  const filters = [
+    "is_public=eq.true",
+    "moderation_status=in.(live,pending)",
+    "select=id,user_id,moderation_status,session_id,rider_name,crew_name,city_name,route_title,distance_km,aspect_ratio,caption,image_url,created_at",
+    "order=created_at.desc",
+    "limit=32",
+  ];
+  if (city) {
+    filters.unshift(`city_name=ilike.*${encodeURIComponent(city)}*`);
+  }
   const rows = await supabaseRequest(
     env,
-    "night_ride_posts?is_public=eq.true&moderation_status=in.(live,pending)&select=id,user_id,moderation_status,session_id,rider_name,crew_name,city_name,route_title,distance_km,aspect_ratio,caption,image_url,created_at&order=created_at.desc&limit=32",
+    `night_ride_posts?${filters.join("&")}`,
     { method: "GET" }
   ).catch(() => []);
   const sessionIds = Array.from(new Set((rows || []).map((row) => row.session_id).filter(Boolean)));

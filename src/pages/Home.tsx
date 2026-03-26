@@ -13,12 +13,29 @@ import { CSSProperties } from "react";
 const Home: React.FC = () => {
   const { t } = useI18n();
   const navigate = useNavigate();
+  const activateCard = (path: string) => ({
+    onClick: () => navigate(path),
+    onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        navigate(path);
+      }
+    },
+    role: "link" as const,
+    tabIndex: 0,
+  });
   const badgeCities = React.useMemo(() => ["Curitiba/BR", "Munich/DE", "Guarulhos/BR"], []);
   const [currentBadgeIndex, setCurrentBadgeIndex] = React.useState(0);
   const [leavingBadgeIndex, setLeavingBadgeIndex] = React.useState<number | null>(null);
-  const badgeSlideDurationMs = 520;
-  const badgeHoldDurationMs = 2200;
-  const badgeTotalDurationMs = badgeHoldDurationMs * badgeCities.length + 200;
+  const [badgeVisible, setBadgeVisible] = React.useState(true);
+  const badgeSlideDurationMs = 420;
+  const badgeHoldDurationMs = 1600;
+  const badgeExitDelayMs = 180;
+  const badgeHideDurationMs = 360;
+  const badgeTotalDurationMs =
+    badgeHoldDurationMs * badgeCities.length +
+    badgeExitDelayMs +
+    badgeHideDurationMs;
 
   React.useEffect(() => {
     if (badgeCities.length <= 1) return;
@@ -38,6 +55,11 @@ const Home: React.FC = () => {
   }, [badgeCities, badgeHoldDurationMs]);
 
   React.useEffect(() => {
+    const hideTimer = window.setTimeout(() => setBadgeVisible(false), badgeHoldDurationMs * badgeCities.length + badgeExitDelayMs);
+    return () => window.clearTimeout(hideTimer);
+  }, [badgeCities.length, badgeExitDelayMs, badgeHoldDurationMs]);
+
+  React.useEffect(() => {
     if (leavingBadgeIndex === null) return;
     const clearTimer = window.setTimeout(() => setLeavingBadgeIndex(null), badgeSlideDurationMs);
     return () => window.clearTimeout(clearTimer);
@@ -52,7 +74,7 @@ const Home: React.FC = () => {
         actions={null}
         badgeDurationMs={badgeTotalDurationMs}
         badge={
-          <div className="hero-badge-pill">
+          <div className={`hero-badge-pill ${badgeVisible ? "pill-appear" : "pill-hide"}`}>
             <span className="badge-tag">{t("cities.newCity")}</span>
             <span className="badge-label-viewport" aria-live="polite">
               {leavingBadgeIndex !== null ? (
@@ -70,44 +92,47 @@ const Home: React.FC = () => {
         <div
           className="modular-cell modular-cell-featured home-mode-card"
           style={{ "--home-card-image": `url(${alleycatCardHero})` } as CSSProperties}
+          {...activateCard("/messenger")}
         >
           <div className="home-card-title-row">
             <h3 className="cell-title">{t("home.alleycat.title")}</h3>
             <span className="home-card-pill">{t("home.modePill")}</span>
           </div>
           <p className="cell-body">{t("home.alleycat.body")}</p>
-          <button className="primary-button primary-button-flat small home-card-button" onClick={() => navigate('/messenger')}>
+          <span className="primary-button primary-button-flat small home-card-button">
             {t("home.alleycat.action")}
-          </button>
+          </span>
         </div>
         <div
           className="modular-cell home-mode-card"
           style={{ "--home-card-image": `url(${loopCardHero})` } as CSSProperties}
+          {...activateCard("/loop")}
         >
           <div className="home-card-title-row">
             <h3 className="cell-title">{t("home.loop.title")}</h3>
             <span className="home-card-pill">{t("home.modePill")}</span>
           </div>
           <p className="cell-body">{t("home.loop.body")}</p>
-          <button className="ghost-button small home-card-button" onClick={() => navigate('/loop')}>{t("home.loop.action")}</button>
+          <span className="ghost-button small home-card-button">{t("home.loop.action")}</span>
         </div>
         <div
           className="modular-cell modular-cell-night home-mode-card"
           style={{ "--home-card-image": `url(${nightRideCardHero})` } as CSSProperties}
+          {...activateCard("/night")}
         >
           <div className="home-card-title-row">
             <h3 className="cell-title">{t("home.night.title")}</h3>
             <span className="home-card-pill">{t("home.modePill")}</span>
           </div>
           <p className="cell-body">{t("home.night.body")}</p>
-          <button className="primary-button primary-button-flat small home-card-button" onClick={() => navigate('/night')}>
+          <span className="primary-button primary-button-flat small home-card-button">
             {t("home.night.action")}
-          </button>
+          </span>
         </div>
       </section>
 
       <section className="modular-grid reveals home-lower-grid">
-        <div className="modular-cell home-community-card">
+        <div className="modular-cell home-community-card home-community-card-discord">
           <div className="home-card-title-row">
             <h3 className="cell-title">{t("home.community.title")}</h3>
             <span className="home-card-pill">{t("home.community.pill")}</span>
@@ -131,7 +156,7 @@ const Home: React.FC = () => {
           </div>
         </div>
 
-        <div className="modular-cell modular-cell-community home-community-card">
+        <div className="modular-cell modular-cell-community home-community-card home-community-card-strava">
           <div className="home-card-title-row">
             <h3 className="cell-title">{t("home.community.strava.title")}</h3>
             <span className="home-card-pill">{t("home.community.strava.pill")}</span>

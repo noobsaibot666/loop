@@ -16,6 +16,7 @@ const AlleycatMode: React.FC = () => {
   const [showCityMenu, setShowCityMenu] = useState(false);
   const cityMenuRef = useRef<HTMLDivElement | null>(null);
   const suggestionShellRef = useRef<HTMLDivElement | null>(null);
+  const codeModalCardRef = useRef<HTMLDivElement | null>(null);
   const {
     config, setConfig,
     manifest,
@@ -117,9 +118,14 @@ const AlleycatMode: React.FC = () => {
     };
     document.body.style.overflow = "hidden";
     document.addEventListener("keydown", handleKeyDown);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    const scrollTimer = window.setTimeout(() => {
+      codeModalCardRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    }, 80);
     return () => {
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", handleKeyDown);
+      window.clearTimeout(scrollTimer);
     };
   }, [showCodeModal]);
 
@@ -317,9 +323,8 @@ const AlleycatMode: React.FC = () => {
 
               <div className="form-section section-block">
                 <label className="field">
-                  <span>{t("alleycat.ghostRider")}</span>
+                    <span>{t("alleycat.ghostRider")}</span>
                   <div className="field-kicker field-kicker-ghost">{t("alleycat.ghostRiderIntro")}</div>
-                  <div className="field-hint">{t("alleycat.ghostRiderHint")}</div>
                   <div className="pill-group builder-option-grid builder-option-grid-2 messenger-ghost-toggle">
                     {[
                       { key: "off", value: false, label: t("common.off") },
@@ -342,6 +347,7 @@ const AlleycatMode: React.FC = () => {
                 >
                   <div className="ghost-pressure-shell-inner">
                     <label className="field">
+                      <div className="field-hint">{t("alleycat.ghostRiderHint")}</div>
                       <span>{t("alleycat.pressure")}</span>
                       <div className="pill-group street-tone-group builder-option-grid builder-option-grid-3">
                         {["easy", "medium", "hard"].map((diff) => (
@@ -364,7 +370,7 @@ const AlleycatMode: React.FC = () => {
                 <label className="field">
                   <span>{t("alleycat.checkpoints")}</span>
                   <div className="pill-group checkpoint-count-grid builder-option-grid builder-option-grid-2 messenger-checkpoint-grid">
-                    {[3, 4, 5, 6, 8, 10].map((num) => (
+                    {[4, 6, 8, 10, 12, 16].map((num) => (
                       <button 
                         key={num} 
                         type="button" 
@@ -614,6 +620,7 @@ const AlleycatMode: React.FC = () => {
         >
           <div
             className="modal-card messenger-code-modal animation-slide-up"
+            ref={codeModalCardRef}
             onClick={(event) => event.stopPropagation()}
           >
             <div className="modal-header">

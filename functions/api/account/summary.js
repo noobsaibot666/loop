@@ -195,7 +195,7 @@ export async function onRequest({ request, env }) {
       manifests: userManifests.length,
       runs: userRuns.length,
       finished_runs: userRuns.filter((run) => run.status === "finished").length,
-      challenges: challenges?.length || 0,
+      challenges: userChallenges.length,
       proofs: userProofs.length,
       public_proofs: userProofs.filter((proof) => proof.is_public).length,
     },
