@@ -156,3 +156,6 @@ Phase 7 current notes:
 - public route smoke and signed-in rider/admin browser checks passed locally after cleanup
 - live Night Ride moderation was validated end to end against a real uploaded night post
 - no deploy has been done; Cloudflare staging remains intentionally deferred until explicit approval
+
+Next roadmap:
+- [v1-6-deployment-roadmap.md](/Users/alan/_localDEV/Loop/docs/v1-6-deployment-roadmap.md)
