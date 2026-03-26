@@ -1,7 +1,7 @@
 # Gimme The Loop: V1.5 Modular Upgrade Roadmap - STATUS UPDATE
 
 **Date:** March 2026  
-**Status:** Phase 4 Complete, Phase 5 Complete, Phase 6 Planned.
+**Status:** Phase 4 Complete, Phase 5 Complete, Phase 6 In Progress.
 
 ---
 
@@ -116,15 +116,24 @@
 - [-] Live Night Ride moderation with real posts is deferred to finalization.
 - [-] Cloudflare staging is intentionally deferred until after cleanup.
 
-## Phase 6: Clean Up & Archive Legacy Surfaces (PLANNED)
-- [ ] Inventory what still belongs to the legacy static system versus the active React app.
-- [ ] Move legacy reference-only assets and documents into an archive folder kept for consultation only.
-- [ ] Keep active runtime code in the main project tree only:
+## Phase 6: Clean Up & Archive Legacy Surfaces (IN PROGRESS)
+- [x] Inventory what still belongs to the legacy static system versus the active React app.
+- [x] Move legacy reference-only assets and documents into an archive folder kept for consultation only.
+- [x] Keep active runtime code in the main project tree only:
   - `src`
   - `server`
   - `shared`
   - active config/build files
-- [ ] Decide which static `public/*.html` routes must be migrated into React before archive.
-- [ ] Remove dead links and references that still point to legacy-only pages.
-- [ ] Reduce duplicate docs/checklists from prior phases after preserving what is still useful as historical reference.
-- [ ] Re-run build and route smoke after cleanup to ensure archive work does not break the active React system.
+- [x] Decide which static `public/*.html` routes must be migrated into React before archive.
+- [x] Remove dead links and references that still point to legacy-only pages.
+- [x] Reduce duplicate docs/checklists from prior phases after preserving what is still useful as historical reference.
+- [x] Re-run build and route smoke after cleanup to ensure archive work does not break the active React system.
+
+Phase 6 current notes:
+- historical roadmaps, checklists, and readiness docs are now moved to `archive/legacy/`
+- legacy static `public/admin.html` and `public/membership.html` are now archived
+- footer-linked `how/privacy/terms/coffee` content is now served by React routes
+- legacy footer HTML pages are now archived under `archive/legacy/public/`
+- post-cleanup checks passed:
+  - `npm run build`
+  - local route smoke for `/`, `/how`, `/privacy`, `/terms`, `/coffee`, `/loop`, `/messenger`, `/night`

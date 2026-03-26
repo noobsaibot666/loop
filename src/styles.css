@@ -5576,23 +5576,6 @@ input[type="range"]::-moz-range-thumb {
   min-width: 0;
 }
 
-.footer-nav-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 38px;
-  padding: 0 18px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.04);
-  color: #fff;
-  letter-spacing: 0.04em;
-}
-
-.footer-nav-button:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
-
 @media (max-width: 768px) {
   .footer-nav-group {
     align-items: flex-end;
@@ -5605,21 +5588,6 @@ input[type="range"]::-moz-range-thumb {
     flex-direction: column;
     align-items: flex-end;
     gap: 8px;
-  }
-
-  .footer-nav-button {
-    min-height: 0;
-    padding: 4px 0;
-    border: none;
-    border-radius: 0;
-    background: none;
-    color: var(--text-dim);
-    justify-content: flex-end;
-  }
-
-  .footer-nav-button:hover {
-    background: none;
-    color: #fff;
   }
 }
 
@@ -5774,6 +5742,92 @@ input[type="range"]::-moz-range-thumb {
 
 .auth-modal-actions {
   margin-top: 4px;
+}
+
+.info-page-shell {
+  min-height: calc(100vh - 220px);
+  padding: 40px 24px 72px;
+}
+
+.info-page-wrap {
+  max-width: 840px;
+  margin: 0 auto;
+}
+
+.info-page-back {
+  display: inline-flex;
+  margin-bottom: 32px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  transition: color 0.2s ease;
+}
+
+.info-page-back:hover {
+  color: var(--accent);
+}
+
+.info-page-card {
+  border: 1px solid var(--border-subtle);
+  background: var(--card-bg);
+  border-radius: 4px;
+  padding: 48px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.info-page-eyebrow {
+  color: var(--accent);
+  font-size: 0.75rem;
+  margin: 0 0 16px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+
+.info-page-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 6vw, 2.8rem);
+  margin: 0 0 24px;
+  text-transform: uppercase;
+  line-height: 1.05;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+}
+
+.info-page-intro {
+  margin: 0 0 24px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 1rem;
+  line-height: 1.65;
+  max-width: 40rem;
+}
+
+.info-page-list {
+  padding-left: 20px;
+  margin: 0;
+  list-style-type: square;
+}
+
+.info-page-list li {
+  margin-bottom: 16px;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.info-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 32px;
+}
+
+.info-page-action-button {
+  min-width: 190px;
 }
 
 .account-section .builder-grid.single .form-card {
@@ -8344,15 +8398,21 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .page-messenger .module-card .route-step-title {
-  font-size: 0.52rem !important;
-  line-height: 1.02 !important;
-  letter-spacing: 0.03em !important;
+  font-size: 1.06rem !important;
+  line-height: 1.16 !important;
+  letter-spacing: 0.04em !important;
+  color: #fff !important;
+}
+
+.page-messenger .module-card .route-step-number {
+  font-size: 1.1rem !important;
+  line-height: 1 !important;
   color: #fff !important;
 }
 
 .page-messenger .module-card .route-step-body {
-  font-size: 0.54rem !important;
-  line-height: 1.28 !important;
+  font-size: 1rem !important;
+  line-height: 1.58 !important;
   color: rgba(255, 255, 255, 0.42) !important;
 }
 
@@ -8365,16 +8425,23 @@ input[type="range"]::-webkit-slider-thumb {
 
 .page-loop .module-card .route-step-title,
 .page-night .module-card .route-step-title {
-  font-size: 0.52rem !important;
-  line-height: 1.02 !important;
-  letter-spacing: 0.03em !important;
+  font-size: 1.06rem !important;
+  line-height: 1.16 !important;
+  letter-spacing: 0.04em !important;
+  color: #fff !important;
+}
+
+.page-loop .module-card .route-step-number,
+.page-night .module-card .route-step-number {
+  font-size: 1.1rem !important;
+  line-height: 1 !important;
   color: #fff !important;
 }
 
 .page-loop .module-card .route-step-body,
 .page-night .module-card .route-step-body {
-  font-size: 0.54rem !important;
-  line-height: 1.28 !important;
+  font-size: 1rem !important;
+  line-height: 1.58 !important;
   color: rgba(255, 255, 255, 0.42) !important;
 }
 

@@ -85,7 +85,11 @@ Remaining admin gap:
 - [-] Cloudflare staging deploy deferred until after cleanup
 
 ## Phase 6: Clean Up Planning
-- [ ] Inventory legacy static surfaces and reference-only docs
-- [ ] Define the archive folder structure for legacy consultation material
-- [ ] Separate active React runtime code from archive-only legacy artifacts
-- [ ] Migrate or remove any remaining links to legacy-only static pages before archive
+- [x] Inventory legacy static surfaces and reference-only docs
+- [x] Define the archive folder structure for legacy consultation material
+- [x] Separate active React runtime code from archive-only legacy artifacts
+- [x] Migrate or remove any remaining links to legacy-only static pages before archive
+- [x] Archive legacy static `admin.html` and `membership.html`
+- [x] Archive legacy footer help/legal/support HTML pages after migrating them into React routes
+- [x] Archive historical roadmaps, old checklists, and superseded readiness docs
+- [x] Re-run build and smoke after archive moves

@@ -332,14 +332,14 @@ const MainLayout: React.FC = () => {
           </div>
           <nav className="footer-nav">
             <div className="footer-nav-group footer-nav-group-actions">
-              <Link to="/account" className="footer-nav-link footer-nav-button">{t("nav.account")}</Link>
-              <Link to="/account" className="footer-nav-link footer-nav-button">{t("nav.addCredits")}</Link>
+              <Link to="/account" className="footer-nav-link">{t("nav.account")}</Link>
+              <Link to="/account" className="footer-nav-link">{t("nav.addCredits")}</Link>
             </div>
             <div className="footer-nav-group">
-              <a href="/how.html" className="footer-nav-link">{t("footer.how")}</a>
-              <a href="/privacy.html" className="footer-nav-link">{t("footer.privacy")}</a>
-              <a href="/terms.html" className="footer-nav-link">{t("footer.terms")}</a>
-              <a href="/coffee.html" className="footer-nav-link">{t("footer.coffee")}</a>
+              <Link to="/how" className="footer-nav-link">{t("footer.how")}</Link>
+              <Link to="/privacy" className="footer-nav-link">{t("footer.privacy")}</Link>
+              <Link to="/terms" className="footer-nav-link">{t("footer.terms")}</Link>
+              <Link to="/coffee" className="footer-nav-link">{t("footer.coffee")}</Link>
               <Link to="/admin" className="footer-nav-link">{t("footer.admin")}</Link>
             </div>
           </nav>

@@ -47,6 +47,16 @@ The main remaining blocker is now narrower:
 - translation signoff still needs an explicit final pass
 - legacy static surfaces still need a cleanup/archive phase before the React system can stand alone as the only active app
 
+Cleanup update:
+
+- historical roadmaps and checklists have now been moved into `archive/legacy/`
+- legacy static `public/admin.html` and `public/membership.html` have been archived
+- footer help/legal/support surfaces are now served by React routes instead of static HTML
+- legacy footer HTML pages are now archived under `archive/legacy/public/`
+- cleanup verification passed with:
+  - `npm run build`
+  - local route smoke on `/`, `/how`, `/privacy`, `/terms`, `/coffee`, `/loop`, `/messenger`, `/night`
+
 ## What is already in place
 
 - `react-router-dom` app shell is live in [src/App.tsx](/Users/alan/_localDEV/Loop/src/App.tsx)

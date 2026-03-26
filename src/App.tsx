@@ -18,6 +18,10 @@ const routeModuleLoaders = {
   NightRide: () => import("./pages/NightRide"),
   RiderProfile: () => import("./pages/RiderProfile"),
   AdminDashboard: () => import("./pages/AdminDashboard"),
+  HowToPage: () => import("./pages/HowToPage"),
+  PrivacyPage: () => import("./pages/PrivacyPage"),
+  TermsPage: () => import("./pages/TermsPage"),
+  CoffeePage: () => import("./pages/CoffeePage"),
 } as const;
 
 const Home = lazy(routeModuleLoaders.Home);
@@ -30,6 +34,10 @@ const Leaderboard = lazy(routeModuleLoaders.Leaderboard);
 const NightRide = lazy(routeModuleLoaders.NightRide);
 const RiderProfile = lazy(routeModuleLoaders.RiderProfile);
 const AdminDashboard = lazy(routeModuleLoaders.AdminDashboard);
+const HowToPage = lazy(routeModuleLoaders.HowToPage);
+const PrivacyPage = lazy(routeModuleLoaders.PrivacyPage);
+const TermsPage = lazy(routeModuleLoaders.TermsPage);
+const CoffeePage = lazy(routeModuleLoaders.CoffeePage);
 
 const preloadRouteModules = () =>
   Promise.allSettled(Object.values(routeModuleLoaders).map((loadRoute) => loadRoute()));
@@ -113,6 +121,10 @@ const App: React.FC = () => {
             <Route path="/night" element={<NightRide />} />
             <Route path="/rider/:id" element={<RiderProfile />} />
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/how" element={<HowToPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/coffee" element={<CoffeePage />} />
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
