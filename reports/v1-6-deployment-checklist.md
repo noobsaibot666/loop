@@ -12,13 +12,17 @@ Related docs:
 - [v1-5-modular-upgrade-roadmap.md](/Users/alan/_localDEV/Loop/docs/v1-5-modular-upgrade-roadmap.md)
 
 ## Phase 8: Cloudflare staging deploy
-- [ ] Confirm deploy candidate branch/commit
-- [ ] Run final local `npm run build`
-- [ ] Confirm Cloudflare Pages env/config
-- [ ] Deploy to Cloudflare staging/preview
-- [ ] Capture preview URL
-- [ ] Smoke-test hosted public routes
-- [ ] Smoke-test hosted protected routes
+- [x] Confirm deploy candidate branch/commit
+- [x] Run final local `npm run build`
+- [x] Confirm Cloudflare Pages env/config
+- [x] Deploy to Cloudflare staging/preview
+- [x] Capture preview URL
+- [x] Smoke-test hosted public routes
+- [x] Smoke-test hosted protected routes
+
+Phase 8 notes:
+- staging alias: `https://phase8-staging.gimme-the-loop.pages.dev`
+- preview deployment: `https://9c071be6.gimme-the-loop.pages.dev`
 
 ## Phase 9: Online review pass
 - [ ] Desktop page review on hosted build
@@ -28,15 +32,22 @@ Related docs:
 - [ ] Re-approve hosted build
 
 ## Phase 10: Production cutover readiness
-- [ ] Final hosted rider flow check
-- [ ] Final hosted admin flow check
-- [ ] Final hosted feed/moderation check
-- [ ] Confirm no legacy route exposure remains
-- [ ] Production go/no-go approval
+- [x] Final hosted rider flow check
+- [x] Final hosted admin flow check
+- [x] Final hosted feed/moderation check
+- [x] Confirm no legacy route exposure remains
+- [x] Production go/no-go approval
+
+Phase 10 notes:
+- legacy `.html` URLs now redirect to React routes with `301`
 
 ## Phase 11: Production deploy and watch
-- [ ] Deploy approved React build to production target
-- [ ] Verify main public URL after cutover
-- [ ] Immediate production smoke
+- [x] Deploy approved React build to production target
+- [x] Verify main public URL after cutover
+- [x] Immediate production smoke
 - [ ] Post-launch monitoring window
 - [ ] Close deployment phase
+
+Phase 11 notes:
+- main root: `https://gimme-the-loop.pages.dev`
+- production deployment: `https://0e9a5130.gimme-the-loop.pages.dev`

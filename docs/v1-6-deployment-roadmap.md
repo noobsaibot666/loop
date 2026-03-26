@@ -1,13 +1,14 @@
 # Gimme The Loop: V1.6 Deployment Roadmap
 
 **Date:** March 2026  
-**Status:** Planned
+**Status:** In progress
 
 Context:
 - V1.5 modular migration, cleanup, and finalization are complete locally.
 - The active app is now the React system.
-- No Cloudflare deploy has been done yet for this final React cut.
-- This roadmap covers the live deployment lane, online review, and post-staging fixes before final production confirmation.
+- Cloudflare staging and production deploys have already been completed for the React cut.
+- The main root now serves the React app.
+- This roadmap now covers the remaining hosted review, cutover verification, and post-launch watch lane.
 
 Related docs:
 - [v1-5-modular-upgrade-roadmap.md](/Users/alan/_localDEV/Loop/docs/v1-5-modular-upgrade-roadmap.md)
@@ -17,12 +18,12 @@ Related docs:
 ---
 
 ## Phase 8: Cloudflare Staging Deploy
-- [ ] Verify current branch/worktree is the intended deploy candidate.
-- [ ] Re-run local build and confirm `npm run build` is still green immediately before deploy.
-- [ ] Confirm environment variables required by Cloudflare Pages are present and current.
-- [ ] Deploy the React app to Cloudflare Pages staging/preview.
-- [ ] Capture the preview URL and deployment metadata.
-- [ ] Verify the live preview serves the React routes correctly:
+- [x] Verify current branch/worktree is the intended deploy candidate.
+- [x] Re-run local build and confirm `npm run build` is still green immediately before deploy.
+- [x] Confirm environment variables required by Cloudflare Pages are present and current.
+- [x] Deploy the React app to Cloudflare Pages staging/preview.
+- [x] Capture the preview URL and deployment metadata.
+- [x] Verify the live preview serves the React routes correctly:
   - `/`
   - `/loop`
   - `/messenger`
@@ -36,13 +37,17 @@ Related docs:
   - `/privacy`
   - `/terms`
   - `/coffee`
-- [ ] Verify hosted asset loading, route chunks, and image delivery on Cloudflare.
-- [ ] Verify the deployed app points to the correct backend/runtime environment.
+- [x] Verify hosted asset loading, route chunks, and image delivery on Cloudflare.
+- [x] Verify the deployed app points to the correct backend/runtime environment.
 
 Exit criteria:
 - A stable Cloudflare preview is online.
 - Public and protected routes load successfully in the hosted environment.
 - No staging-only runtime regression appears versus local.
+
+Completed:
+- staging alias: `https://phase8-staging.gimme-the-loop.pages.dev`
+- preview deployment: `https://9c071be6.gimme-the-loop.pages.dev`
 
 ---
 
@@ -75,24 +80,33 @@ Exit criteria:
 ---
 
 ## Phase 10: Production Cutover Readiness
-- [ ] Confirm staging build is the exact candidate for production.
-- [ ] Run final release-readiness sweep against the staging URL.
-- [ ] Confirm rider/admin/public core flows on hosted runtime one last time.
-- [ ] Confirm legal/help/support routes are reachable from the hosted footer.
-- [ ] Confirm Night Ride moderation and proof moderation on hosted runtime.
-- [ ] Confirm there are no legacy static dependencies still exposed to users.
-- [ ] Approve production cutover.
+- [x] Confirm staging build is the exact candidate for production.
+- [x] Run final release-readiness sweep against the staging URL.
+- [x] Confirm rider/admin/public core flows on hosted runtime one last time.
+- [x] Confirm legal/help/support routes are reachable from the hosted footer.
+- [x] Confirm Night Ride moderation and proof moderation on hosted runtime.
+- [x] Confirm there are no legacy static dependencies still exposed to users.
+- [x] Approve production cutover.
 
 Exit criteria:
 - The hosted React app is approved as the new production surface.
 - No known blocker remains for replacing the older live version.
 
+Completed:
+- legacy `.html` paths now redirect cleanly to React routes:
+  - `/admin.html -> /admin`
+  - `/membership.html -> /account`
+  - `/how.html -> /how`
+  - `/privacy.html -> /privacy`
+  - `/terms.html -> /terms`
+  - `/coffee.html -> /coffee`
+
 ---
 
 ## Phase 11: Production Deploy & Post-Launch Watch
-- [ ] Deploy approved build to the production Cloudflare target.
-- [ ] Verify main public URL behavior after cutover.
-- [ ] Run immediate smoke on:
+- [x] Deploy approved build to the production Cloudflare target.
+- [x] Verify main public URL behavior after cutover.
+- [x] Run immediate smoke on:
   - Home
   - Loop
   - Street Hunt
@@ -113,6 +127,10 @@ Exit criteria:
 Exit criteria:
 - Production React app is live and stable.
 - Post-launch monitoring window closes without critical blocker.
+
+Completed:
+- main root: `https://gimme-the-loop.pages.dev`
+- production deployment: `https://0e9a5130.gimme-the-loop.pages.dev`
 
 ---
 
