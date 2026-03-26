@@ -75,7 +75,7 @@ Related docs:
 - [-] Live Night Ride moderation with real posts deferred to finalization
 
 Remaining admin gap:
-- [-] Validate Night Ride moderation actions against live night posts, not only proof moderation
+- [x] Validate Night Ride moderation actions against live night posts, not only proof moderation
 
 ## Phase 5F: Release gate
 - [x] Desktop parity signoff
@@ -102,5 +102,5 @@ Remaining admin gap:
 - [x] Remove remaining locale key leaks in live runtime
 - [x] Confirm `en`, `pt`, `es` key parity for active routes
 - [x] Final local release-readiness sweep for public, rider, and admin routes
-- [ ] Validate Night Ride moderation with real live posts
+- [x] Validate Night Ride moderation with real live posts
 - [x] Final pre-deploy release-readiness signoff

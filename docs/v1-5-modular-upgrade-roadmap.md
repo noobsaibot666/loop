@@ -1,7 +1,7 @@
 # Gimme The Loop: V1.5 Modular Upgrade Roadmap - STATUS UPDATE
 
 **Date:** March 2026  
-**Status:** Phase 4 Complete, Phase 5 Complete, Phase 6 Complete, Phase 7 In Progress.
+**Status:** Phase 4 Complete, Phase 5 Complete, Phase 6 Complete, Phase 7 Complete.
 
 ---
 
@@ -138,7 +138,7 @@ Phase 6 current notes:
   - `npm run build`
   - local route smoke for `/`, `/how`, `/privacy`, `/terms`, `/coffee`, `/loop`, `/messenger`, `/night`
 
-## Phase 7: Finalization & Release Hardening (IN PROGRESS)
+## Phase 7: Finalization & Release Hardening (COMPLETE)
 - [x] Re-run local build and route smoke after cleanup.
 - [x] Re-validate signed-in rider account runtime after cleanup.
 - [x] Re-validate signed-in admin runtime after cleanup.
@@ -146,7 +146,7 @@ Phase 6 current notes:
 - [x] Close remaining translation parity leaks across `en`, `pt`, and `es`.
 - [x] Confirm route-level raw key leaks are gone in live runtime.
 - [x] Run final local release-readiness sweep on public, rider, and admin routes.
-- [ ] Validate live Night Ride moderation against real night posts.
+- [x] Validate live Night Ride moderation against real night posts.
 - [x] Run final pre-deploy checklist and release-readiness signoff.
 
 Phase 7 current notes:
@@ -154,4 +154,5 @@ Phase 7 current notes:
 - locale coverage is now aligned across `en`, `pt`, and `es`
 - live signed-in account runtime no longer leaks raw translation keys
 - public route smoke and signed-in rider/admin browser checks passed locally after cleanup
+- live Night Ride moderation was validated end to end against a real uploaded night post
 - no deploy has been done; Cloudflare staging remains intentionally deferred until explicit approval

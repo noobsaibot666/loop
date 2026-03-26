@@ -41,10 +41,9 @@ After local live validation, the structural migration is no longer the main risk
 - Night Ride crew creation and history loading are working against the local backend
 - admin overview, proofs, city-pack, checkpoint, request, and night endpoints are working against the local backend
 
-The main remaining blocker is now narrower:
+The main remaining blocker is now closed for local validation:
 
-- admin night-post moderation still needs explicit live validation against real night posts
-- no further local parity blockers remain outside that live-data moderation check
+- no further local parity blockers remain in the active React system
 
 Cleanup update:
 
@@ -62,6 +61,7 @@ Finalization update:
 - live signed-in account runtime no longer leaks raw translation keys such as `nav.rider`
 - public route navigation and signed-in rider/admin runtime were re-checked after cleanup without deploying
 - final local release-readiness sweep is complete for public, rider, and admin routes
+- live Night Ride moderation was validated end to end against a real uploaded night post
 
 ## What is already in place
 
