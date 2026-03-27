@@ -513,6 +513,8 @@ textarea {
 
 .mobile-nav-link-compact {
   padding: 12px 0;
+  justify-content: flex-start;
+  text-align: left;
 }
 
 .mobile-nav-link-button {
@@ -1142,6 +1144,14 @@ p {
 
 .wall-filter-strip {
   margin-bottom: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.wall-filter-button {
+  border-color: rgba(123, 97, 255, 0.62) !important;
+  color: #7b61ff !important;
+  background: transparent !important;
 }
 
 .wall-filter-link {
@@ -1891,9 +1901,9 @@ p {
 }
 
 .wall-feed-toggle .ghost-button.active-filter-button {
-  border-color: rgba(123, 97, 255, 0.58);
+  border-color: rgba(123, 97, 255, 0.72);
   color: #7b61ff;
-  background: rgba(123, 97, 255, 0.08);
+  background: transparent;
 }
 
 .wall-subsection-title {
@@ -7495,18 +7505,33 @@ input[type="range"]::-moz-range-thumb {
   }
 
   .wall-feed-toggle {
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    justify-content: flex-start;
-    gap: 12px;
-    padding: 0 18px;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 10px;
+    flex-wrap: nowrap;
   }
 
   .wall-feed-toggle .ghost-button {
-    width: min(280px, 100%);
-    min-height: 34px;
-    padding: 0.48rem 0.8rem;
-    font-size: 0.76rem;
+    width: auto;
+    min-width: 0;
+    min-height: 32px;
+    padding: 0.42rem 0.72rem;
+    font-size: 0.66rem;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+
+  .wall-filter-strip {
+    justify-content: flex-end;
+    padding-inline: 8px;
+  }
+
+  .wall-filter-button {
+    min-height: 32px;
+    padding: 0.42rem 0.72rem;
+    font-size: 0.66rem;
     letter-spacing: 0.08em;
   }
 
@@ -7768,6 +7793,38 @@ input[type="range"]::-moz-range-thumb {
 
   .section-jump-strip .mini-chip {
     white-space: nowrap;
+  }
+
+  .page-account .hero-actions {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .page-account .account-topbar-actions {
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .page-account .account-topbar-actions .mini-chip {
+    min-height: 32px;
+    padding: 0.42rem 0.72rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 0.66rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+  }
+
+  .page-account .account-topbar-actions .mini-chip.active {
+    border-color: rgba(123, 97, 255, 0.62);
+    color: #7b61ff;
+    background: transparent;
   }
 
   .wall-grid {
@@ -8277,7 +8334,7 @@ input[type="range"]::-moz-range-thumb {
   .wall-grid {
     column-count: 2;
     column-gap: 10px;
-    padding: 0 6px;
+    padding: 0 16px;
   }
 
   .wall-card {
@@ -8329,6 +8386,45 @@ input[type="range"]::-moz-range-thumb {
     width: 100%;
     min-height: 34px;
     padding: 0 10px;
+  }
+
+  .page-wall .wall-section {
+    padding-inline: 20px;
+  }
+
+  .wall-card .wall-meta-toggle {
+    display: inline-flex;
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    z-index: 3;
+    align-items: center;
+    justify-content: center;
+    min-height: 30px;
+    padding: 0 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(10, 10, 12, 0.84);
+    color: rgba(255, 255, 255, 0.84);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .wall-card .wall-meta {
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+    padding-top: 46px;
+  }
+
+  .wall-card .wall-meta.is-expanded {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
   }
 
   .mobile-nav-links,
@@ -8706,6 +8802,10 @@ input[type="range"]::-webkit-slider-thumb {
   display: block;
 }
 
+.wall-meta-toggle {
+  display: none;
+}
+
 .wall-card .wall-meta {
   position: absolute;
   bottom: 0;
@@ -8717,6 +8817,7 @@ input[type="range"]::-webkit-slider-thumb {
   flex-direction: column;
   gap: 8px;
   pointer-events: none;
+  transition: opacity 180ms ease, transform 180ms ease;
 }
 
 .wall-card .inline-link-button {

@@ -260,8 +260,6 @@ const MainLayout: React.FC = () => {
             )}
           </div>
 
-          <div className="mobile-nav-group-label">{t("nav.menu")}</div>
-          
           <nav className="mobile-nav-links">
             {navLinks.map((link) => (
               <Link 
@@ -338,7 +336,6 @@ const MainLayout: React.FC = () => {
             <div className="footer-nav-group">
               <Link to="/how" className="footer-nav-link">{t("footer.how")}</Link>
               <Link to="/privacy" className="footer-nav-link">{t("footer.privacy")}</Link>
-              <Link to="/terms" className="footer-nav-link">{t("footer.terms")}</Link>
               <Link to="/coffee" className="footer-nav-link">{t("footer.coffee")}</Link>
               <Link to="/admin" className="footer-nav-link">{t("footer.admin")}</Link>
             </div>

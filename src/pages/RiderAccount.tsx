@@ -41,12 +41,14 @@ const RiderAccount: React.FC = () => {
     home_location: "",
     bike_name: "",
     bike_ratio: "",
+    collaboration_note: "",
   });
   const [newPassword, setNewPassword] = useState("");
   const [feedback, setFeedback] = useState("");
   const [nightRides, setNightRides] = useState<NightRideAccountSession[]>([]);
   const [isNightLoading, setIsNightLoading] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isSubmittingCollaboration, setIsSubmittingCollaboration] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [isSendingFeedback, setIsSendingFeedback] = useState(false);
@@ -76,6 +78,7 @@ const RiderAccount: React.FC = () => {
       home_location: accountSummary.profile.home_location || "",
       bike_name: accountSummary.profile.bike_name || "",
       bike_ratio: accountSummary.profile.bike_ratio || "",
+      collaboration_note: accountSummary.profile.collaboration_note || "",
     });
   }, [accountSummary]);
 
@@ -115,6 +118,11 @@ const RiderAccount: React.FC = () => {
   const accountName = accountSummary?.profile?.rider_name || user?.email?.split("@")[0] || "rider";
   const greeting = usage?.is_admin ? t("account.greetingAdmin", { name: accountName }) : t("account.greeting", { name: accountName });
   const accountSubtitle = user ? t("account.subtitleAuthed", { greeting }) : t("account.subtitleGuest");
+  const riderProfilePath = accountSummary?.profile?.user_id
+    ? `/rider/${encodeURIComponent(accountSummary.profile.user_id)}`
+    : user?.id
+      ? `/rider/${encodeURIComponent(user.id)}`
+      : "";
   const activity = accountSummary?.alleycat;
   const quarter = accountSummary?.quarter;
   const badges = accountSummary?.badges || [];
@@ -250,6 +258,22 @@ const RiderAccount: React.FC = () => {
     }
   };
 
+  const handleCollaborationRequest = async () => {
+    setIsSubmittingCollaboration(true);
+    try {
+      await postJSON("/api/account/profile", {
+        ...profileForm,
+        collaboration_submit: true,
+      });
+      if (accessToken) await fetchAccountSummary(accessToken);
+      pushStatus("success", t("account.messages.collaborationSent"));
+    } catch (error: any) {
+      pushStatus("error", error.message || t("common.requestFailed"));
+    } finally {
+      setIsSubmittingCollaboration(false);
+    }
+  };
+
   const handleFeedbackSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     const wordCount = (feedback.trim().match(/\S+/g) || []).length;
@@ -318,7 +342,12 @@ const RiderAccount: React.FC = () => {
         image={accountHero}
         actions={
           <div className="hero-actions">
-            <button className="ghost-button small" onClick={() => navigate(`/rider/${user.id}`)}>
+            <button
+              type="button"
+              className="ghost-button small"
+              disabled={!riderProfilePath}
+              onClick={() => riderProfilePath && navigate(riderProfilePath)}
+            >
               {t("nav.rider")}
             </button>
             {(usage?.is_admin || accountSummary?.is_admin) && (
@@ -427,6 +456,40 @@ const RiderAccount: React.FC = () => {
                 </button>
                 <button type="button" className="ghost-button" disabled={isResettingPassword} onClick={handlePasswordReset}>
                   {isResettingPassword ? t("common.working") : t("account.auth.resetPassword")}
+                </button>
+              </div>
+            </div>
+            <div className="account-divider" />
+            <div className="account-stack" id="account-collaboration">
+              <div>
+                <div className="section-title small-title">{t("account.profile.collaborationTitle")}</div>
+                <div className="form-subtitle">{t("account.profile.collaborationSubtitle")}</div>
+              </div>
+              <div className="account-note">{t("account.profile.collaborationNote")}</div>
+              {accountSummary?.profile?.collaboration_status === "pending" && accountSummary?.profile?.collaboration_requested_at ? (
+                <div className="account-note">
+                  {t("account.profile.collaborationPending", {
+                    date: formatDate(accountSummary.profile.collaboration_requested_at),
+                  })}
+                </div>
+              ) : null}
+              <label className="field">
+                <span>{t("account.profile.collaborationLabel")}</span>
+                <textarea
+                  rows={4}
+                  value={profileForm.collaboration_note}
+                  placeholder={t("account.profile.collaborationPlaceholder")}
+                  onChange={(event) => setProfileForm((current) => ({ ...current, collaboration_note: event.target.value }))}
+                />
+              </label>
+              <div className="form-actions">
+                <button
+                  type="button"
+                  className="primary-button"
+                  disabled={isSubmittingCollaboration}
+                  onClick={handleCollaborationRequest}
+                >
+                  {isSubmittingCollaboration ? t("common.working") : t("account.profile.collaborationAction")}
                 </button>
               </div>
             </div>
@@ -728,6 +791,32 @@ const RiderAccount: React.FC = () => {
                         <span>
                           {hunt.best_seconds ? formatDuration(hunt.best_seconds) : "--:--"} · {t("account.alleycatHistory.proofs", { count: hunt.proof_count })}
                         </span>
+                        {hunt.proofs?.length ? (
+                          <div className="account-hunt-proof-stack">
+                            {hunt.proofs.map((proof) => (
+                              <a
+                                key={proof.id}
+                                className="account-hunt-proof-chip"
+                                href={proof.public_url}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                <img
+                                  className="account-hunt-proof-thumb"
+                                  src={proof.public_url}
+                                  alt={proof.checkpoint_name}
+                                  loading="lazy"
+                                  decoding="async"
+                                />
+                                <div className="account-hunt-proof-copy">
+                                  <strong>{proof.checkpoint_name}</strong>
+                                  <span>{proof.location_label}</span>
+                                  <span>{formatDate(proof.created_at)}</span>
+                                </div>
+                              </a>
+                            ))}
+                          </div>
+                        ) : null}
                       </div>
                       <div className="history-actions">
                         <strong>{hunt.source_challenge_id ? t("account.alleycatHistory.shared") : t("account.alleycatHistory.solo")}</strong>

@@ -64,6 +64,8 @@ export default function WallPage({
 }: WallPageProps) {
   const { t, formatDate } = useI18n();
   const [showCityPicker, setShowCityPicker] = useState(false);
+  const [activeFeed, setActiveFeed] = useState<"wall" | "night">("wall");
+  const [expandedWallCards, setExpandedWallCards] = useState<Record<string, boolean>>({});
   const cityGroups = useMemo(() => [
     {
       label: t("continent.americas"),
@@ -103,6 +105,13 @@ export default function WallPage({
     };
   }, [showCityPicker]);
 
+  const toggleWallCard = (postId: string) => {
+    setExpandedWallCards((current) => ({
+      ...current,
+      [postId]: !current[postId],
+    }));
+  };
+
   return (
     <div className="sequential-layout sub-page page-wall page-stage-enter">
       <Hero 
@@ -112,19 +121,49 @@ export default function WallPage({
       />
 
       <section className="wall-section reveals" id="wall-feed">
+        <div className="wall-feed-toggle">
+          <button
+            type="button"
+            className={`ghost-button small ${activeFeed === "wall" ? "active-filter-button" : ""}`}
+            onClick={() => setActiveFeed("wall")}
+          >
+            {t("wall.title")}
+          </button>
+          <button
+            type="button"
+            className={`ghost-button small ${activeFeed === "night" ? "active-filter-button" : ""}`}
+            onClick={() => setActiveFeed("night")}
+          >
+            {t("wall.nightTitle")}
+          </button>
+        </div>
         <div className="filter-strip wall-filter-strip" id="wall-filter">
-          <button type="button" className="primary-button small" onClick={() => setShowCityPicker(true)}>
+          <button type="button" className="ghost-button small wall-filter-button" onClick={() => setShowCityPicker(true)}>
             <Filter size={14} />
             <span>{selectedWallCity ? getCityLabel(selectedWallCity) : t("wall.allCities")}</span>
           </button>
         </div>
         {isLoadingWall && <div className="status-message">{t("wall.loading")}</div>}
-        {wallPosts.length > 0 && (
+        {activeFeed === "wall" && (
+          <div className="wall-subsection-head">
+            <div className="wall-subsection-title">{t("wall.title")}</div>
+            <div className="wall-subsection-copy">{t("wall.subtitle")}</div>
+          </div>
+        )}
+        {activeFeed === "wall" && wallPosts.length > 0 && (
           <div className="wall-grid">
             {wallPosts.map((post) => (
               <div key={post.id} className="glass-card wall-card">
                 <img src={post.public_url} alt={`${post.checkpoint_name} by ${post.rider_name}`} className="wall-image" loading="lazy" decoding="async" />
-                <div className="wall-meta">
+                <button
+                  type="button"
+                  className="wall-meta-toggle"
+                  aria-expanded={expandedWallCards[post.id] ? "true" : "false"}
+                  onClick={() => toggleWallCard(post.id)}
+                >
+                  {expandedWallCards[post.id] ? t("common.hide") : t("common.show")}
+                </button>
+                <div className={`wall-meta ${expandedWallCards[post.id] ? "is-expanded" : ""}`}>
                   <div className="wall-detail-grid">
                     <div className="wall-detail-item">
                       <Zap size={14} className="text-accent" />
@@ -166,20 +205,19 @@ export default function WallPage({
             ))}
           </div>
         )}
-        {!isLoadingWall && wallPosts.length === 0 && (
+        {activeFeed === "wall" && !isLoadingWall && wallPosts.length === 0 && (
           <div className="empty-state">
             <div className="empty-state-icon"><ImageIcon size={32} className="text-muted" /></div>
             <div className="empty-state-text">{t("wall.empty")}</div>
           </div>
         )}
-      </section>
-
-      <section className="wall-section reveals" id="night-wall-feed">
-        <div className="filter-strip wall-subsection-head">
-          <div className="wall-subsection-title">{t("wall.nightTitle")}</div>
-          <div className="wall-subsection-copy">{t("wall.nightSubtitle")}</div>
-        </div>
-        {nightRidePosts.length > 0 && (
+        {activeFeed === "night" && (
+          <div className="filter-strip wall-subsection-head">
+            <div className="wall-subsection-title">{t("wall.nightTitle")}</div>
+            <div className="wall-subsection-copy">{t("wall.nightSubtitle")}</div>
+          </div>
+        )}
+        {activeFeed === "night" && nightRidePosts.length > 0 && (
           <div className="night-wall-grid">
             {nightRidePosts.map((post) => (
               <article key={post.id} className="glass-card night-wall-card">
@@ -196,7 +234,7 @@ export default function WallPage({
             ))}
           </div>
         )}
-        {!isLoadingWall && nightRidePosts.length === 0 && (
+        {activeFeed === "night" && !isLoadingWall && nightRidePosts.length === 0 && (
           <div className="empty-state">
             <div className="empty-state-icon"><Zap size={32} className="text-muted" /></div>
             <div className="empty-state-text">{t("wall.nightEmpty")}</div>
