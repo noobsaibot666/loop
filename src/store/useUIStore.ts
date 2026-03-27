@@ -1,5 +1,12 @@
 import { create } from "zustand";
 
+const createDeviceId = () => {
+  if (typeof globalThis !== "undefined" && globalThis.crypto && typeof globalThis.crypto.randomUUID === "function") {
+    return globalThis.crypto.randomUUID();
+  }
+  return `loop-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+};
+
 interface UIState {
   menuOpen: boolean;
   showLanguageMenu: boolean;
@@ -34,7 +41,7 @@ export const useUIStore = create<UIState>((set) => ({
     if (stored) {
       set({ deviceId: stored });
     } else {
-      const next = crypto.randomUUID();
+      const next = createDeviceId();
       localStorage.setItem("loop_device_id", next);
       set({ deviceId: next });
     }

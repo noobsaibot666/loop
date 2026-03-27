@@ -6,7 +6,7 @@ import { useI18n } from "../i18n";
 import { useAuthStore } from "../store/useAuthStore";
 import { postJSON } from "../utils/routeUtils";
 
-type AdminTab = "metrics" | "riders" | "night" | "proofs" | "packs" | "requests";
+type AdminTab = "metrics" | "riders" | "night" | "proofs" | "packs" | "requests" | "collaboration";
 
 type AdminOverview = {
   admin_email: string;
@@ -115,6 +115,16 @@ type AdminCityRequest = {
   handled_at?: string | null;
 };
 
+type AdminCollaborationRequest = {
+  user_id: string;
+  rider_name?: string | null;
+  home_location?: string | null;
+  collaboration_note?: string | null;
+  collaboration_status?: string | null;
+  collaboration_requested_at?: string | null;
+  updated_at?: string | null;
+};
+
 type PreviewManifest = {
   manifest_title?: string;
   checkpoint_count?: number;
@@ -138,6 +148,7 @@ const AdminDashboard: React.FC = () => {
   const [selectedPackId, setSelectedPackId] = useState("");
   const [checkpoints, setCheckpoints] = useState<AdminCityCheckpoint[]>([]);
   const [requests, setRequests] = useState<AdminCityRequest[]>([]);
+  const [collaborations, setCollaborations] = useState<AdminCollaborationRequest[]>([]);
   const [riderSearch, setRiderSearch] = useState("");
   const [archiveMonth, setArchiveMonth] = useState("");
   const [packForm, setPackForm] = useState({
@@ -165,6 +176,7 @@ const AdminDashboard: React.FC = () => {
     is_active: true,
   });
   const [requestDrafts, setRequestDrafts] = useState<Record<string, { status: string; admin_note: string }>>({});
+  const [collaborationDrafts, setCollaborationDrafts] = useState<Record<string, { status: string }>>({});
   const [previewState, setPreviewState] = useState({
     style: "local",
     difficulty: "medium",
@@ -290,6 +302,27 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  const fetchCollaborations = async () => {
+    setIsLoading(true);
+    try {
+      const data = await postJSON<{ requests: AdminCollaborationRequest[] }>("/api/admin/collaborations", {});
+      const nextRequests = data.requests || [];
+      setCollaborations(nextRequests);
+      setCollaborationDrafts(
+        nextRequests.reduce<Record<string, { status: string }>>((acc, request) => {
+          acc[request.user_id] = {
+            status: String(request.collaboration_status || "pending"),
+          };
+          return acc;
+        }, {})
+      );
+    } catch (error: any) {
+      pushStatus("error", error.message || t("common.requestFailed"));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     async function checkAdmin() {
       if (!user) {
@@ -316,6 +349,7 @@ const AdminDashboard: React.FC = () => {
     if (activeTab === "proofs") void fetchProofs();
     if (activeTab === "packs") void fetchPacks();
     if (activeTab === "requests") void fetchRequests();
+    if (activeTab === "collaboration") void fetchCollaborations();
   }, [activeTab, isAdmin]);
 
   useEffect(() => {
@@ -532,6 +566,36 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  const handleRequestDelete = async (requestId: string) => {
+    try {
+      pushStatus("info", t("admin.messages.updating"));
+      await postJSON("/api/admin/city-requests", {
+        action: "delete",
+        request_id: requestId,
+      });
+      pushStatus("success", t("admin.messages.requestDeleted"));
+      await fetchRequests();
+    } catch (error: any) {
+      pushStatus("error", error.message || t("common.requestFailed"));
+    }
+  };
+
+  const handleCollaborationUpdate = async (userId: string) => {
+    const draft = collaborationDrafts[userId];
+    if (!draft) return;
+    try {
+      await postJSON("/api/admin/collaborations", {
+        action: "update",
+        user_id: userId,
+        collaboration_status: draft.status,
+      });
+      pushStatus("success", t("admin.messages.collaborationUpdated"));
+      await fetchCollaborations();
+    } catch (error: any) {
+      pushStatus("error", error.message || t("common.requestFailed"));
+    }
+  };
+
   const handleSetCredits = async (userId: string) => {
     const draft = riderDrafts[userId];
     if (!draft) return;
@@ -600,6 +664,9 @@ const AdminDashboard: React.FC = () => {
             </button>
             <button className={`pill ${activeTab === "requests" ? "active" : ""}`} onClick={() => setActiveTab("requests")}>
               {t("admin.tabs.requests")}
+            </button>
+            <button className={`pill ${activeTab === "collaboration" ? "active" : ""}`} onClick={() => setActiveTab("collaboration")}>
+              {t("admin.tabs.collaboration")}
             </button>
           </div>
         }
@@ -1133,6 +1200,63 @@ const AdminDashboard: React.FC = () => {
                         </button>
                         <button type="button" className="primary-button small" onClick={() => handleRequestUpdate(request.id)}>
                           {t("admin.requests.update")}
+                        </button>
+                        <button type="button" className="ghost-button small" onClick={() => handleRequestDelete(request.id)}>
+                          <Trash2 size={14} />
+                          {t("admin.requests.delete")}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "collaboration" && (
+          <div className="account-grid">
+            <div className="glass-card form-card account-purchases-card">
+              <div className="form-header">
+                <div>
+                  <div className="form-title">{t("admin.collaboration.title")}</div>
+                  <div className="form-subtitle">{t("admin.collaboration.subtitle")}</div>
+                </div>
+                <Users size={18} className="text-muted" />
+              </div>
+              <div className="history-list">
+                {!collaborations.length ? (
+                  <div className="account-note">{t("admin.collaboration.empty")}</div>
+                ) : collaborations.map((request) => (
+                  <div key={request.user_id} className="history-row admin-request-row">
+                    <div>
+                      <strong>{request.rider_name || request.user_id}</strong>
+                      <span>{request.home_location || "--"} · {formatDate(request.collaboration_requested_at || request.updated_at)}</span>
+                      <span>{request.collaboration_note || "--"}</span>
+                    </div>
+                    <div className="admin-request-controls">
+                      <label className="field admin-mini-field">
+                        <span>{t("admin.collaboration.status")}</span>
+                        <select
+                          value={collaborationDrafts[request.user_id]?.status || "pending"}
+                          onChange={(event) =>
+                            setCollaborationDrafts((current) => ({
+                              ...current,
+                              [request.user_id]: {
+                                status: event.target.value,
+                              },
+                            }))
+                          }
+                        >
+                          <option value="pending">{t("admin.collaboration.pending")}</option>
+                          <option value="reviewing">{t("admin.collaboration.reviewing")}</option>
+                          <option value="approved">{t("admin.collaboration.approved")}</option>
+                          <option value="rejected">{t("admin.collaboration.rejected")}</option>
+                        </select>
+                      </label>
+                      <div className="admin-action-row">
+                        <button type="button" className="primary-button small" onClick={() => handleCollaborationUpdate(request.user_id)}>
+                          {t("admin.collaboration.update")}
                         </button>
                       </div>
                     </div>

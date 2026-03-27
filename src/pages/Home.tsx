@@ -7,12 +7,27 @@ import discordLogo from "../logos/Discord-Logo-Light-Blurple.png";
 import stravaLogo from "../logos/Strava_idOGsGeeO9_0.svg";
 import Hero from "../components/Hero";
 import { useI18n } from "../i18n";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { CSSProperties } from "react";
+import { X } from "lucide-react";
+import { useAuthStore } from "../store/useAuthStore";
+import { useCreditStore } from "../store/useCreditStore";
+import { useUIStore } from "../store/useUIStore";
+import { postJSON } from "../utils/routeUtils";
+
+const COMMUNITY_PRICE_CENTS = 500;
+const COMMUNITY_CURRENCY = "usd";
 
 const Home: React.FC = () => {
   const { t } = useI18n();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user, accessToken } = useAuthStore();
+  const { accountSummary, fetchAccountSummary } = useCreditStore();
+  const { setAuthModalOpen, setAuthMode } = useUIStore();
+  const [communityModalOpen, setCommunityModalOpen] = React.useState(false);
+  const [communityBusy, setCommunityBusy] = React.useState<"checkout" | "invite" | null>(null);
+  const [communityError, setCommunityError] = React.useState("");
   const activateCard = (path: string) => ({
     onClick: () => navigate(path),
     onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -65,6 +80,79 @@ const Home: React.FC = () => {
     return () => window.clearTimeout(clearTimer);
   }, [leavingBadgeIndex, badgeSlideDurationMs]);
 
+  React.useEffect(() => {
+    if (!communityModalOpen || !accessToken || accountSummary) return;
+    void fetchAccountSummary(accessToken);
+  }, [communityModalOpen, accessToken, accountSummary, fetchAccountSummary]);
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("community") !== "active") return;
+    setCommunityModalOpen(true);
+    navigate("/", { replace: true });
+  }, [location.search, navigate]);
+
+  React.useEffect(() => {
+    if (!communityModalOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setCommunityModalOpen(false);
+    };
+    document.body.classList.add("menu-open-lock");
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.classList.remove("menu-open-lock");
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [communityModalOpen]);
+
+  const membership = accountSummary?.community_membership || null;
+  const communityActive = Boolean(membership?.access_active);
+
+  const formatMoney = React.useCallback((amountCents: number, currency = "usd") => {
+    const normalized = (currency || "usd").toUpperCase();
+    try {
+      return new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency: normalized,
+        minimumFractionDigits: 0,
+      }).format((amountCents || 0) / 100);
+    } catch {
+      return `${((amountCents || 0) / 100).toFixed(0)} ${normalized}`;
+    }
+  }, []);
+
+  const communityPrice = formatMoney(
+    membership?.price_cents ?? COMMUNITY_PRICE_CENTS,
+    membership?.currency ?? COMMUNITY_CURRENCY
+  );
+
+  const handleCommunityAction = async () => {
+    if (!user) {
+      setCommunityModalOpen(false);
+      setAuthMode("signin");
+      setAuthModalOpen(true);
+      return;
+    }
+
+    try {
+      setCommunityError("");
+      if (communityActive) {
+        setCommunityBusy("invite");
+        const { url } = await postJSON<{ url: string }>("/api/community-membership/access", {});
+        window.open(url, "_blank", "noopener,noreferrer");
+        return;
+      }
+
+      setCommunityBusy("checkout");
+      const { url } = await postJSON<{ url: string }>("/api/create-membership-session", {});
+      window.location.href = url;
+    } catch (error: any) {
+      setCommunityError(error?.message || t("common.requestFailed"));
+    } finally {
+      setCommunityBusy(null);
+    }
+  };
+
   return (
     <div className="sequential-layout page-home page-stage-enter">
       <Hero
@@ -90,6 +178,18 @@ const Home: React.FC = () => {
 
       <section className="modular-grid home-modular-grid reveals">
         <div
+          className="modular-cell home-mode-card"
+          style={{ "--home-card-image": `url(${loopCardHero})` } as CSSProperties}
+          {...activateCard("/loop")}
+        >
+          <div className="home-card-title-row">
+            <h3 className="cell-title">{t("home.loop.title")}</h3>
+            <span className="home-card-pill">{t("home.modePill")}</span>
+          </div>
+          <p className="cell-body">{t("home.loop.body")}</p>
+          <span className="ghost-button small home-card-button">{t("home.loop.action")}</span>
+        </div>
+        <div
           className="modular-cell modular-cell-featured home-mode-card"
           style={{ "--home-card-image": `url(${alleycatCardHero})` } as CSSProperties}
           {...activateCard("/messenger")}
@@ -102,18 +202,6 @@ const Home: React.FC = () => {
           <span className="primary-button primary-button-flat small home-card-button">
             {t("home.alleycat.action")}
           </span>
-        </div>
-        <div
-          className="modular-cell home-mode-card"
-          style={{ "--home-card-image": `url(${loopCardHero})` } as CSSProperties}
-          {...activateCard("/loop")}
-        >
-          <div className="home-card-title-row">
-            <h3 className="cell-title">{t("home.loop.title")}</h3>
-            <span className="home-card-pill">{t("home.modePill")}</span>
-          </div>
-          <p className="cell-body">{t("home.loop.body")}</p>
-          <span className="ghost-button small home-card-button">{t("home.loop.action")}</span>
         </div>
         <div
           className="modular-cell modular-cell-night home-mode-card"
@@ -143,14 +231,13 @@ const Home: React.FC = () => {
             <span>• {t("home.community.line2")}</span>
             <span>• {t("home.community.line3")}</span>
           </div>
-          <a
+          <button
+            type="button"
             className="ghost-button small home-card-button home-community-action"
-            href="https://discord.gg/hardchain"
-            target="_blank"
-            rel="noreferrer"
+            onClick={() => setCommunityModalOpen(true)}
           >
-            {t("home.community.action")}
-          </a>
+            <span>{t("home.community.action")}</span>
+          </button>
           <div className="home-community-brand-footer" aria-hidden="true">
             <img className="home-community-brand-mark home-community-brand-mark-large" src={discordLogo} alt="" />
           </div>
@@ -184,6 +271,54 @@ const Home: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {communityModalOpen ? (
+        <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => setCommunityModalOpen(false)}>
+          <div className="modal-card community-membership-modal animation-slide-up" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <div className="modal-title">{t("account.community.heroTitle")}</div>
+                <div className="modal-subtitle">{t("account.community.heroSubtitle")}</div>
+              </div>
+              <button type="button" className="ghost-button small" onClick={() => setCommunityModalOpen(false)} aria-label={t("common.close")}>
+                <X size={16} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="community-membership-price-card">
+                <span>{t("account.community.planName")}</span>
+                <strong>{communityPrice}</strong>
+              </div>
+              <div className="community-membership-perks">
+                <span>• {t("home.community.line1")}</span>
+                <span>• {t("home.community.line2")}</span>
+                <span>• {t("home.community.line3")}</span>
+                <span>• {t("home.community.line4")}</span>
+              </div>
+              <div className="account-note">{t("account.community.note")}</div>
+              {communityError ? <div className="status-line error">{communityError}</div> : null}
+              <div className="modal-actions-row">
+                <button
+                  type="button"
+                  className="primary-button"
+                  disabled={communityBusy !== null}
+                  onClick={handleCommunityAction}
+                >
+                  {!user
+                    ? t("nav.logIn")
+                    : communityActive
+                      ? communityBusy === "invite"
+                        ? t("account.community.openingInvite")
+                        : t("account.community.openInvite")
+                      : communityBusy === "checkout"
+                        ? t("account.community.loading")
+                        : t("account.community.action")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

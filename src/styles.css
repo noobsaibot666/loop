@@ -1124,6 +1124,27 @@ p {
   gap: 10px;
 }
 
+.account-identity {
+  display: grid;
+  gap: 4px;
+  margin-top: 12px;
+}
+
+.account-identity strong {
+  font-family: var(--font-header);
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-main);
+}
+
+.account-identity span {
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  word-break: break-word;
+}
+
 .city-picker-actions .ghost-button,
 .city-picker-group-grid .ghost-button {
   padding: 0 16px;
@@ -1898,6 +1919,14 @@ p {
   border-color: rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.78);
   background: rgba(255, 255, 255, 0.02);
+}
+
+.page-wall .active-filter-button,
+.page-wall .wall-feed-toggle .ghost-button.active-filter-button,
+.page-wall .city-picker-group-grid .ghost-button.active-filter-button {
+  border-color: rgba(123, 97, 255, 0.72) !important;
+  color: #7b61ff !important;
+  background: transparent !important;
 }
 
 .wall-feed-toggle .ghost-button.active-filter-button {
@@ -5219,7 +5248,7 @@ input[type="range"]::-moz-range-thumb {
 .city-editorial-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
+  gap: 18px;
   width: 100%;
   align-items: stretch;
 }
@@ -5273,8 +5302,8 @@ input[type="range"]::-moz-range-thumb {
 .city-lane-card {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 16px;
+  gap: 12px;
+  padding: 14px;
   position: relative;
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
@@ -5293,14 +5322,15 @@ input[type="range"]::-moz-range-thumb {
 .city-lane-header-premium {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  min-width: 0;
 }
 
 .lane-status-indicator {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.6rem;
+  font-size: 0.56rem;
   letter-spacing: 0.08em;
   font-family: var(--font-mono);
   color: var(--text-muted);
@@ -5318,11 +5348,13 @@ input[type="range"]::-moz-range-thumb {
 .city-lane-header-premium strong {
   display: block;
   font-family: var(--font-header);
-  font-size: 1rem;
+  font-size: 0.94rem;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
-  line-height: 1;
+  letter-spacing: 0.03em;
+  line-height: 1.02;
   color: var(--text);
+  overflow-wrap: anywhere;
+  text-wrap: balance;
 }
 
 .status-pill {
@@ -5340,7 +5372,7 @@ input[type="range"]::-moz-range-thumb {
 .city-lane-meta {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   margin-top: auto;
 }
 
@@ -5356,7 +5388,7 @@ input[type="range"]::-moz-range-thumb {
 
 .city-lane-stat-item {
   background: rgba(255, 255, 255, 0.015);
-  padding: 12px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -5372,14 +5404,14 @@ input[type="range"]::-moz-range-thumb {
 .city-lane-stat-item span {
   display: block;
   color: var(--text-muted);
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
 
 .city-lane-stat-item strong {
   display: block;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-family: var(--font-mono);
   color: var(--text-soft);
 }
@@ -5406,8 +5438,8 @@ input[type="range"]::-moz-range-thumb {
 .city-lane-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 8px;
+  gap: 8px;
+  margin-top: 4px;
 }
 
 .city-lane-actions-compact {
@@ -5416,13 +5448,14 @@ input[type="range"]::-moz-range-thumb {
 
 .city-lane-actions .small {
   min-width: 0;
-  min-height: 34px;
-  font-size: 0.7rem;
+  min-height: 32px;
+  font-size: 0.64rem;
   border-radius: 4px;
 }
 
 .city-lane-actions .small span {
   overflow-wrap: anywhere;
+  line-height: 1.15;
 }
 
 .city-action-secondary {
@@ -5432,9 +5465,9 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .city-action-accent {
-  background: rgba(255, 106, 0, 0.08);
-  border-color: rgba(255, 106, 0, 0.24);
-  color: rgba(255, 106, 0, 0.92);
+  background: transparent;
+  border-color: rgba(123, 97, 255, 0.42);
+  color: rgba(123, 97, 255, 0.94);
   box-shadow: none;
 }
 
@@ -5442,8 +5475,8 @@ input[type="range"]::-moz-range-thumb {
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 28px;
+  gap: 18px;
+  padding: 24px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
   position: relative;
@@ -5452,13 +5485,13 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .editorial-hub {
-  background: linear-gradient(180deg, rgba(62, 220, 129, 0.04) 0%, transparent 100%);
-  border-top: 1px solid rgba(62, 220, 129, 0.15);
+  background: linear-gradient(180deg, rgba(123, 97, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 42%, transparent 100%);
+  border-top: 1px solid rgba(123, 97, 255, 0.16);
 }
 
 .editorial-priority {
-  background: linear-gradient(180deg, rgba(255, 106, 0, 0.04) 0%, transparent 100%);
-  border-top: 1px solid rgba(255, 106, 0, 0.15);
+  background: linear-gradient(180deg, rgba(123, 97, 255, 0.05) 0%, rgba(255, 255, 255, 0.015) 38%, transparent 100%);
+  border-top: 1px solid rgba(123, 97, 255, 0.12);
 }
 
 .city-editorial-card:hover {
@@ -5468,7 +5501,7 @@ input[type="range"]::-moz-range-thumb {
 
 .city-editorial-card strong {
   font-family: var(--font-header);
-  font-size: 1.5rem;
+  font-size: 1.34rem;
   line-height: 0.98;
   text-transform: uppercase;
   color: var(--text);
@@ -7507,9 +7540,9 @@ input[type="range"]::-moz-range-thumb {
   .wall-feed-toggle {
     flex-direction: row;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-end;
     gap: 8px;
-    padding: 0 10px;
+    padding: 0 4px;
     flex-wrap: nowrap;
   }
 
@@ -7517,22 +7550,32 @@ input[type="range"]::-moz-range-thumb {
     width: auto;
     min-width: 0;
     min-height: 32px;
-    padding: 0.42rem 0.72rem;
-    font-size: 0.66rem;
+    padding: 0.4rem 0.66rem;
+    font-size: 0.62rem;
     letter-spacing: 0.08em;
     white-space: nowrap;
   }
 
   .wall-filter-strip {
     justify-content: flex-end;
-    padding-inline: 8px;
+    padding-inline: 4px;
   }
 
   .wall-filter-button {
     min-height: 32px;
-    padding: 0.42rem 0.72rem;
-    font-size: 0.66rem;
+    margin-left: auto;
+    padding: 0.38rem 0.66rem;
+    font-size: 0.6rem;
     letter-spacing: 0.08em;
+  }
+
+  .page-wall .wall-section {
+    padding: 22px 20px;
+    gap: 16px;
+  }
+
+  .page-wall .wall-subsection-head {
+    padding-inline: 6px;
   }
 
   .night-ride-join {
@@ -7863,9 +7906,9 @@ input[type="range"]::-moz-range-thumb {
   }
 
   .city-lane-card {
-    gap: 14px;
-    padding: 18px;
-    width: min(100%, 340px);
+    gap: 12px;
+    padding: 16px 14px;
+    width: min(100%, 332px);
     justify-self: center;
   }
 
@@ -7896,6 +7939,8 @@ input[type="range"]::-moz-range-thumb {
 
   .city-lane-actions .small {
     width: 100%;
+    min-height: 31px;
+    font-size: 0.6rem;
   }
 
   .leaderboard-row {
@@ -8332,15 +8377,15 @@ input[type="range"]::-moz-range-thumb {
   }
 
   .wall-grid {
-    column-count: 2;
-    column-gap: 10px;
-    padding: 0 16px;
+    column-count: 1;
+    column-gap: 0;
+    padding: 0 8px;
   }
 
   .wall-card {
     gap: 7px;
-    margin-bottom: 10px;
-    padding: 8px;
+    margin-bottom: 14px;
+    padding: 0;
   }
 
   .wall-image {
@@ -8353,7 +8398,7 @@ input[type="range"]::-moz-range-thumb {
   }
 
   .wall-card .wall-meta {
-    padding: 28px 12px 12px;
+    padding: 40px 16px 16px;
     gap: 6px;
   }
 
@@ -8386,10 +8431,6 @@ input[type="range"]::-moz-range-thumb {
     width: 100%;
     min-height: 34px;
     padding: 0 10px;
-  }
-
-  .page-wall .wall-section {
-    padding-inline: 20px;
   }
 
   .wall-card .wall-meta-toggle {
@@ -8464,11 +8505,55 @@ input[type="range"]::-moz-range-thumb {
   }
 
   .city-lane-card {
-    padding: 16px 14px;
+    padding: 14px 12px;
+    width: min(100%, 318px);
   }
 
   .city-lane-actions {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .city-lane-header-premium strong {
+    font-size: 0.82rem;
+    letter-spacing: 0.02em;
+  }
+
+  .lane-status-indicator {
+    font-size: 0.52rem;
+    gap: 5px;
+  }
+
+  .city-lane-meta {
+    gap: 10px;
+  }
+
+  .city-lane-stats-box {
+    gap: 1px;
+  }
+
+  .city-lane-stat-item {
+    padding: 9px 8px;
+  }
+
+  .city-lane-stat-item span {
+    font-size: 0.54rem;
+  }
+
+  .city-lane-stat-item strong {
+    font-size: 0.82rem;
+  }
+
+  .city-editorial-grid {
+    gap: 14px;
+  }
+
+  .city-editorial-card {
+    gap: 14px;
+    padding: 18px;
+  }
+
+  .city-editorial-card strong {
+    font-size: 1.1rem;
   }
 }
 

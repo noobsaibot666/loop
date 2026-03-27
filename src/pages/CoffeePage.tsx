@@ -1,5 +1,6 @@
 import React from "react";
 import { Coffee, HeartHandshake } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useI18n } from "../i18n";
 
 const CoffeePage: React.FC = () => {
@@ -125,6 +126,12 @@ const CoffeePage: React.FC = () => {
             <h2 className="how-section-title">{t("legal.coffee.collabTitle")}</h2>
             <p className="how-section-copy">{t("legal.coffee.collabIntro")}</p>
           </div>
+          <article className="coffee-support-card coffee-collab-note">
+            <p className="how-utility-body">{t("legal.coffee.collabBody")}</p>
+            <Link className="primary-button small how-utility-action coffee-support-action" to="/account#account-collaboration">
+              <span>{t("legal.coffee.collabAction")}</span>
+            </Link>
+          </article>
           <div className="coffee-collab-grid">
             {collaborators.map((name) => (
               <article key={name} className="coffee-collab-card">

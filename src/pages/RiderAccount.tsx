@@ -368,6 +368,10 @@ const RiderAccount: React.FC = () => {
             <div>
               <div className="form-title">{greeting}</div>
               <div className="account-kicker">{t("account.topbar.kicker")}</div>
+              <div className="account-identity">
+                <strong>{accountSummary?.profile?.rider_name || accountName}</strong>
+                <span>{user?.email || t("account.profile.noEmail")}</span>
+              </div>
             </div>
             <div className="section-jump-strip account-topbar-actions">
               <a className="mini-chip active" href="#account-setup">{t("account.jump.setup")}</a>
@@ -385,7 +389,6 @@ const RiderAccount: React.FC = () => {
                 <div className="form-title">{t("account.profile.title")}</div>
                 <div className="form-subtitle">{t("account.profile.subtitle")}</div>
               </div>
-              <div className="mini-chip active">{user.email || t("account.profile.noEmail")}</div>
             </div>
             <div className="account-note">{t("account.profile.helper")}</div>
             <form className="account-stack" onSubmit={handleProfileSave}>

@@ -20,7 +20,6 @@ const routeModuleLoaders = {
   AdminDashboard: () => import("./pages/AdminDashboard"),
   HowToPage: () => import("./pages/HowToPage"),
   PrivacyPage: () => import("./pages/PrivacyPage"),
-  TermsPage: () => import("./pages/TermsPage"),
   CoffeePage: () => import("./pages/CoffeePage"),
 } as const;
 
@@ -36,7 +35,6 @@ const RiderProfile = lazy(routeModuleLoaders.RiderProfile);
 const AdminDashboard = lazy(routeModuleLoaders.AdminDashboard);
 const HowToPage = lazy(routeModuleLoaders.HowToPage);
 const PrivacyPage = lazy(routeModuleLoaders.PrivacyPage);
-const TermsPage = lazy(routeModuleLoaders.TermsPage);
 const CoffeePage = lazy(routeModuleLoaders.CoffeePage);
 
 const preloadRouteModules = () =>
@@ -97,7 +95,7 @@ const App: React.FC = () => {
           await postJSON("/api/stripe/verify-membership-session", { session_id: sessionId });
           fetchAccountSummary(accessToken);
           // Redirect to clean the URL
-          navigate("/account", { replace: true });
+          navigate("/?community=active", { replace: true });
         } catch (e) {
           console.error("Membership verification failed", e);
         }
@@ -123,7 +121,7 @@ const App: React.FC = () => {
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/how" element={<HowToPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
-            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/terms" element={<Navigate to="/privacy" replace />} />
             <Route path="/coffee" element={<CoffeePage />} />
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />

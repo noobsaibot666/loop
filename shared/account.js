@@ -12,7 +12,20 @@ const buildAlleycatHistory = ({ manifests = [], runs = [], proofs = [] }) =>
       const manifestRuns = runs.filter((run) => run.manifest_id === manifest.id);
       const finishedRuns = manifestRuns.filter((run) => run.status === "finished" && typeof run.finish_seconds === "number");
       const bestRun = [...finishedRuns].sort((left, right) => (left.finish_seconds || 0) - (right.finish_seconds || 0))[0] || null;
-      const proofCount = proofs.filter((proof) => proof.manifest_id === manifest.id).length;
+      const manifestProofs = proofs
+        .filter((proof) => proof.manifest_id === manifest.id)
+        .sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime())
+        .map((proof) => ({
+          id: proof.id,
+          run_id: proof.run_id || undefined,
+          checkpoint_id: proof.checkpoint_id,
+          checkpoint_name: proof.checkpoint_name,
+          public_url: proof.public_url,
+          location_label: proof.location_label,
+          is_public: proof.is_public,
+          created_at: proof.created_at,
+        }));
+      const proofCount = manifestProofs.length;
       return {
         id: manifest.id,
         city_name: manifest.city_name,
@@ -25,6 +38,7 @@ const buildAlleycatHistory = ({ manifests = [], runs = [], proofs = [] }) =>
         ghost_seconds: manifest.ghost_seconds || null,
         ghost_delta: bestRun && typeof manifest.ghost_seconds === "number" ? bestRun.finish_seconds - manifest.ghost_seconds : null,
         proof_count: proofCount,
+        proofs: manifestProofs,
         source_challenge_id: manifest.source_challenge_id || null,
       };
     });

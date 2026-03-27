@@ -36,6 +36,12 @@ import {
   sanitizeCrewMembers,
 } from "../shared/night-rides.js";
 import {
+  buildLoopCandidateRequest,
+  buildLoopCandidateProfiles,
+  evaluateLoopCandidate,
+  selectBestLoopCandidate,
+} from "../shared/loop-quality.js";
+import {
   buildMembershipUpsert,
   COMMUNITY_CURRENCY,
   COMMUNITY_INTERVAL,
@@ -1042,11 +1048,56 @@ app.post("/api/admin/city-requests", requireAdmin, async (req, res) => {
     return res.json({ ok: true, request: data?.[0] || null });
   }
 
+  if (String(req.body?.action || "") === "delete") {
+    const requestId = String(req.body?.request_id || "").trim();
+    if (!requestId) return res.status(400).json({ error: "request_id required" });
+
+    const { error } = await supabase
+      .from("city_requests")
+      .delete()
+      .eq("id", requestId);
+
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ ok: true, deleted_id: requestId });
+  }
+
   const { data, error } = await supabase
     .from("city_requests")
     .select("*")
     .order("created_at", { ascending: false })
     .limit(50);
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ requests: data || [] });
+});
+
+app.post("/api/admin/collaborations", requireAdmin, async (req, res) => {
+  if (String(req.body?.action || "") === "update") {
+    const userId = String(req.body?.user_id || "").trim();
+    const collaborationStatus = String(req.body?.collaboration_status || "").trim() || "pending";
+    if (!userId) return res.status(400).json({ error: "user_id required" });
+
+    const { data, error } = await supabase
+      .from("user_profiles")
+      .update({
+        collaboration_status: collaborationStatus,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", userId)
+      .select("user_id, rider_name, home_location, collaboration_note, collaboration_status, collaboration_requested_at, updated_at")
+      .limit(1);
+
+    if (error) return res.status(500).json({ error: error.message });
+    return res.json({ ok: true, request: data?.[0] || null });
+  }
+
+  const { data, error } = await supabase
+    .from("user_profiles")
+    .select("user_id, rider_name, home_location, collaboration_note, collaboration_status, collaboration_requested_at, updated_at")
+    .not("collaboration_note", "is", null)
+    .neq("collaboration_note", "")
+    .order("collaboration_requested_at", { ascending: false, nullsFirst: false })
+    .order("updated_at", { ascending: false });
+
   if (error) return res.status(500).json({ error: error.message });
   return res.json({ requests: data || [] });
 });
@@ -1074,7 +1125,7 @@ app.post("/api/account/summary", async (req, res) => {
         try {
           return await supabase
             .from("user_profiles")
-            .select("user_id, rider_name, home_location, bike_name, bike_ratio")
+            .select("user_id, rider_name, home_location, bike_name, bike_ratio, collaboration_note, collaboration_status, collaboration_requested_at")
             .eq("user_id", user_id)
             .maybeSingle();
         } catch {
@@ -1107,7 +1158,7 @@ app.post("/api/account/summary", async (req, res) => {
         .eq("user_id", user_id),
       supabase
         .from("messenger_proof_posts")
-        .select("id, user_id, is_public, city_name, manifest_id, created_at")
+        .select("id, user_id, run_id, is_public, city_name, manifest_id, checkpoint_id, checkpoint_name, location_label, public_url, created_at")
         .eq("user_id", user_id),
       supabase
         .from("messenger_proof_posts")
@@ -1253,6 +1304,9 @@ app.post("/api/account/summary", async (req, res) => {
       home_location: "",
       bike_name: "",
       bike_ratio: "",
+      collaboration_note: "",
+      collaboration_status: "",
+      collaboration_requested_at: null,
     },
     purchases: purchases || [],
     community_membership: sanitizeMembershipForClient(communityMembership || null),
@@ -1301,6 +1355,7 @@ app.post("/api/account/profile", async (req, res) => {
   const authUser = await getAuthUser(req);
   const user_id = authUser?.id || "";
   if (!user_id) return res.status(401).json({ error: "login required" });
+  const submitCollaboration = Boolean(req.body?.collaboration_submit);
 
   const payload = {
     user_id,
@@ -1308,6 +1363,9 @@ app.post("/api/account/profile", async (req, res) => {
     home_location: String(req.body?.home_location || "").trim().slice(0, 120),
     bike_name: String(req.body?.bike_name || "").trim().slice(0, 60),
     bike_ratio: String(req.body?.bike_ratio || "").trim().slice(0, 40),
+    collaboration_note: String(req.body?.collaboration_note || "").trim().slice(0, 600),
+    collaboration_status: submitCollaboration ? "pending" : String(req.body?.collaboration_status || "").trim().slice(0, 20) || null,
+    collaboration_requested_at: submitCollaboration ? new Date().toISOString() : req.body?.collaboration_requested_at || null,
     updated_at: new Date().toISOString(),
   };
 
@@ -1764,45 +1822,109 @@ app.post("/api/loop", async (req, res) => {
   const { coords, distance_km, seed, terrain, surface, vibe } = req.body || {};
   if (!coords || coords.length !== 2) return res.status(400).json({ error: "coords required" });
   if (!ORS_API_KEY) return res.status(500).json({ error: "ORS_API_KEY missing" });
+  const authUser = await getAuthUser(req);
 
-  const terrainKey = String(terrain || "").trim().toLowerCase();
-  const surfaceKey = String(surface || "").trim().toLowerCase();
-  const vibeKey = String(vibe || "").trim().toLowerCase();
+  const requestedDistanceKm = Math.max(1, Number(distance_km || 0));
+  const origin = { lng: Number(coords[0]), lat: Number(coords[1]) };
+  const recentRoutes =
+    authUser?.id
+      ? (
+          await safeNoThrow(
+            supabase
+              .from("loop_history")
+              .select("route_url, distance_km, created_at")
+              .eq("user_id", authUser.id)
+              .order("created_at", { ascending: false })
+              .limit(10),
+          )
+        )?.data || []
+      : [];
 
-  const pointBias =
-    terrainKey === "climb"
-      ? 5
-      : terrainKey === "coast" || surfaceKey === "gravel" || vibeKey === "scenic"
-        ? 4
-        : 3;
-
-  const seedOffset =
-    (terrainKey === "road" ? 11 : terrainKey === "mix" ? 5 : 0) +
-    (surfaceKey === "mixed" ? 17 : surfaceKey === "gravel" ? 29 : 0) +
-    (vibeKey === "energy" ? 7 : vibeKey === "climb" ? 13 : vibeKey === "elegant" ? 3 : 0);
-
-  const body = {
-    coordinates: [[coords[0], coords[1]]],
-    options: {
-      round_trip: {
-        length: Math.max(1000, distance_km * 1000),
-        points: pointBias,
-        seed: (seed || 1) + seedOffset,
+  const requestCandidate = async (profile, candidateIndex) => {
+    const candidateSeed = Number(seed || 1) + (profile.seedOffset || 0);
+    const payload = buildLoopCandidateRequest({
+      origin,
+      targetDistanceKm: requestedDistanceKm,
+      terrain,
+      surface,
+      vibe,
+      seed: candidateSeed,
+      profile,
+    });
+    const response = await fetch("https://api.openrouteservice.org/v2/directions/cycling-regular", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: ORS_API_KEY,
       },
-    },
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      return {
+        ok: false,
+        status: response.status,
+        error: data?.error?.message || data?.message || "ORS error",
+        detail: data,
+        profile,
+        candidateIndex,
+        candidateSeed,
+      };
+    }
+    const evaluation = evaluateLoopCandidate({
+      routeData: data,
+      origin,
+      targetDistanceKm: requestedDistanceKm,
+      terrain,
+      surface,
+      vibe,
+      recentRoutes,
+    });
+    return {
+      ok: true,
+      data,
+      evaluation,
+      profile,
+      candidateIndex,
+      candidateSeed,
+    };
   };
 
-  const response = await fetch("https://api.openrouteservice.org/v2/directions/cycling-regular", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: ORS_API_KEY,
-    },
-    body: JSON.stringify(body),
-  });
+  const runCandidateBatch = async (reroll = false) => {
+    const profiles = buildLoopCandidateProfiles({ terrain, surface, vibe, reroll });
+    return Promise.all(profiles.map((profile, candidateIndex) => requestCandidate(profile, candidateIndex)));
+  };
 
-  const data = await response.json();
-  res.json(data);
+  const firstPass = await runCandidateBatch(false);
+  const successfulFirstPass = firstPass.filter((candidate) => candidate.ok);
+  let candidates = successfulFirstPass;
+  if (!successfulFirstPass.some((candidate) => candidate.evaluation.valid)) {
+    const secondPass = await runCandidateBatch(true);
+    candidates = [...successfulFirstPass, ...secondPass.filter((candidate) => candidate.ok)];
+  }
+
+  if (!candidates.length) {
+    const failed = [...firstPass].find((candidate) => !candidate.ok);
+    return res.status(failed?.status || 502).json({
+      error: failed?.error || "ORS error",
+      detail: failed?.detail || null,
+    });
+  }
+
+  const bestCandidate = selectBestLoopCandidate(candidates);
+  if (!bestCandidate) {
+    return res.status(502).json({ error: "loop generation failed" });
+  }
+  return res.json({
+    ...bestCandidate.data,
+    quality_score: bestCandidate.evaluation.score,
+    overlap_ratio: bestCandidate.evaluation.metrics.overlapRatio,
+    candidate_seed: bestCandidate.candidateSeed,
+    candidate_index: bestCandidate.candidateIndex,
+    candidate_profile: bestCandidate.profile.label,
+    route_debug: bestCandidate.evaluation.metrics,
+    sampled_waypoints: bestCandidate.evaluation.sampledWaypoints,
+  });
 });
 
 app.post("/api/loop-history", async (req, res) => {
@@ -2733,14 +2855,24 @@ app.get("/api/wall", async (req, res) => {
   try {
     const { data: posts, error } = await supabase
       .from("messenger_proof_posts")
-      .select("id, rider_name, city_name, checkpoint_name, is_public, created_at, public_url, storage_path")
+      .select("id, run_id, user_id, rider_name, city_name, city_slug, checkpoint_name, location_label, is_public, created_at, public_url, storage_path, bike_name, bike_ratio")
       .eq("is_public", true)
       .ilike("city_name", `%${city}%`)
       .order("created_at", { ascending: false })
-      .limit(60);
+      .limit(120);
 
     if (error) return res.status(500).json({ error: error.message });
-    return res.json({ posts: posts || [] });
+    const groups = new Map();
+    for (const post of posts || []) {
+      const key = post.run_id || post.id;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(post);
+    }
+    const picked = [...groups.values()]
+      .map((group) => group[Math.floor(Math.random() * group.length)] || group[0])
+      .sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime())
+      .slice(0, 40);
+    return res.json({ posts: picked });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
@@ -2751,14 +2883,24 @@ app.post("/api/messenger/wall", async (req, res) => {
   try {
     const { data: posts, error } = await supabase
       .from("messenger_proof_posts")
-      .select("id, rider_name, city_name, checkpoint_name, is_public, created_at, public_url, storage_path")
+      .select("id, run_id, user_id, rider_name, city_name, city_slug, checkpoint_name, location_label, is_public, created_at, public_url, storage_path, bike_name, bike_ratio")
       .eq("is_public", true)
       .ilike("city_name", `%${city}%`)
       .order("created_at", { ascending: false })
-      .limit(60);
+      .limit(120);
 
     if (error) return res.status(500).json({ error: error.message });
-    return res.json({ posts: posts || [] });
+    const groups = new Map();
+    for (const post of posts || []) {
+      const key = post.run_id || post.id;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(post);
+    }
+    const picked = [...groups.values()]
+      .map((group) => group[Math.floor(Math.random() * group.length)] || group[0])
+      .sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime())
+      .slice(0, 40);
+    return res.json({ posts: picked });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }

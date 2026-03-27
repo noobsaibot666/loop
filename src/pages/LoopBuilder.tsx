@@ -169,6 +169,7 @@ const LoopBuilder: React.FC = () => {
                             onClick={() => {
                               setLoopPoint(item.label);
                               setSelectedCoords({ lat: item.lat, lng: item.lng });
+                              fetchSuggestions("");
                             }}
                           >
                             {item.label}

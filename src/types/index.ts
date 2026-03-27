@@ -68,6 +68,7 @@ export type MessengerRun = {
 
 export type MessengerProof = {
   id: string;
+  run_id?: string;
   checkpoint_id: string;
   checkpoint_name: string;
   public_url: string;
@@ -137,6 +138,9 @@ export type AccountSummary = {
     home_location: string;
     bike_name: string;
     bike_ratio: string;
+    collaboration_note?: string;
+    collaboration_status?: string;
+    collaboration_requested_at?: string | null;
   };
   purchases: {
     session_id: string;
@@ -196,6 +200,7 @@ export type AccountSummary = {
     ghost_delta: number | null;
     proof_count: number;
     source_challenge_id: string | null;
+    proofs?: MessengerProof[];
   }[];
   challenge_history: {
     challenge_id: string;
@@ -218,6 +223,7 @@ export type AccountSummary = {
 
 export type WallPost = {
   id: string;
+  run_id?: string;
   user_id?: string;
   rider_name: string;
   city_name: string;

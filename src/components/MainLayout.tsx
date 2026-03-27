@@ -105,7 +105,7 @@ const MainLayout: React.FC = () => {
     { to: "/loop", label: t("nav.loop") },
     { to: "/night", label: t("nav.night") },
     { to: "/leaderboard", label: t("nav.leaderboard") },
-    { to: "/wall", label: t("nav.wallShort") },
+    { to: "/wall", label: t("nav.wall") },
     { to: "/cities", label: t("nav.cities") },
   ];
 

@@ -11,7 +11,7 @@ export async function onRequest({ request, env }) {
   const [profileRows, stripePurchases, mobilePurchases, loopHistory, manifests, runs, challengeEntries, proofs, quarterProofs, quarterRuns, communityMembershipRows] = await Promise.all([
     supabaseRequest(
       env,
-      `user_profiles?user_id=eq.${encodeURIComponent(user.id)}&select=user_id,rider_name,home_location,bike_name,bike_ratio`,
+      `user_profiles?user_id=eq.${encodeURIComponent(user.id)}&select=user_id,rider_name,home_location,bike_name,bike_ratio,collaboration_note,collaboration_status,collaboration_requested_at`,
       { method: "GET" }
     ).catch(() => []),
     supabaseRequest(
@@ -46,7 +46,7 @@ export async function onRequest({ request, env }) {
     ),
     supabaseRequest(
       env,
-      `messenger_proof_posts?user_id=eq.${encodeURIComponent(user.id)}&select=id,user_id,is_public,city_name,manifest_id,created_at`,
+      `messenger_proof_posts?user_id=eq.${encodeURIComponent(user.id)}&select=id,user_id,run_id,manifest_id,checkpoint_id,checkpoint_name,location_label,public_url,is_public,city_name,created_at`,
       { method: "GET" }
     ),
     supabaseRequest(
@@ -188,6 +188,9 @@ export async function onRequest({ request, env }) {
       home_location: "",
       bike_name: "",
       bike_ratio: "",
+      collaboration_note: "",
+      collaboration_status: "",
+      collaboration_requested_at: null,
     },
     purchases: purchases || [],
     community_membership: sanitizeMembershipForClient(communityMembershipRows?.[0] || null),

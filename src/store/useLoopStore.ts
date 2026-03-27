@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { postJSON } from "../utils/routeUtils";
-import { API_BASE } from "../config";
 
 interface LoopState {
   loopPoint: string;
@@ -30,22 +29,108 @@ interface LoopState {
   generateLoop: (userId: string, deviceId: string, currentUsage: any, updateUsage: (u: any) => void) => Promise<void>;
 }
 
+const toRadians = (value: number) => (value * Math.PI) / 180;
+
+const haversineKm = (start: { lat: number; lng: number }, end: { lat: number; lng: number }) => {
+  const lat1 = toRadians(start.lat);
+  const lat2 = toRadians(end.lat);
+  const dLat = toRadians(end.lat - start.lat);
+  const dLng = toRadians(end.lng - start.lng);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+const buildCumulativeDistances = (points: { lat: number; lng: number }[]) => {
+  const cumulative = [0];
+  let total = 0;
+  for (let index = 1; index < points.length; index += 1) {
+    total += haversineKm(points[index - 1], points[index]);
+    cumulative.push(total);
+  }
+  return { cumulative, total };
+};
+
+const pointAtDistance = (
+  points: { lat: number; lng: number }[],
+  cumulative: number[],
+  targetDistance: number,
+) => {
+  if (!points.length) return null;
+  if (targetDistance <= 0) return points[0];
+  const total = cumulative[cumulative.length - 1] || 0;
+  if (targetDistance >= total) return points[points.length - 1];
+  let index = 1;
+  while (index < cumulative.length && cumulative[index] < targetDistance) index += 1;
+  const prevIndex = Math.max(0, index - 1);
+  const nextIndex = Math.min(points.length - 1, index);
+  const prevDistance = cumulative[prevIndex] || 0;
+  const nextDistance = cumulative[nextIndex] || prevDistance;
+  if (nextDistance <= prevDistance) return points[nextIndex];
+  const ratio = Math.min(1, Math.max(0, (targetDistance - prevDistance) / (nextDistance - prevDistance)));
+  const start = points[prevIndex];
+  const end = points[nextIndex];
+  return {
+    lat: Number((start.lat + (end.lat - start.lat) * ratio).toFixed(6)),
+    lng: Number((start.lng + (end.lng - start.lng) * ratio).toFixed(6)),
+  };
+};
+
+const sampleLoopWaypoints = (routeCoords: [number, number][], targetDistanceKm: number) => {
+  const points = routeCoords
+    .map((point) => ({ lat: Number(point[1]), lng: Number(point[0]) }))
+    .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng));
+  if (points.length < 8) return [];
+  const { cumulative, total } = buildCumulativeDistances(points);
+  const waypointCount =
+    targetDistanceKm < 6 ? 4 : targetDistanceKm < 12 ? 5 : targetDistanceKm < 20 ? 6 : targetDistanceKm < 30 ? 7 : 8;
+  const minSpacingKm = Math.max(0.45, total / (waypointCount + 3) * 0.55);
+  const minOriginDistanceKm = Math.max(0.35, targetDistanceKm * 0.06);
+  const picked: { lat: number; lng: number }[] = [];
+  const keys = new Set<string>();
+
+  for (let index = 0; index < waypointCount; index += 1) {
+    const ratio = (index + 1) / (waypointCount + 1);
+    const sample = pointAtDistance(points, cumulative, total * (0.08 + ratio * 0.82));
+    if (!sample) continue;
+    if (haversineKm(points[0], sample) < minOriginDistanceKm) continue;
+    if (picked.some((existing) => haversineKm(existing, sample) < minSpacingKm)) continue;
+    const key = `${sample.lat.toFixed(4)},${sample.lng.toFixed(4)}`;
+    if (keys.has(key)) continue;
+    keys.add(key);
+    picked.push(sample);
+  }
+
+  if (picked.length < 4) {
+    [0.18, 0.34, 0.5, 0.66, 0.82].forEach((ratio) => {
+      if (picked.length >= 4) return;
+      const sample = pointAtDistance(points, cumulative, total * ratio);
+      if (!sample) return;
+      if (haversineKm(points[0], sample) < minOriginDistanceKm) return;
+      const key = `${sample.lat.toFixed(4)},${sample.lng.toFixed(4)}`;
+      if (keys.has(key)) return;
+      keys.add(key);
+      picked.push(sample);
+    });
+  }
+
+  return picked;
+};
+
 const buildGoogleMapsLoopUrl = (
   origin: { lat: number; lng: number },
-  routeWaypoints: string[],
+  routeWaypoints: { lat: number; lng: number }[],
 ) => {
-  const cleanedWaypoints = routeWaypoints
-    .map((point) => point.replace(/^via:/, "").trim())
-    .filter(Boolean);
-  const destination = cleanedWaypoints[cleanedWaypoints.length - 1] || `${origin.lat},${origin.lng}`;
-  const waypoints = cleanedWaypoints.slice(0, -1);
   const params = new URLSearchParams();
   params.set("api", "1");
   params.set("origin", `${origin.lat},${origin.lng}`);
-  params.set("destination", destination);
+  params.set("destination", `${origin.lat},${origin.lng}`);
   params.set("travelmode", "bicycling");
   params.set("dir_action", "navigate");
-  if (waypoints.length) params.set("waypoints", waypoints.join("|"));
+  if (routeWaypoints.length) {
+    params.set("waypoints", routeWaypoints.map((point) => `via:${point.lat},${point.lng}`).join("|"));
+  }
   return `https://www.google.com/maps/dir/?${params.toString()}`;
 };
 
@@ -133,16 +218,15 @@ export const useLoopStore = create<LoopState>()(
           });
 
           const coords = loop?.features?.[0]?.geometry?.coordinates || [];
-          const sampledWaypoints = (routeCoords: [number, number][]) => {
-            if (routeCoords.length < 6) return [];
-            const ratios = [0.33, 0.66];
-            return ratios
-              .map((ratio) => routeCoords[Math.min(routeCoords.length - 1, Math.floor(routeCoords.length * ratio))])
-              .filter(Boolean)
-              .map((point) => `via:${point[1]},${point[0]}`);
-          };
-
-          const waypoints = sampledWaypoints(coords);
+          const serverWaypoints = Array.isArray(loop?.sampled_waypoints)
+            ? loop.sampled_waypoints
+                .map((point: any) => ({
+                  lat: Number(point?.lat),
+                  lng: Number(point?.lng),
+                }))
+                .filter((point: any) => Number.isFinite(point.lat) && Number.isFinite(point.lng))
+            : [];
+          const waypoints = serverWaypoints.length >= 4 ? serverWaypoints : sampleLoopWaypoints(coords, distanceKm);
           let routeUrl = "";
 
           if (waypoints.length) {
@@ -171,7 +255,10 @@ export const useLoopStore = create<LoopState>()(
                   lng: (lng2 * 180) / Math.PI,
                 };
               })
-              .map((point) => `via:${point.lat.toFixed(6)},${point.lng.toFixed(6)}`);
+              .map((point) => ({
+                lat: Number(point.lat.toFixed(6)),
+                lng: Number(point.lng.toFixed(6)),
+              }));
             routeUrl = buildGoogleMapsLoopUrl(origin, fallbackWaypoints);
           }
 

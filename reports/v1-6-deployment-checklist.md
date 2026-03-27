@@ -31,6 +31,9 @@ Phase 8 notes:
 - [ ] Fix and redeploy staging issues
 - [ ] Re-approve hosted build
 
+Phase 9 note:
+- This is now the main remaining product lane. Keep work limited to hosted page-by-page review and polish.
+
 ## Phase 10: Production cutover readiness
 - [x] Final hosted rider flow check
 - [x] Final hosted admin flow check
@@ -47,6 +50,9 @@ Phase 10 notes:
 - [x] Immediate production smoke
 - [ ] Post-launch monitoring window
 - [ ] Close deployment phase
+
+Phase 11 note:
+- Remaining work here is monitoring and hotfix response only.
 
 Phase 11 notes:
 - main root: `https://gimme-the-loop.pages.dev`

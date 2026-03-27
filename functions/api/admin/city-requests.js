@@ -109,6 +109,18 @@ export async function onRequest({ request, env }) {
     return json({ ok: true, request: rows?.[0] || null });
   }
 
+  if (String(body.action || "") === "delete") {
+    const requestId = String(body.request_id || "").trim();
+    if (!requestId) return json({ error: "request_id required" }, { status: 400 });
+
+    await supabaseRequest(env, `city_requests?id=eq.${encodeURIComponent(requestId)}`, {
+      method: "DELETE",
+      headers: { Prefer: "return=minimal" },
+    });
+
+    return json({ ok: true, deleted_id: requestId });
+  }
+
   const rows = await supabaseRequest(
     env,
     "city_requests?select=*&order=created_at.desc&limit=50",

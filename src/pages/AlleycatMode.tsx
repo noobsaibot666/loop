@@ -278,6 +278,7 @@ const AlleycatMode: React.FC = () => {
                                 location: item.label,
                                 selectedCoords: { lat: item.lat, lng: item.lng },
                               });
+                              fetchSuggestions("");
                             }}
                           >
                             {item.label}

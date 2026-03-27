@@ -77,6 +77,11 @@ Exit criteria:
 - Hosted desktop and mobile review are accepted.
 - No known staging regression remains open.
 
+Current status:
+- This is the primary remaining development lane.
+- Work here should now be page-by-page hosted review and focused polish only.
+- Core migration, deploy, cutover, and cleanup work are already complete.
+
 ---
 
 ## Phase 10: Production Cutover Readiness
@@ -127,6 +132,10 @@ Completed:
 Exit criteria:
 - Production React app is live and stable.
 - Post-launch monitoring window closes without critical blocker.
+
+Current status:
+- The React app is already live.
+- Remaining work here is monitoring and hotfix response only.
 
 Completed:
 - main root: `https://gimme-the-loop.pages.dev`
