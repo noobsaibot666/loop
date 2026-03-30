@@ -29,7 +29,8 @@ Using the same origin and destination in query-string format was collapsing into
 - Shared waypoint gate is `hasUsableLoopWaypoints(...)`.
 - `buildGoogleMapsLoopUrl(...)` returns an empty string if it receives no usable waypoints.
 - `src/utils/maps.ts` normalizes legacy query-style route URLs into path-style Google Maps directions before opening them.
-- Mobile uses same-tab navigation for map handoff so the route path is preserved more reliably.
+- Android mobile uses a reduced `api=1` directions URL with shaping waypoints so the route stays under Google Maps mobile waypoint limits.
+- iPhone route opens first try `comgooglemapsurl://` with the full path-style route, then fall back to the mobile web directions URL if the Google Maps app does not take over.
 - `functions/api/loop.js` falls back to `buildFallbackLoopWaypoints(...)` if ORS produces a weak or empty loop.
 - `functions/api/night-rides/generate.js` uses the same fallback for Night Ride loops.
 - `src/store/useLoopStore.ts` also has a client-side fallback so the UI never emits an `origin -> origin` route.
@@ -57,6 +58,7 @@ What it checks:
 3. Open both links in Google Maps.
 4. Confirm the directions sheet shows multiple destinations or `N places`, not just one start and one finish.
 5. Confirm the route is not just the same address repeated twice.
+6. On iPhone, confirm the route opens in Google Maps with multiple stops instead of Safari flattening it into a straight origin/destination ride.
 
 ## If It Breaks Again
 
