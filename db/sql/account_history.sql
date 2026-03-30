@@ -11,6 +11,9 @@ create table if not exists public.loop_history (
   surface text not null,
   vibe text not null,
   route_url text not null,
+  bike_id uuid,
+  bike_name text,
+  bike_ratio text,
   created_at timestamptz not null default now()
 );
 

@@ -50,6 +50,8 @@ export async function onRequest({ request, env }) {
   ).catch(() => []);
   const profile = profileRows?.[0] || null;
   const riderName = profile?.rider_name?.trim() ? profile.rider_name.trim().slice(0, 40) : riderLabelFromEmail(authUser?.email || "");
+  const bikeName = run?.bike_name || profile?.bike_name || null;
+  const bikeRatio = run?.bike_ratio || profile?.bike_ratio || null;
 
   const basePayload = {
     user_id: userId,
@@ -76,8 +78,8 @@ export async function onRequest({ request, env }) {
       },
       body: JSON.stringify({
         ...basePayload,
-        bike_name: profile?.bike_name || null,
-        bike_ratio: profile?.bike_ratio || null,
+        bike_name: bikeName,
+        bike_ratio: bikeRatio,
       }),
     });
   } catch {

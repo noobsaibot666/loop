@@ -3,6 +3,7 @@ export const COMMUNITY_PLAN_CODE = "discord_access";
 export const COMMUNITY_PRICE_CENTS = 500;
 export const COMMUNITY_CURRENCY = "usd";
 export const COMMUNITY_INTERVAL = "month";
+export const COMMUNITY_DISCORD_LINK_TTL_MINUTES = 15;
 
 const ACTIVE_STATUSES = new Set(["active", "trialing"]);
 
@@ -33,6 +34,7 @@ export const deriveMembershipAccessState = (membership, now = Date.now()) => {
 
 export const sanitizeMembershipForClient = (membership) => {
   if (!membership) return null;
+  const discordLinked = Boolean(membership.discord_user_id);
   return {
     user_id: membership.user_id,
     plan_code: membership.plan_code || COMMUNITY_PLAN_CODE,
@@ -45,7 +47,24 @@ export const sanitizeMembershipForClient = (membership) => {
     access_state: deriveMembershipAccessState(membership),
     access_active: isMembershipActive(membership),
     has_invite: Boolean(membership.discord_invite_url),
+    discord_linked: discordLinked,
+    discord_username: membership.discord_username || null,
+    discord_role_status: membership.discord_role_status || null,
+    discord_access_granted_at: membership.discord_access_granted_at || null,
+    discord_access_revoked_at: membership.discord_access_revoked_at || null,
+    requires_discord_link: Boolean(
+      isMembershipActive(membership) && (!discordLinked || membership.discord_role_status === "link_required")
+    ),
   };
+};
+
+export const createDiscordLinkState = () => {
+  const state =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+  const expiresAt = new Date(Date.now() + COMMUNITY_DISCORD_LINK_TTL_MINUTES * 60 * 1000).toISOString();
+  return { state, expiresAt };
 };
 
 export const buildMembershipUpsert = ({ userId, checkoutSession, subscription, inviteUrl = COMMUNITY_INVITE_URL }) => ({

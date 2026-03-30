@@ -4,6 +4,7 @@ import {
   deriveMembershipAccessState,
   isMembershipActive,
 } from "../../../shared/community-membership.js";
+import { syncDiscordMembershipAccess } from "../../../shared/discord-community.js";
 
 export async function onRequest({ request, env }) {
   if (request.method !== "POST") return json({ error: "method not allowed" }, { status: 405 });
@@ -54,9 +55,32 @@ export async function onRequest({ request, env }) {
     } catch {}
   }
 
+  if (currentMembership?.discord_user_id) {
+    currentMembership = await syncDiscordMembershipAccess({
+      env,
+      request,
+      membership: currentMembership,
+    });
+    await supabaseRequest(env, "community_memberships", {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates" },
+      body: JSON.stringify(currentMembership),
+    }).catch(() => null);
+  }
+
   const accessState = deriveMembershipAccessState(currentMembership);
   if (!isMembershipActive(currentMembership)) {
     return json({ error: "membership inactive", access_state: accessState }, { status: 403 });
+  }
+  if (!currentMembership.discord_user_id || currentMembership.discord_role_status === "link_required") {
+    return json(
+      {
+        error: "discord link required",
+        access_state: accessState,
+        requires_discord_link: true,
+      },
+      { status: 409 }
+    );
   }
 
   return json({

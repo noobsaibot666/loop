@@ -17,13 +17,14 @@ import { supabase } from "../config";
 import { useAuthStore } from "../store/useAuthStore";
 import { useCreditStore } from "../store/useCreditStore";
 import { useUIStore } from "../store/useUIStore";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { formatDuration, getJSON, postJSON } from "../utils/routeUtils";
 import { openMapsUrl } from "../utils/maps";
-import type { NightRideAccountSession } from "../types";
+import type { NightRideAccountSession, RiderBike } from "../types";
 
 type StatusTone = "success" | "error" | "info";
 type ExpandKey = "purchases" | "loops" | "hunts" | "challenges" | "crew" | "night";
+type BikeDraft = RiderBike;
 
 const CREDIT_PACKS = [
   { amount: 500, labelKey: "account.credits.topUpLane" },
@@ -33,6 +34,7 @@ const CREDIT_PACKS = [
 const RiderAccount: React.FC = () => {
   const { t, formatDate } = useI18n();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, accessToken, handleLogout } = useAuthStore();
   const { deviceId, setAuthModalOpen, setAuthMode } = useUIStore();
   const { usage, fetchUsage, fetchAccountSummary, accountSummary, isLoading } = useCreditStore();
@@ -46,6 +48,7 @@ const RiderAccount: React.FC = () => {
   });
   const [newPassword, setNewPassword] = useState("");
   const [feedback, setFeedback] = useState("");
+  const [bikes, setBikes] = useState<BikeDraft[]>([]);
   const [nightRides, setNightRides] = useState<NightRideAccountSession[]>([]);
   const [isNightLoading, setIsNightLoading] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
@@ -53,7 +56,7 @@ const RiderAccount: React.FC = () => {
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [isSendingFeedback, setIsSendingFeedback] = useState(false);
-  const [membershipBusy, setMembershipBusy] = useState<"checkout" | "invite" | "portal" | null>(null);
+  const [membershipBusy, setMembershipBusy] = useState<"checkout" | "invite" | "portal" | "connect" | null>(null);
   const [creditCheckoutAmount, setCreditCheckoutAmount] = useState<number | null>(null);
   const [statusMessage, setStatusMessage] = useState<{ tone: StatusTone; text: string } | null>(null);
   const [expanded, setExpanded] = useState<Record<ExpandKey, boolean>>({
@@ -81,7 +84,35 @@ const RiderAccount: React.FC = () => {
       bike_ratio: accountSummary.profile.bike_ratio || "",
       collaboration_note: accountSummary.profile.collaboration_note || "",
     });
+    setBikes(
+      (accountSummary.bikes || []).length
+        ? accountSummary.bikes
+        : accountSummary.profile.bike_name || accountSummary.profile.bike_ratio
+          ? [
+              {
+                id: "legacy-bike",
+                bike_name: accountSummary.profile.bike_name || "",
+                bike_ratio: accountSummary.profile.bike_ratio || "",
+                is_default: true,
+                sort_order: 0,
+              },
+            ]
+          : []
+    );
   }, [accountSummary]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const communityState = params.get("community");
+    if (!communityState) return;
+    if (communityState === "discord-linked") pushStatus("success", t("account.messages.discordLinked"));
+    if (communityState === "discord-denied") pushStatus("info", t("account.messages.discordDenied"));
+    if (communityState === "discord-expired") pushStatus("error", t("account.messages.discordExpired"));
+    if (communityState === "discord-error") pushStatus("error", t("account.messages.discordError"));
+    if (communityState === "discord-inactive") pushStatus("error", t("account.messages.discordInactive"));
+    if (accessToken) void fetchAccountSummary(accessToken);
+    navigate("/account", { replace: true });
+  }, [location.search, accessToken, fetchAccountSummary, navigate, t]);
 
   useEffect(() => {
     let ignore = false;
@@ -116,14 +147,15 @@ const RiderAccount: React.FC = () => {
 
   const membership = accountSummary?.community_membership || null;
   const isMembershipActive = Boolean(membership?.access_active || membership?.access_state === "active");
+  const discordLinked = Boolean(membership?.discord_linked);
+  const discordReady = Boolean(
+    discordLinked &&
+      (!membership?.discord_role_status ||
+        membership.discord_role_status === "granted")
+  );
   const accountName = accountSummary?.profile?.rider_name || user?.email?.split("@")[0] || "rider";
-  const greeting = usage?.is_admin ? t("account.greetingAdmin", { name: accountName }) : t("account.greeting", { name: accountName });
+  const greeting = t("account.greeting", { name: accountName });
   const accountSubtitle = user ? t("account.subtitleAuthed", { greeting }) : t("account.subtitleGuest");
-  const riderProfilePath = accountSummary?.profile?.user_id
-    ? `/rider/${encodeURIComponent(accountSummary.profile.user_id)}`
-    : user?.id
-      ? `/rider/${encodeURIComponent(user.id)}`
-      : "";
   const activity = accountSummary?.alleycat;
   const quarter = accountSummary?.quarter;
   const badges = accountSummary?.badges || [];
@@ -137,6 +169,44 @@ const RiderAccount: React.FC = () => {
   const visibleNight = expanded.night ? nightRides : nightRides.slice(0, 4);
 
   const toggleExpanded = (key: ExpandKey) => setExpanded((current) => ({ ...current, [key]: !current[key] }));
+  const normalizeBikeList = (nextBikes: BikeDraft[]) => {
+    const cleaned = nextBikes.map((bike, index) => ({
+      ...bike,
+      bike_name: bike.bike_name || "",
+      bike_ratio: bike.bike_ratio || "",
+      sort_order: index,
+    }));
+    if (!cleaned.length) return [];
+    const hasDefault = cleaned.some((bike) => bike.is_default);
+    return cleaned.map((bike, index) => ({
+      ...bike,
+      is_default: hasDefault ? bike.is_default : index === 0,
+      sort_order: index,
+    }));
+  };
+  const addBike = () =>
+    setBikes((current) =>
+      normalizeBikeList([
+        ...current,
+        {
+          id: `bike-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          bike_name: "",
+          bike_ratio: "",
+          is_default: current.length === 0,
+          sort_order: current.length,
+        },
+      ])
+    );
+  const updateBike = (bikeId: string, field: "bike_name" | "bike_ratio", value: string) =>
+    setBikes((current) =>
+      normalizeBikeList(current.map((bike) => (bike.id === bikeId ? { ...bike, [field]: value } : bike)))
+    );
+  const setDefaultBike = (bikeId: string) =>
+    setBikes((current) =>
+      normalizeBikeList(current.map((bike) => ({ ...bike, is_default: bike.id === bikeId })))
+    );
+  const removeBike = (bikeId: string) =>
+    setBikes((current) => normalizeBikeList(current.filter((bike) => bike.id !== bikeId)));
 
   const formatMoney = (amountCents: number, currency = "usd") => {
     const normalized = (currency || "usd").toUpperCase();
@@ -187,6 +257,18 @@ const RiderAccount: React.FC = () => {
     }
   };
 
+  const handleConnectDiscord = async () => {
+    try {
+      setMembershipBusy("connect");
+      const { url } = await postJSON<{ url: string }>("/api/community-membership/discord-start", {});
+      window.location.href = url;
+    } catch (error: any) {
+      pushStatus("error", error.message || t("common.requestFailed"));
+    } finally {
+      setMembershipBusy(null);
+    }
+  };
+
   const handleCreditCheckout = async (amount: number) => {
     try {
       setCreditCheckoutAmount(amount);
@@ -203,7 +285,18 @@ const RiderAccount: React.FC = () => {
     event.preventDefault();
     setIsSavingProfile(true);
     try {
-      await postJSON("/api/account/profile", profileForm);
+      const bikesToSave = bikes
+        .map((bike, index) => ({
+          ...bike,
+          bike_name: bike.bike_name.trim(),
+          bike_ratio: bike.bike_ratio.trim(),
+          sort_order: index,
+        }))
+        .filter((bike) => bike.bike_name || bike.bike_ratio);
+      await postJSON("/api/account/profile", {
+        ...profileForm,
+        bikes: bikesToSave,
+      });
       if (accessToken) await fetchAccountSummary(accessToken);
       pushStatus("success", t("account.messages.profileSaved"));
     } catch (error: any) {
@@ -262,8 +355,17 @@ const RiderAccount: React.FC = () => {
   const handleCollaborationRequest = async () => {
     setIsSubmittingCollaboration(true);
     try {
+      const bikesToSave = bikes
+        .map((bike, index) => ({
+          ...bike,
+          bike_name: bike.bike_name.trim(),
+          bike_ratio: bike.bike_ratio.trim(),
+          sort_order: index,
+        }))
+        .filter((bike) => bike.bike_name || bike.bike_ratio);
       await postJSON("/api/account/profile", {
         ...profileForm,
+        bikes: bikesToSave,
         collaboration_submit: true,
       });
       if (accessToken) await fetchAccountSummary(accessToken);
@@ -343,14 +445,6 @@ const RiderAccount: React.FC = () => {
         image={accountHero}
         actions={
           <div className="hero-actions">
-            <button
-              type="button"
-              className="ghost-button small"
-              disabled={!riderProfilePath}
-              onClick={() => riderProfilePath && navigate(riderProfilePath)}
-            >
-              {t("nav.rider")}
-            </button>
             {(usage?.is_admin || accountSummary?.is_admin) && (
               <button className="ghost-button small" onClick={() => navigate("/admin")}>
                 {t("footer.admin")}
@@ -412,28 +506,95 @@ const RiderAccount: React.FC = () => {
                     onChange={(event) => setProfileForm((current) => ({ ...current, home_location: event.target.value }))}
                   />
                 </label>
-                <label className="field">
-                  <span>{t("account.profile.bikeName")}</span>
-                  <input
-                    type="text"
-                    value={profileForm.bike_name}
-                    placeholder={t("account.profile.bikeNamePlaceholder")}
-                    onChange={(event) => setProfileForm((current) => ({ ...current, bike_name: event.target.value }))}
-                  />
-                </label>
-                <label className="field">
-                  <span>{t("account.profile.bikeRatio")}</span>
-                  <input
-                    type="text"
-                    value={profileForm.bike_ratio}
-                    placeholder={t("account.profile.bikeRatioPlaceholder")}
-                    onChange={(event) => setProfileForm((current) => ({ ...current, bike_ratio: event.target.value }))}
-                  />
-                </label>
               </div>
-              <div className="form-actions">
+              <div className="account-bike-block">
+                <div className="form-header account-inline-header">
+                  <div>
+                    <div className="section-title small-title">{t("account.profile.bikesTitle")}</div>
+                    <div className="form-subtitle">{t("account.profile.bikesSubtitle")}</div>
+                  </div>
+                  <button type="button" className="ghost-button small account-card-reset" onClick={addBike}>
+                    {t("account.profile.addBike")}
+                  </button>
+                </div>
+                <div className="account-bike-list">
+                  {bikes.map((bike, index) => (
+                    <div key={bike.id} className={`account-bike-card ${bike.is_default ? "active" : ""}`}>
+                      <div className="account-bike-head">
+                        <strong>{bike.bike_name.trim() || t("account.profile.bikeFallback", { number: index + 1 })}</strong>
+                        <div className="account-bike-actions">
+                          <button
+                            type="button"
+                            className={`ghost-button small account-card-reset ${bike.is_default ? "active" : ""}`}
+                            onClick={() => setDefaultBike(bike.id)}
+                          >
+                            {bike.is_default ? t("account.profile.defaultBike") : t("account.profile.makeDefault")}
+                          </button>
+                          <button type="button" className="ghost-button small account-card-reset" onClick={() => removeBike(bike.id)}>
+                            {t("account.profile.deleteBike")}
+                          </button>
+                        </div>
+                      </div>
+                      <div className="profile-grid">
+                        <label className="field">
+                          <span>{t("account.profile.bikeName")}</span>
+                          <input
+                            type="text"
+                            value={bike.bike_name}
+                            placeholder={t("account.profile.bikeNamePlaceholder")}
+                            onChange={(event) => updateBike(bike.id, "bike_name", event.target.value)}
+                          />
+                        </label>
+                        <label className="field">
+                          <span>{t("account.profile.bikeRatio")}</span>
+                          <input
+                            type="text"
+                            value={bike.bike_ratio}
+                            placeholder={t("account.profile.bikeRatioPlaceholder")}
+                            onChange={(event) => updateBike(bike.id, "bike_ratio", event.target.value)}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  ))}
+                  {!bikes.length ? (
+                    <div className="account-note">{t("account.profile.noBikes")}</div>
+                  ) : null}
+                </div>
+              </div>
+              <div className="form-actions account-form-actions">
                 <button type="submit" className="primary-button" disabled={isSavingProfile}>
                   {isSavingProfile ? t("account.profile.saving") : t("account.profile.save")}
+                </button>
+                <button
+                  type="button"
+                  className="ghost-button small account-card-reset"
+                  onClick={() => {
+                    setProfileForm({
+                      rider_name: accountSummary?.profile?.rider_name || "",
+                      home_location: accountSummary?.profile?.home_location || "",
+                      bike_name: accountSummary?.profile?.bike_name || "",
+                      bike_ratio: accountSummary?.profile?.bike_ratio || "",
+                      collaboration_note: accountSummary?.profile?.collaboration_note || "",
+                    });
+                    setBikes(
+                      (accountSummary?.bikes || []).length
+                        ? accountSummary?.bikes || []
+                        : accountSummary?.profile?.bike_name || accountSummary?.profile?.bike_ratio
+                          ? [
+                              {
+                                id: "legacy-bike",
+                                bike_name: accountSummary?.profile?.bike_name || "",
+                                bike_ratio: accountSummary?.profile?.bike_ratio || "",
+                                is_default: true,
+                                sort_order: 0,
+                              },
+                            ]
+                          : []
+                    );
+                  }}
+                >
+                  {t("account.common.clear")}
                 </button>
               </div>
             </form>
@@ -469,7 +630,6 @@ const RiderAccount: React.FC = () => {
                 <div className="section-title small-title">{t("account.profile.collaborationTitle")}</div>
                 <div className="form-subtitle">{t("account.profile.collaborationSubtitle")}</div>
               </div>
-              <div className="account-note">{t("account.profile.collaborationNote")}</div>
               {accountSummary?.profile?.collaboration_status === "pending" && accountSummary?.profile?.collaboration_requested_at ? (
                 <div className="account-note">
                   {t("account.profile.collaborationPending", {
@@ -477,6 +637,7 @@ const RiderAccount: React.FC = () => {
                   })}
                 </div>
               ) : null}
+              <div className="account-note">{t("account.profile.collaborationNote")}</div>
               <label className="field">
                 <span>{t("account.profile.collaborationLabel")}</span>
                 <textarea
@@ -558,6 +719,12 @@ const RiderAccount: React.FC = () => {
               </div>
             </div>
             <div className="account-note">{t("account.community.note")}</div>
+            <div className="account-community-perks">
+              <span>• {t("home.community.line1")}</span>
+              <span>• {t("home.community.line2")}</span>
+              <span>• {t("home.community.line3")}</span>
+              <span>• {t("home.community.line4")}</span>
+            </div>
             <div className="result-grid result-grid-two account-credit-grid">
               <div className="metric-group">
                 <span>{t("account.community.plan")}</span>
@@ -576,6 +743,12 @@ const RiderAccount: React.FC = () => {
                 <strong>{membership?.access_state || membership?.status || t("account.community.statusInactive")}</strong>
               </div>
             </div>
+            {discordLinked && membership?.discord_username ? (
+              <div className="account-note">{t("account.community.linkedAs", { name: membership.discord_username })}</div>
+            ) : null}
+            {isMembershipActive && !discordReady ? (
+              <div className="account-note">{t("account.community.linkNeeded")}</div>
+            ) : null}
             {membership?.current_period_end && (
               <div className="account-note">
                 {t("account.community.renews", { date: formatDate(membership.current_period_end) })}
@@ -587,7 +760,12 @@ const RiderAccount: React.FC = () => {
                   {membershipBusy === "checkout" ? t("account.community.loading") : t("account.community.action")}
                 </button>
               )}
-              {isMembershipActive && (
+              {isMembershipActive && !discordReady && (
+                <button type="button" className="primary-button" disabled={membershipBusy === "connect"} onClick={handleConnectDiscord}>
+                  {membershipBusy === "connect" ? t("account.community.connectingDiscord") : t("account.community.connectDiscord")}
+                </button>
+              )}
+              {isMembershipActive && discordReady && (
                 <button type="button" className="primary-button" disabled={membershipBusy === "invite"} onClick={handleOpenInvite}>
                   {membershipBusy === "invite" ? t("account.community.openingInvite") : t("account.community.openInvite")}
                 </button>
@@ -751,6 +929,7 @@ const RiderAccount: React.FC = () => {
                       <div>
                         <strong>{route.loop_point}</strong>
                         <span>{route.distance_km} km · {route.surface} · {route.vibe}</span>
+                        {route.bike_name ? <span>{t("common.bikeUsed")}: {route.bike_name} · {route.bike_ratio || "--"}</span> : null}
                       </div>
                       <div className="history-actions">
                         <strong>{formatDate(route.created_at)}</strong>
@@ -933,6 +1112,7 @@ const RiderAccount: React.FC = () => {
                       <div>
                         <strong>{session.title}</strong>
                         <span>{session.ride_city || t("account.common.city")} · {session.mode} · {session.distance_km} km</span>
+                        {session.bike_name ? <span>{t("common.bikeUsed")}: {session.bike_name} · {session.bike_ratio || "--"}</span> : null}
                         <span>{session.crew_name || t("account.night.noCrewNames")}</span>
                       </div>
                       <div className="history-actions">
@@ -957,7 +1137,16 @@ const RiderAccount: React.FC = () => {
                 <div className="form-title">{t("account.feedback.title")}</div>
                 <div className="form-subtitle">{t("account.feedback.subtitle")}</div>
               </div>
-              <Shield size={18} className="text-muted" />
+              <div className="account-card-head-actions">
+                <Shield size={18} className="text-muted account-card-icon" />
+                <button
+                  type="button"
+                  className="ghost-button small account-card-reset"
+                  onClick={() => setFeedback("")}
+                >
+                  {t("account.common.clear")}
+                </button>
+              </div>
             </div>
             <form className="account-stack" onSubmit={handleFeedbackSubmit}>
               <label className="field">
@@ -971,7 +1160,7 @@ const RiderAccount: React.FC = () => {
               <div className="account-note">
                 {t("account.feedback.wordCount", { count: (feedback.trim().match(/\S+/g) || []).length })}
               </div>
-              <div className="form-actions">
+              <div className="form-actions account-form-actions">
                 <button type="submit" className="primary-button" disabled={isSendingFeedback}>
                   {isSendingFeedback ? t("account.feedback.sending") : t("account.feedback.send")}
                 </button>

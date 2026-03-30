@@ -51,7 +51,7 @@ const consumeNightRideCredit = async (env, user, sessionType = "single") => {
 const findProfile = async (env, userId) => {
   const rows = await supabaseRequest(
     env,
-    `user_profiles?user_id=eq.${encodeURIComponent(userId)}&select=rider_name`,
+    `user_profiles?user_id=eq.${encodeURIComponent(userId)}&select=rider_name,primary_bike_id,bike_name,bike_ratio`,
     { method: "GET" }
   ).catch(() => []);
   return rows?.[0] || null;
@@ -72,6 +72,7 @@ export async function onRequest({ request, env }) {
   const destinationLabel = String(body.destination_label || "").trim();
   const crewName = String(body.crew_name || "").trim().slice(0, 80);
   const rideCity = String(body.ride_city || "").trim().slice(0, 80);
+  const selectedBikeId = String(body.bike_id || "").trim();
   const crewMembers = sanitizeCrewMembers(body.crew_members);
   const start = {
     lat: Number(body.origin_lat),
@@ -171,6 +172,22 @@ export async function onRequest({ request, env }) {
   if (!creditResult.ok) return json({ error: creditResult.error }, { status: 402 });
 
   const profile = await findProfile(env, user.id);
+  let selectedBike = null;
+  if (selectedBikeId) {
+    const bikeRows = await supabaseRequest(
+      env,
+      `user_bikes?user_id=eq.${encodeURIComponent(user.id)}&id=eq.${encodeURIComponent(selectedBikeId)}&select=id,bike_name,bike_ratio&limit=1`,
+      { method: "GET" }
+    ).catch(() => []);
+    selectedBike = bikeRows?.[0] || null;
+  }
+  if (!selectedBike && profile?.primary_bike_id) {
+    selectedBike = {
+      id: profile.primary_bike_id,
+      bike_name: profile.bike_name || null,
+      bike_ratio: profile.bike_ratio || null,
+    };
+  }
   let shareCode = createNightRideCode();
   for (let attempt = 0; attempt < 4; attempt += 1) {
     const existing = await supabaseRequest(
@@ -182,36 +199,73 @@ export async function onRequest({ request, env }) {
     shareCode = createNightRideCode();
   }
 
-  const rows = await supabaseRequest(env, "night_ride_sessions", {
-    method: "POST",
-    headers: {
-      Prefer: "return=representation",
-    },
-    body: JSON.stringify({
-      creator_user_id: user.id,
-      creator_email: user.email || "",
-      creator_rider_name: profile?.rider_name?.trim() || riderLabelFromEmail(user.email || ""),
-      session_type: sessionType,
-      mode,
-      title,
-      difficulty,
-      unit,
-      distance_km: Number(distanceKm.toFixed(2)),
-      ride_city: rideCity || null,
-      crew_name: sessionType === "crew" ? crewName : null,
-      crew_members: crewMembers,
-      origin_label: originLabel,
-      origin_lat: start.lat,
-      origin_lng: start.lng,
-      destination_label: mode === "roulette" ? destinationLabel : null,
-      destination_lat: mode === "roulette" ? end.lat : null,
-      destination_lng: mode === "roulette" ? end.lng : null,
-      share_code: shareCode,
-      route_url: routeUrl,
-      route_payload: routePayload || {},
-      status: "open",
-    }),
-  });
+  let rows;
+  try {
+    rows = await supabaseRequest(env, "night_ride_sessions", {
+      method: "POST",
+      headers: {
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify({
+        creator_user_id: user.id,
+        creator_email: user.email || "",
+        creator_rider_name: profile?.rider_name?.trim() || riderLabelFromEmail(user.email || ""),
+        session_type: sessionType,
+        mode,
+        title,
+        difficulty,
+        unit,
+        distance_km: Number(distanceKm.toFixed(2)),
+        bike_id: selectedBike?.id || null,
+        bike_name: selectedBike?.bike_name || null,
+        bike_ratio: selectedBike?.bike_ratio || null,
+        ride_city: rideCity || null,
+        crew_name: sessionType === "crew" ? crewName : null,
+        crew_members: crewMembers,
+        origin_label: originLabel,
+        origin_lat: start.lat,
+        origin_lng: start.lng,
+        destination_label: mode === "roulette" ? destinationLabel : null,
+        destination_lat: mode === "roulette" ? end.lat : null,
+        destination_lng: mode === "roulette" ? end.lng : null,
+        share_code: shareCode,
+        route_url: routeUrl,
+        route_payload: routePayload || {},
+        status: "open",
+      }),
+    });
+  } catch {
+    rows = await supabaseRequest(env, "night_ride_sessions", {
+      method: "POST",
+      headers: {
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify({
+        creator_user_id: user.id,
+        creator_email: user.email || "",
+        creator_rider_name: profile?.rider_name?.trim() || riderLabelFromEmail(user.email || ""),
+        session_type: sessionType,
+        mode,
+        title,
+        difficulty,
+        unit,
+        distance_km: Number(distanceKm.toFixed(2)),
+        ride_city: rideCity || null,
+        crew_name: sessionType === "crew" ? crewName : null,
+        crew_members: crewMembers,
+        origin_label: originLabel,
+        origin_lat: start.lat,
+        origin_lng: start.lng,
+        destination_label: mode === "roulette" ? destinationLabel : null,
+        destination_lat: mode === "roulette" ? end.lat : null,
+        destination_lng: mode === "roulette" ? end.lng : null,
+        share_code: shareCode,
+        route_url: routeUrl,
+        route_payload: routePayload || {},
+        status: "open",
+      }),
+    });
+  }
 
   const session = rows?.[0] || null;
   if (session?.id) {

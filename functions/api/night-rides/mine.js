@@ -7,7 +7,7 @@ export async function onRequest({ request, env }) {
 
   const owned = await supabaseRequest(
     env,
-    `night_ride_sessions?creator_user_id=eq.${encodeURIComponent(user.id)}&select=id,title,session_type,mode,difficulty,distance_km,ride_city,crew_name,crew_members,created_at&order=created_at.desc&limit=8`,
+    `night_ride_sessions?creator_user_id=eq.${encodeURIComponent(user.id)}&select=id,title,session_type,mode,difficulty,distance_km,bike_id,bike_name,bike_ratio,ride_city,crew_name,crew_members,created_at&order=created_at.desc&limit=8`,
     { method: "GET" }
   ).catch(() => []);
 
@@ -20,7 +20,7 @@ export async function onRequest({ request, env }) {
   const joinedSessions = joinedIds.length
     ? await supabaseRequest(
         env,
-        `night_ride_sessions?id=in.(${joinedIds.map((id) => encodeURIComponent(id)).join(",")})&select=id,title,session_type,mode,difficulty,distance_km,ride_city,crew_name,crew_members,created_at`,
+        `night_ride_sessions?id=in.(${joinedIds.map((id) => encodeURIComponent(id)).join(",")})&select=id,title,session_type,mode,difficulty,distance_km,bike_id,bike_name,bike_ratio,ride_city,crew_name,crew_members,created_at`,
         { method: "GET" }
       ).catch(() => [])
     : [];

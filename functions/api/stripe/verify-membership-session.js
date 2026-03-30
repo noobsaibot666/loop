@@ -6,6 +6,7 @@ import {
   deriveMembershipAccessState,
   sanitizeMembershipForClient,
 } from "../../../shared/community-membership.js";
+import { syncDiscordMembershipAccess } from "../../../shared/discord-community.js";
 
 export async function onRequest({ request, env }) {
   if (request.method !== "POST") return json({ error: "method not allowed" }, { status: 405 });
@@ -45,17 +46,35 @@ export async function onRequest({ request, env }) {
     subscription,
   });
 
+  const existingRows = await supabaseRequest(
+    env,
+    `community_memberships?user_id=eq.${encodeURIComponent(authUser.id)}&select=*&limit=1`,
+    { method: "GET" }
+  ).catch(() => []);
+  let mergedMembership = {
+    ...(existingRows?.[0] || {}),
+    ...membership,
+  };
+
+  if (mergedMembership.discord_user_id) {
+    mergedMembership = await syncDiscordMembershipAccess({
+      env,
+      request,
+      membership: mergedMembership,
+    });
+  }
+
   await supabaseRequest(env, "community_memberships", {
     method: "POST",
     headers: { Prefer: "resolution=merge-duplicates" },
-    body: JSON.stringify(membership),
+    body: JSON.stringify(mergedMembership),
   });
 
   return json({
     ok: true,
     activated: true,
-    status: membership.status || "active",
-    access_state: deriveMembershipAccessState(membership),
-    community_membership: sanitizeMembershipForClient(membership),
+    status: mergedMembership.status || "active",
+    access_state: deriveMembershipAccessState(mergedMembership),
+    community_membership: sanitizeMembershipForClient(mergedMembership),
   });
 }

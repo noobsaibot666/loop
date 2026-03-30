@@ -57,25 +57,51 @@ export async function onRequest({ request, env }) {
   const profile = await findProfile(env, user.id);
   const riderName = profile?.rider_name?.trim() || riderLabelFromEmail(user.email || "");
 
-  const rows = await supabaseRequest(env, "night_ride_posts", {
-    method: "POST",
-    headers: { Prefer: "return=representation" },
-    body: JSON.stringify({
-      session_id: session.id,
-      user_id: user.id,
-      rider_name: riderName,
-      crew_name: session.crew_name || null,
-      city_name: session.ride_city || null,
-      route_title: session.title || null,
-      distance_km: session.distance_km ?? null,
-      caption: caption || null,
-      storage_path: storagePath,
-      image_url: imageUrl,
-      aspect_ratio: aspectRatio,
-      is_public: isPublic,
-      moderation_status: "pending",
-    }),
-  });
+  let rows;
+  try {
+    rows = await supabaseRequest(env, "night_ride_posts", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({
+        session_id: session.id,
+        user_id: user.id,
+        rider_name: riderName,
+        crew_name: session.crew_name || null,
+        city_name: session.ride_city || null,
+        route_title: session.title || null,
+        distance_km: session.distance_km ?? null,
+        bike_id: session.bike_id || null,
+        bike_name: session.bike_name || null,
+        bike_ratio: session.bike_ratio || null,
+        caption: caption || null,
+        storage_path: storagePath,
+        image_url: imageUrl,
+        aspect_ratio: aspectRatio,
+        is_public: isPublic,
+        moderation_status: "pending",
+      }),
+    });
+  } catch {
+    rows = await supabaseRequest(env, "night_ride_posts", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({
+        session_id: session.id,
+        user_id: user.id,
+        rider_name: riderName,
+        crew_name: session.crew_name || null,
+        city_name: session.ride_city || null,
+        route_title: session.title || null,
+        distance_km: session.distance_km ?? null,
+        caption: caption || null,
+        storage_path: storagePath,
+        image_url: imageUrl,
+        aspect_ratio: aspectRatio,
+        is_public: isPublic,
+        moderation_status: "pending",
+      }),
+    });
+  }
 
   return json({ ok: true, post: rows?.[0] || null });
 }

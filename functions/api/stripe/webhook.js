@@ -5,6 +5,7 @@ import {
   COMMUNITY_PLAN_CODE,
   COMMUNITY_PRICE_CENTS,
 } from "../../../shared/community-membership.js";
+import { syncDiscordMembershipAccess } from "../../../shared/discord-community.js";
 
 const textBuffer = async (request) => {
   const buf = await request.arrayBuffer();
@@ -36,7 +37,7 @@ const updateMembershipBySubscription = async (env, subscription, overrides = {})
   if (!subscriptionId) return;
   const rows = await supabaseRequest(
     env,
-    `community_memberships?stripe_subscription_id=eq.${encodeURIComponent(subscriptionId)}&select=user_id,stripe_checkout_session_id`,
+    `community_memberships?stripe_subscription_id=eq.${encodeURIComponent(subscriptionId)}&select=*`,
     { method: "GET" }
   ).catch(() => []);
   const current = rows?.[0];
@@ -54,17 +55,25 @@ const updateMembershipBySubscription = async (env, subscription, overrides = {})
     },
     subscription,
   });
+  let nextMembership = {
+    ...(current || {}),
+    ...membership,
+    ...overrides,
+    user_id: current.user_id,
+    stripe_subscription_id: subscriptionId,
+    stripe_checkout_session_id: current.stripe_checkout_session_id || membership.stripe_checkout_session_id,
+    price_cents: overrides.price_cents ?? membership.price_cents ?? COMMUNITY_PRICE_CENTS,
+  };
+  if (nextMembership.discord_user_id) {
+    nextMembership = await syncDiscordMembershipAccess({
+      env,
+      membership: nextMembership,
+    });
+  }
   await supabaseRequest(env, "community_memberships", {
     method: "POST",
     headers: { Prefer: "resolution=merge-duplicates" },
-    body: JSON.stringify({
-      ...membership,
-      ...overrides,
-      user_id: current.user_id,
-      stripe_subscription_id: subscriptionId,
-      stripe_checkout_session_id: current.stripe_checkout_session_id || membership.stripe_checkout_session_id,
-      price_cents: overrides.price_cents ?? membership.price_cents ?? COMMUNITY_PRICE_CENTS,
-    }),
+    body: JSON.stringify(nextMembership),
   }).catch(() => null);
 };
 
@@ -132,10 +141,25 @@ export async function onRequest({ request, env }) {
         checkoutSession: session,
         subscription,
       });
+      const existingRows = await supabaseRequest(
+        env,
+        `community_memberships?user_id=eq.${encodeURIComponent(user_id)}&select=*&limit=1`,
+        { method: "GET" }
+      ).catch(() => []);
+      let mergedMembership = {
+        ...(existingRows?.[0] || {}),
+        ...membership,
+      };
+      if (mergedMembership.discord_user_id) {
+        mergedMembership = await syncDiscordMembershipAccess({
+          env,
+          membership: mergedMembership,
+        });
+      }
       await supabaseRequest(env, "community_memberships", {
         method: "POST",
         headers: { Prefer: "resolution=merge-duplicates" },
-        body: JSON.stringify(membership),
+        body: JSON.stringify(mergedMembership),
       }).catch(() => null);
       return json({ received: true });
     }

@@ -24,10 +24,33 @@ const LoopBuilder: React.FC = () => {
     generateLoop
   } = useLoopStore();
 
-  const { user } = useAuthStore();
+  const { user, accessToken } = useAuthStore();
   const { deviceId } = useUIStore();
-  const { usage, updateUsage } = useCreditStore();
+  const { usage, updateUsage, accountSummary, fetchAccountSummary } = useCreditStore();
   const suggestionShellRef = useRef<HTMLDivElement | null>(null);
+  const [selectedBikeId, setSelectedBikeId] = React.useState<string>("");
+
+  useEffect(() => {
+    if (!accessToken || accountSummary) return;
+    void fetchAccountSummary(accessToken);
+  }, [accessToken, accountSummary, fetchAccountSummary]);
+
+  const riderBikes = accountSummary?.bikes || [];
+  const selectedBike =
+    riderBikes.find((bike) => bike.id === selectedBikeId) ||
+    riderBikes.find((bike) => bike.is_default) ||
+    riderBikes[0] ||
+    null;
+
+  useEffect(() => {
+    if (!riderBikes.length) {
+      setSelectedBikeId("");
+      return;
+    }
+    if (!selectedBikeId || !riderBikes.some((bike) => bike.id === selectedBikeId)) {
+      setSelectedBikeId((riderBikes.find((bike) => bike.is_default) || riderBikes[0]).id);
+    }
+  }, [riderBikes, selectedBikeId]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -62,7 +85,13 @@ const LoopBuilder: React.FC = () => {
       useUIStore.getState().setAuthModalOpen(true);
       return;
     }
-    generateLoop(user.id, deviceId, usage || { free_remaining: 0, credits_remaining: 0, unlimited_credits: false }, updateUsage);
+    generateLoop(
+      user.id,
+      deviceId,
+      usage || { free_remaining: 0, credits_remaining: 0, unlimited_credits: false },
+      updateUsage,
+      selectedBike,
+    );
   };
 
   const handleCopy = async () => {
@@ -188,6 +217,25 @@ const LoopBuilder: React.FC = () => {
               </div>
 
               <div className="form-section section-block">
+                <label className="field">
+                  <span>{t("common.bikeInUse")}</span>
+                  {riderBikes.length > 1 ? (
+                    <select value={selectedBikeId} onChange={(event) => setSelectedBikeId(event.target.value)}>
+                      {riderBikes.map((bike) => (
+                        <option key={bike.id} value={bike.id}>
+                          {bike.bike_name} · {bike.bike_ratio}
+                        </option>
+                      ))}
+                    </select>
+                  ) : riderBikes.length === 1 ? (
+                    <div className="account-note">
+                      {t("common.standardBike")}: {riderBikes[0].bike_name} · {riderBikes[0].bike_ratio}
+                    </div>
+                  ) : (
+                    <div className="account-note">{t("common.noBikeSaved")}</div>
+                  )}
+                </label>
+
                 <label className="field range-field">
                   <span>{t("loop.distance")}</span>
                   <div className="pill-group range-unit-toggle builder-option-grid builder-option-grid-2 loop-unit-toggle">

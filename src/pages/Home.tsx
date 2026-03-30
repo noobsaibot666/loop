@@ -26,7 +26,7 @@ const Home: React.FC = () => {
   const { accountSummary, fetchAccountSummary } = useCreditStore();
   const { setAuthModalOpen, setAuthMode } = useUIStore();
   const [communityModalOpen, setCommunityModalOpen] = React.useState(false);
-  const [communityBusy, setCommunityBusy] = React.useState<"checkout" | "invite" | null>(null);
+  const [communityBusy, setCommunityBusy] = React.useState<"checkout" | "invite" | "connect" | null>(null);
   const [communityError, setCommunityError] = React.useState("");
   const activateCard = (path: string) => ({
     onClick: () => navigate(path),
@@ -107,6 +107,10 @@ const Home: React.FC = () => {
 
   const membership = accountSummary?.community_membership || null;
   const communityActive = Boolean(membership?.access_active);
+  const discordReady = Boolean(
+    membership?.discord_linked &&
+      (!membership?.discord_role_status || membership?.discord_role_status === "granted")
+  );
 
   const formatMoney = React.useCallback((amountCents: number, currency = "usd") => {
     const normalized = (currency || "usd").toUpperCase();
@@ -137,9 +141,15 @@ const Home: React.FC = () => {
     try {
       setCommunityError("");
       if (communityActive) {
-        setCommunityBusy("invite");
-        const { url } = await postJSON<{ url: string }>("/api/community-membership/access", {});
-        window.open(url, "_blank", "noopener,noreferrer");
+        if (discordReady) {
+          setCommunityBusy("invite");
+          const { url } = await postJSON<{ url: string }>("/api/community-membership/access", {});
+          window.open(url, "_blank", "noopener,noreferrer");
+        } else {
+          setCommunityBusy("connect");
+          const { url } = await postJSON<{ url: string }>("/api/community-membership/discord-start", {});
+          window.location.href = url;
+        }
         return;
       }
 
@@ -238,6 +248,13 @@ const Home: React.FC = () => {
           >
             <span>{t("home.community.action")}</span>
           </button>
+          <button
+            type="button"
+            className="text-link-button home-community-about"
+            onClick={() => navigate("/community")}
+          >
+            <span>{t("home.community.aboutAction")}</span>
+          </button>
           <div className="home-community-brand-footer" aria-hidden="true">
             <img className="home-community-brand-mark home-community-brand-mark-large" src={discordLogo} alt="" />
           </div>
@@ -307,9 +324,13 @@ const Home: React.FC = () => {
                   {!user
                     ? t("nav.logIn")
                     : communityActive
-                      ? communityBusy === "invite"
-                        ? t("account.community.openingInvite")
-                        : t("account.community.openInvite")
+                      ? discordReady
+                        ? communityBusy === "invite"
+                          ? t("account.community.openingInvite")
+                          : t("account.community.openInvite")
+                        : communityBusy === "connect"
+                          ? t("account.community.connectingDiscord")
+                          : t("account.community.connectDiscord")
                       : communityBusy === "checkout"
                         ? t("account.community.loading")
                         : t("account.community.action")}

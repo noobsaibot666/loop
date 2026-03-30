@@ -8,10 +8,15 @@ export async function onRequest({ request, env }) {
   if (!user?.id) return json({ error: "login required" }, { status: 401 });
 
   const quarter = getQuarterWindow();
-  const [profileRows, stripePurchases, mobilePurchases, loopHistory, manifests, runs, challengeEntries, proofs, quarterProofs, quarterRuns, communityMembershipRows] = await Promise.all([
+  const [profileRows, bikeRows, stripePurchases, mobilePurchases, loopHistory, manifests, runs, challengeEntries, proofs, quarterProofs, quarterRuns, communityMembershipRows] = await Promise.all([
     supabaseRequest(
       env,
-      `user_profiles?user_id=eq.${encodeURIComponent(user.id)}&select=user_id,rider_name,home_location,bike_name,bike_ratio,collaboration_note,collaboration_status,collaboration_requested_at`,
+      `user_profiles?user_id=eq.${encodeURIComponent(user.id)}&select=user_id,rider_name,home_location,primary_bike_id,bike_name,bike_ratio,collaboration_note,collaboration_status,collaboration_requested_at`,
+      { method: "GET" }
+    ).catch(() => []),
+    supabaseRequest(
+      env,
+      `user_bikes?user_id=eq.${encodeURIComponent(user.id)}&select=id,bike_name,bike_ratio,is_default,sort_order&order=sort_order.asc,created_at.asc`,
       { method: "GET" }
     ).catch(() => []),
     supabaseRequest(
@@ -26,7 +31,7 @@ export async function onRequest({ request, env }) {
     ).catch(() => []),
     supabaseRequest(
       env,
-      `loop_history?user_id=eq.${encodeURIComponent(user.id)}&select=id,loop_point,distance_km,unit,terrain,surface,vibe,route_url,created_at&order=created_at.desc&limit=8`,
+      `loop_history?user_id=eq.${encodeURIComponent(user.id)}&select=id,loop_point,distance_km,unit,terrain,surface,vibe,route_url,bike_id,bike_name,bike_ratio,created_at&order=created_at.desc&limit=8`,
       { method: "GET" }
     ),
     supabaseRequest(
@@ -36,7 +41,7 @@ export async function onRequest({ request, env }) {
     ),
     supabaseRequest(
       env,
-      `messenger_runs?user_id=eq.${encodeURIComponent(user.id)}&select=id,user_id,manifest_id,status,finish_seconds,finished_at,started_at`,
+      `messenger_runs?user_id=eq.${encodeURIComponent(user.id)}&select=id,user_id,manifest_id,status,finish_seconds,finished_at,started_at,bike_id,bike_name,bike_ratio`,
       { method: "GET" }
     ),
     supabaseRequest(
@@ -61,7 +66,7 @@ export async function onRequest({ request, env }) {
     ),
     supabaseRequest(
       env,
-      `community_memberships?user_id=eq.${encodeURIComponent(user.id)}&select=user_id,plan_code,status,price_cents,currency,interval,current_period_end,cancel_at_period_end,discord_invite_url&limit=1`,
+      `community_memberships?user_id=eq.${encodeURIComponent(user.id)}&select=user_id,plan_code,status,price_cents,currency,interval,current_period_end,cancel_at_period_end,discord_invite_url,discord_user_id,discord_username,discord_role_status,discord_access_granted_at,discord_access_revoked_at&limit=1`,
       { method: "GET" }
     ).catch(() => []),
   ]);
@@ -180,18 +185,39 @@ export async function onRequest({ request, env }) {
     })),
   });
   const userQuarterRank = quarterLeaderboard.find((entry) => entry.user_id === user.id)?.rank || null;
+  const bikes = (bikeRows || []).map((bike, index) => ({
+    id: bike.id,
+    bike_name: bike.bike_name || "",
+    bike_ratio: bike.bike_ratio || "",
+    is_default: Boolean(
+      bike.is_default ||
+        (profileRows?.[0]?.primary_bike_id && bike.id === profileRows[0].primary_bike_id) ||
+        (!bikeRows?.some((entry) => entry.is_default) && index === 0)
+    ),
+    sort_order: Number(bike.sort_order || index),
+  }));
+  const defaultBike = bikes.find((bike) => bike.is_default) || bikes[0] || null;
 
   return json({
-    profile: profileRows?.[0] || {
-      user_id: user.id,
-      rider_name: "",
-      home_location: "",
-      bike_name: "",
-      bike_ratio: "",
-      collaboration_note: "",
-      collaboration_status: "",
-      collaboration_requested_at: null,
-    },
+    profile: profileRows?.[0]
+      ? {
+          ...profileRows[0],
+          primary_bike_id: profileRows[0].primary_bike_id || defaultBike?.id || null,
+          bike_name: defaultBike?.bike_name || profileRows[0].bike_name || "",
+          bike_ratio: defaultBike?.bike_ratio || profileRows[0].bike_ratio || "",
+        }
+      : {
+          user_id: user.id,
+          rider_name: "",
+          home_location: "",
+          primary_bike_id: defaultBike?.id || null,
+          bike_name: defaultBike?.bike_name || "",
+          bike_ratio: defaultBike?.bike_ratio || "",
+          collaboration_note: "",
+          collaboration_status: "",
+          collaboration_requested_at: null,
+        },
+    bikes,
     purchases: purchases || [],
     community_membership: sanitizeMembershipForClient(communityMembershipRows?.[0] || null),
     alleycat: {

@@ -202,7 +202,13 @@ interface LoopState {
   setLastRouteUrl: (url: string) => void;
   
   fetchSuggestions: (text: string) => Promise<void>;
-  generateLoop: (userId: string, deviceId: string, currentUsage: any, updateUsage: (u: any) => void) => Promise<void>;
+  generateLoop: (
+    userId: string,
+    deviceId: string,
+    currentUsage: any,
+    updateUsage: (u: any) => void,
+    selectedBike?: { id?: string | null; bike_name?: string | null; bike_ratio?: string | null } | null,
+  ) => Promise<void>;
 }
 
 export const useLoopStore = create<LoopState>()(
@@ -252,7 +258,7 @@ export const useLoopStore = create<LoopState>()(
         }
       },
 
-      generateLoop: async (userId, deviceId, currentUsage, updateUsage) => {
+      generateLoop: async (userId, deviceId, currentUsage, updateUsage, selectedBike) => {
         const { loopPoint, distance, unit, terrain, surface, vibe, selectedCoords } = get() as any;
         set({ isGenerating: true, statusMessage: "" });
         
@@ -353,6 +359,9 @@ export const useLoopStore = create<LoopState>()(
             surface,
             vibe,
             route_url: routeUrl,
+            bike_id: selectedBike?.id || null,
+            bike_name: selectedBike?.bike_name || null,
+            bike_ratio: selectedBike?.bike_ratio || null,
           });
         } catch (e) {
           const message = e instanceof Error ? e.message : "";

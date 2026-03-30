@@ -12,6 +12,15 @@ create table if not exists public.community_memberships (
   currency text not null default 'usd',
   interval text not null default 'month',
   discord_invite_url text,
+  discord_user_id text,
+  discord_username text,
+  discord_linked_at timestamptz,
+  discord_role_status text,
+  discord_access_granted_at timestamptz,
+  discord_access_revoked_at timestamptz,
+  discord_link_state text,
+  discord_link_state_expires_at timestamptz,
+  discord_last_error text,
   current_period_start timestamptz,
   current_period_end timestamptz,
   cancel_at_period_end boolean not null default false,
@@ -24,6 +33,14 @@ create index if not exists community_memberships_status_idx
 
 create index if not exists community_memberships_period_end_idx
   on public.community_memberships(current_period_end desc);
+
+create unique index if not exists community_memberships_discord_user_uidx
+  on public.community_memberships(discord_user_id)
+  where discord_user_id is not null;
+
+create index if not exists community_memberships_discord_link_state_idx
+  on public.community_memberships(discord_link_state)
+  where discord_link_state is not null;
 
 create or replace function public.set_updated_at()
 returns trigger as $$

@@ -51,7 +51,7 @@ interface AlleycatState {
 
   // API Actions
   generateManifest: (userId: string) => Promise<void>;
-  startRun: (manifestId: string) => Promise<void>;
+  startRun: (manifestId: string, bikeId?: string | null) => Promise<void>;
   checkIn: (checkpointId: string) => Promise<void>;
   finishRun: () => Promise<void>;
   abandonRun: () => Promise<void>;
@@ -183,9 +183,12 @@ export const useAlleycatStore = create<AlleycatState>()(
         }
       },
 
-      startRun: async (manifestId) => {
+      startRun: async (manifestId, bikeId) => {
         try {
-          const data = await postJSON<any>("/api/messenger/start", { manifest_id: manifestId });
+          const data = await postJSON<any>("/api/messenger/start", {
+            manifest_id: manifestId,
+            bike_id: bikeId || null,
+          });
           set({ 
             run: {
               runId: data.run_id,
@@ -196,6 +199,9 @@ export const useAlleycatStore = create<AlleycatState>()(
               finishedAt: null,
               status: "active",
               proofs: [],
+              bike_id: data.bike_id || null,
+              bike_name: data.bike_name || null,
+              bike_ratio: data.bike_ratio || null,
             },
             status: "alleycat.status.clockLive" 
           });
@@ -277,6 +283,9 @@ export const useAlleycatStore = create<AlleycatState>()(
               finishedAt: null,
               status: data.run.status,
               proofs: [],
+              bike_id: data.run.bike_id || null,
+              bike_name: data.run.bike_name || null,
+              bike_ratio: data.run.bike_ratio || null,
             },
             status: "alleycat.status.restarted"
           });
@@ -447,6 +456,9 @@ export const useAlleycatStore = create<AlleycatState>()(
               finishedAt: data.run.finished_at,
               status: data.run.status,
               proofs: data.proofs || [],
+              bike_id: data.run.bike_id || null,
+              bike_name: data.run.bike_name || null,
+              bike_ratio: data.run.bike_ratio || null,
             },
           });
         } catch {}

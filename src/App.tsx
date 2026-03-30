@@ -21,6 +21,7 @@ const routeModuleLoaders = {
   HowToPage: () => import("./pages/HowToPage"),
   PrivacyPage: () => import("./pages/PrivacyPage"),
   CoffeePage: () => import("./pages/CoffeePage"),
+  CommunityAccessPage: () => import("./pages/CommunityAccessPage"),
 } as const;
 
 const Home = lazy(routeModuleLoaders.Home);
@@ -36,6 +37,7 @@ const AdminDashboard = lazy(routeModuleLoaders.AdminDashboard);
 const HowToPage = lazy(routeModuleLoaders.HowToPage);
 const PrivacyPage = lazy(routeModuleLoaders.PrivacyPage);
 const CoffeePage = lazy(routeModuleLoaders.CoffeePage);
+const CommunityAccessPage = lazy(routeModuleLoaders.CommunityAccessPage);
 
 const preloadRouteModules = () =>
   Promise.allSettled(Object.values(routeModuleLoaders).map((loadRoute) => loadRoute()));
@@ -123,6 +125,7 @@ const App: React.FC = () => {
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/terms" element={<Navigate to="/privacy" replace />} />
             <Route path="/coffee" element={<CoffeePage />} />
+            <Route path="/community" element={<CommunityAccessPage />} />
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>

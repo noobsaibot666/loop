@@ -25,6 +25,9 @@ export async function onRequest({ request, env }) {
       started_at: run.started_at,
       finished_at: run.finished_at,
       finish_seconds: run.finish_seconds,
+      bike_id: run.bike_id || null,
+      bike_name: run.bike_name || null,
+      bike_ratio: run.bike_ratio || null,
       completed_ids: checkins.map((row) => row.checkpoint_id),
       checkins: checkins.map((row) => ({
         checkpoint_id: row.checkpoint_id,

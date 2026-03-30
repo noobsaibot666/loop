@@ -47,6 +47,7 @@ import {
 import {
   buildMembershipUpsert,
   COMMUNITY_CURRENCY,
+  createDiscordLinkState,
   COMMUNITY_INTERVAL,
   COMMUNITY_INVITE_URL,
   COMMUNITY_PLAN_CODE,
@@ -56,6 +57,16 @@ import {
   sanitizeMembershipForClient,
   toIsoOrNull,
 } from "../shared/community-membership.js";
+import {
+  addDiscordRole,
+  buildDiscordAuthorizeUrl,
+  exchangeDiscordCode,
+  formatDiscordUsername,
+  getDiscordConfig,
+  getDiscordUser,
+  joinDiscordGuild,
+  syncDiscordMembershipAccess,
+} from "../shared/discord-community.js";
 
 const app = express();
 const PORT = process.env.PORT || 8787;
@@ -307,9 +318,22 @@ app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async
           subscription = await stripe.subscriptions.retrieve(session.subscription);
         } catch {}
       }
+      const { data: existingMembership } = await safeMaybeSingle(
+        supabase.from("community_memberships").select("*").eq("user_id", user_id)
+      );
+      let nextMembership = {
+        ...(existingMembership || {}),
+        ...buildMembershipUpsert({ userId: user_id, checkoutSession: session, subscription }),
+      };
+      if (nextMembership.discord_user_id) {
+        nextMembership = await syncDiscordMembershipAccess({
+          env: process.env,
+          membership: nextMembership,
+        });
+      }
       await supabase
         .from("community_memberships")
-        .upsert(buildMembershipUpsert({ userId: user_id, checkoutSession: session, subscription }), { onConflict: "user_id" });
+        .upsert(nextMembership, { onConflict: "user_id" });
       return res.json({ received: true });
     }
 
@@ -359,32 +383,37 @@ app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async
     const { data: membership } = await safeMaybeSingle(
       supabase
         .from("community_memberships")
-        .select("user_id, stripe_checkout_session_id")
+        .select("*")
         .eq("stripe_subscription_id", subscription.id)
     );
     if (membership?.user_id) {
+      let nextMembership = {
+        ...membership,
+        ...buildMembershipUpsert({
+          userId: membership.user_id,
+          checkoutSession: {
+            id: membership.stripe_checkout_session_id || null,
+            customer: subscription.customer || null,
+            subscription: subscription.id,
+            metadata: {
+              plan_code: subscription?.metadata?.plan_code || COMMUNITY_PLAN_CODE,
+              discord_invite_url: subscription?.metadata?.discord_invite_url || COMMUNITY_INVITE_URL,
+            },
+          },
+          subscription,
+        }),
+        status: event.type === "customer.subscription.deleted" ? "canceled" : subscription.status || "active",
+        cancel_at_period_end: event.type === "customer.subscription.deleted" ? false : Boolean(subscription.cancel_at_period_end),
+      };
+      if (nextMembership.discord_user_id) {
+        nextMembership = await syncDiscordMembershipAccess({
+          env: process.env,
+          membership: nextMembership,
+        });
+      }
       await supabase
         .from("community_memberships")
-        .upsert(
-          {
-            ...buildMembershipUpsert({
-              userId: membership.user_id,
-              checkoutSession: {
-                id: membership.stripe_checkout_session_id || null,
-                customer: subscription.customer || null,
-                subscription: subscription.id,
-                metadata: {
-                  plan_code: subscription?.metadata?.plan_code || COMMUNITY_PLAN_CODE,
-                  discord_invite_url: subscription?.metadata?.discord_invite_url || COMMUNITY_INVITE_URL,
-                },
-              },
-              subscription,
-            }),
-            status: event.type === "customer.subscription.deleted" ? "canceled" : subscription.status || "active",
-            cancel_at_period_end: event.type === "customer.subscription.deleted" ? false : Boolean(subscription.cancel_at_period_end),
-          },
-          { onConflict: "user_id" }
-        );
+        .upsert(nextMembership, { onConflict: "user_id" });
     }
   }
 
@@ -1179,7 +1208,7 @@ app.post("/api/account/summary", async (req, res) => {
         try {
           return await supabase
             .from("community_memberships")
-            .select("user_id, plan_code, status, price_cents, currency, interval, current_period_end, cancel_at_period_end, discord_invite_url")
+            .select("user_id, plan_code, status, price_cents, currency, interval, current_period_end, cancel_at_period_end, discord_invite_url, discord_user_id, discord_username, discord_role_status, discord_access_granted_at, discord_access_revoked_at")
             .eq("user_id", user_id)
             .maybeSingle();
         } catch {
@@ -1586,6 +1615,9 @@ app.post("/api/create-membership-session", async (req, res) => {
   const authUser = await getAuthUser(req);
   const user_id = authUser?.id || "";
   if (!user_id) return res.status(401).json({ error: "auth required" });
+  const { data: existingMembership } = await safeMaybeSingle(
+    supabase.from("community_memberships").select("*").eq("user_id", user_id)
+  );
 
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
@@ -1620,6 +1652,7 @@ app.post("/api/create-membership-session", async (req, res) => {
   });
 
   await safeNoThrow(supabase.from("community_memberships").upsert({
+    ...(existingMembership || {}),
     user_id,
     stripe_checkout_session_id: session.id,
     plan_code: COMMUNITY_PLAN_CODE,
@@ -1714,15 +1747,136 @@ app.post("/api/stripe/verify-membership-session", async (req, res) => {
     },
     subscription,
   });
-  await supabase.from("community_memberships").upsert(membership, { onConflict: "user_id" });
+  const { data: existingMembership } = await safeMaybeSingle(
+    supabase.from("community_memberships").select("*").eq("user_id", user_id)
+  );
+  let mergedMembership = {
+    ...(existingMembership || {}),
+    ...membership,
+  };
+  if (mergedMembership.discord_user_id) {
+    mergedMembership = await syncDiscordMembershipAccess({
+      env: process.env,
+      membership: mergedMembership,
+    });
+  }
+  await supabase.from("community_memberships").upsert(mergedMembership, { onConflict: "user_id" });
 
   res.json({
     ok: true,
     activated: true,
-    status: membership.status || "active",
-    access_state: deriveMembershipAccessState(membership),
-    community_membership: sanitizeMembershipForClient(membership),
+    status: mergedMembership.status || "active",
+    access_state: deriveMembershipAccessState(mergedMembership),
+    community_membership: sanitizeMembershipForClient(mergedMembership),
   });
+});
+
+app.post("/api/community-membership/discord-start", async (req, res) => {
+  const authUser = await getAuthUser(req);
+  const user_id = authUser?.id || "";
+  if (!user_id) return res.status(401).json({ error: "auth required" });
+
+  const { data: membership } = await safeMaybeSingle(
+    supabase.from("community_memberships").select("*").eq("user_id", user_id)
+  );
+  if (!membership) return res.status(404).json({ error: "membership not found" });
+  if (!isMembershipActive(membership)) {
+    return res.status(403).json({ error: "membership inactive", access_state: "inactive" });
+  }
+
+  const { state, expiresAt } = createDiscordLinkState();
+  const config = getDiscordConfig(process.env, { url: `${APP_URL}/api/community-membership/discord-start` });
+  await safeNoThrow(
+    supabase.from("community_memberships").upsert(
+      {
+        ...membership,
+        discord_link_state: state,
+        discord_link_state_expires_at: expiresAt,
+        discord_last_error: null,
+      },
+      { onConflict: "user_id" }
+    )
+  );
+
+  res.json({
+    ok: true,
+    url: buildDiscordAuthorizeUrl(config, state),
+  });
+});
+
+app.get("/api/community-membership/discord-callback", async (req, res) => {
+  const redirect = (outcome) => res.redirect(`${APP_URL}/account?community=${encodeURIComponent(outcome)}`);
+  const errorCode = String(req.query?.error || "").trim();
+  const code = String(req.query?.code || "").trim();
+  const state = String(req.query?.state || "").trim();
+
+  if (errorCode) return redirect("discord-denied");
+  if (!code || !state) return redirect("discord-error");
+
+  const { data: membership } = await safeMaybeSingle(
+    supabase.from("community_memberships").select("*").eq("discord_link_state", state)
+  );
+  if (!membership) return redirect("discord-expired");
+
+  const stateExpiry = membership.discord_link_state_expires_at ? new Date(membership.discord_link_state_expires_at).getTime() : 0;
+  if (!stateExpiry || Number.isNaN(stateExpiry) || stateExpiry < Date.now()) {
+    await safeNoThrow(
+      supabase.from("community_memberships").upsert(
+        {
+          ...membership,
+          discord_link_state: null,
+          discord_link_state_expires_at: null,
+          discord_last_error: "Discord link expired",
+        },
+        { onConflict: "user_id" }
+      )
+    );
+    return redirect("discord-expired");
+  }
+  if (!isMembershipActive(membership)) return redirect("discord-inactive");
+
+  try {
+    const config = getDiscordConfig(process.env, { url: `${APP_URL}/api/community-membership/discord-callback` });
+    const token = await exchangeDiscordCode(config, code);
+    const discordUser = await getDiscordUser(token.access_token);
+    await joinDiscordGuild(config, discordUser.id, token.access_token);
+    await addDiscordRole(config, discordUser.id);
+
+    await safeNoThrow(
+      supabase.from("community_memberships").upsert(
+        {
+          ...membership,
+          discord_user_id: discordUser.id,
+          discord_username: formatDiscordUsername(discordUser),
+          discord_linked_at: membership.discord_linked_at || new Date().toISOString(),
+          discord_role_status: "granted",
+          discord_access_granted_at: new Date().toISOString(),
+          discord_access_revoked_at: null,
+          discord_link_state: null,
+          discord_link_state_expires_at: null,
+          discord_last_error: null,
+          discord_invite_url: membership.discord_invite_url || COMMUNITY_INVITE_URL,
+        },
+        { onConflict: "user_id" }
+      )
+    );
+
+    return redirect("discord-linked");
+  } catch (error) {
+    await safeNoThrow(
+      supabase.from("community_memberships").upsert(
+        {
+          ...membership,
+          discord_link_state: null,
+          discord_link_state_expires_at: null,
+          discord_role_status: "link_required",
+          discord_last_error: error instanceof Error ? error.message : "Discord link failed",
+        },
+        { onConflict: "user_id" }
+      )
+    );
+    return redirect("discord-error");
+  }
 });
 
 app.post("/api/community-membership/access", async (req, res) => {
@@ -1755,9 +1909,24 @@ app.post("/api/community-membership/access", async (req, res) => {
     } catch {}
   }
 
+  if (currentMembership?.discord_user_id) {
+    currentMembership = await syncDiscordMembershipAccess({
+      env: process.env,
+      membership: currentMembership,
+    });
+    await safeNoThrow(supabase.from("community_memberships").upsert(currentMembership, { onConflict: "user_id" }));
+  }
+
   const accessState = deriveMembershipAccessState(currentMembership);
   if (!isMembershipActive(currentMembership)) {
     return res.status(403).json({ error: "membership inactive", access_state: accessState });
+  }
+  if (!currentMembership.discord_user_id || currentMembership.discord_role_status === "link_required") {
+    return res.status(409).json({
+      error: "discord link required",
+      access_state: accessState,
+      requires_discord_link: true,
+    });
   }
 
   return res.json({

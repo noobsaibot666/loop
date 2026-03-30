@@ -35,15 +35,31 @@ export async function onRequest({ request, env }) {
     });
   }
 
-  const rows = await supabaseRequest(env, MESSENGER_TABLES.runs, {
-    method: "POST",
-    headers: { Prefer: "return=representation" },
-    body: JSON.stringify({
-      manifest_id: effectiveManifestId,
-      user_id: userId,
-      status: "active",
-    }),
-  });
+  let rows;
+  try {
+    rows = await supabaseRequest(env, MESSENGER_TABLES.runs, {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({
+        manifest_id: effectiveManifestId,
+        user_id: userId,
+        bike_id: run?.bike_id || null,
+        bike_name: run?.bike_name || null,
+        bike_ratio: run?.bike_ratio || null,
+        status: "active",
+      }),
+    });
+  } catch {
+    rows = await supabaseRequest(env, MESSENGER_TABLES.runs, {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({
+        manifest_id: effectiveManifestId,
+        user_id: userId,
+        status: "active",
+      }),
+    });
+  }
 
   return json({ ok: true, run: rows?.[0] || null, manifest_id: effectiveManifestId });
 }

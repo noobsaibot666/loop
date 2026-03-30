@@ -52,10 +52,16 @@ export async function onRequest({ request, env }) {
   if (!response.ok) return json({ error: data.error?.message || "Stripe error" }, { status: 400 });
 
   try {
+    const existingMembershipRows = await supabaseRequest(
+      env,
+      `community_memberships?user_id=eq.${encodeURIComponent(authUser.id)}&select=*&limit=1`,
+      { method: "GET" }
+    ).catch(() => []);
     await supabaseRequest(env, "community_memberships", {
       method: "POST",
       headers: { Prefer: "resolution=merge-duplicates" },
       body: JSON.stringify({
+        ...(existingMembershipRows?.[0] || {}),
         user_id: authUser.id,
         stripe_checkout_session_id: data.id,
         plan_code: COMMUNITY_PLAN_CODE,

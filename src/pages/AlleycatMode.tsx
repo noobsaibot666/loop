@@ -82,13 +82,19 @@ const AlleycatMode: React.FC = () => {
     fetchLeaderboard,
   } = useAlleycatStore();
 
-  const { user } = useAuthStore();
+  const { user, accessToken } = useAuthStore();
   const { deviceId } = useUIStore();
-  const { usage, fetchUsage } = useCreditStore();
+  const { usage, fetchUsage, accountSummary, fetchAccountSummary } = useCreditStore();
+  const [selectedBikeId, setSelectedBikeId] = useState("");
 
   useEffect(() => {
     if (user && deviceId) fetchUsage(user.id, deviceId);
   }, [user, deviceId, fetchUsage]);
+
+  useEffect(() => {
+    if (!accessToken || accountSummary) return;
+    void fetchAccountSummary(accessToken);
+  }, [accessToken, accountSummary, fetchAccountSummary]);
 
   useEffect(() => {
     if (user && (manifest || challenge)) {
@@ -252,9 +258,24 @@ const AlleycatMode: React.FC = () => {
   const hasUnlimitedCredits = Boolean(usage?.unlimited_credits);
   const messengerCreditsOnly = usage?.credits_remaining ?? 0;
   const canBuildManifest = Boolean(config.city && config.location.trim());
+  const riderBikes = accountSummary?.bikes || [];
+  const selectedBike =
+    riderBikes.find((bike) => bike.id === selectedBikeId) ||
+    riderBikes.find((bike) => bike.is_default) ||
+    riderBikes[0] ||
+    null;
   const boardLeader = leaderboard[0] || null;
   const finishedRiders = leaderboard.filter((entry) => entry.best_seconds !== null).length;
   const manifestCheckpoints = manifest?.checkpoints || [];
+  useEffect(() => {
+    if (!riderBikes.length) {
+      setSelectedBikeId("");
+      return;
+    }
+    if (!selectedBikeId || !riderBikes.some((bike) => bike.id === selectedBikeId)) {
+      setSelectedBikeId((riderBikes.find((bike) => bike.is_default) || riderBikes[0]).id);
+    }
+  }, [riderBikes, selectedBikeId]);
   const orderedCheckpoints = useMemo(() => {
     if (!manifestCheckpoints.length) return [];
     const checkpointMap = new Map(manifestCheckpoints.map((checkpoint) => [checkpoint.id, checkpoint]));
@@ -730,7 +751,25 @@ const AlleycatMode: React.FC = () => {
                       </div>
                       {!run ? (
                         <div className="manifest-top-actions">
-                          <button className="primary-button" type="button" onClick={() => startRun(manifest.id)}>
+                          <label className="field manifest-bike-field">
+                            <span>{t("common.bikeInUse")}</span>
+                            {riderBikes.length > 1 ? (
+                              <select value={selectedBikeId} onChange={(event) => setSelectedBikeId(event.target.value)}>
+                                {riderBikes.map((bike) => (
+                                  <option key={bike.id} value={bike.id}>
+                                    {bike.bike_name} · {bike.bike_ratio}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : riderBikes.length === 1 ? (
+                              <div className="account-note">
+                                {t("common.standardBike")}: {riderBikes[0].bike_name} · {riderBikes[0].bike_ratio}
+                              </div>
+                            ) : (
+                              <div className="account-note">{t("common.noBikeSaved")}</div>
+                            )}
+                          </label>
+                          <button className="primary-button" type="button" onClick={() => startRun(manifest.id, selectedBike?.id || null)}>
                             {t("alleycat.result.start")}
                           </button>
                         </div>
@@ -1007,11 +1046,6 @@ const AlleycatMode: React.FC = () => {
                   ) : null}
 
                   <div className="route-actions manifest-result-actions">
-                    {!run ? (
-                      <button className="primary-button" type="button" onClick={() => startRun(manifest.id)}>
-                        {t("alleycat.result.start")}
-                      </button>
-                    ) : null}
                     {hasActiveRun && allCheckpointsCleared ? (
                       <button className="primary-button" type="button" onClick={() => finishRun()}>
                         {t("alleycat.result.finish")}

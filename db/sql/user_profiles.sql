@@ -5,6 +5,7 @@ create table if not exists public.user_profiles (
   user_id uuid primary key,
   rider_name text,
   home_location text,
+  primary_bike_id uuid,
   bike_name text,
   bike_ratio text,
   created_at timestamptz not null default now(),

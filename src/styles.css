@@ -1711,6 +1711,15 @@ p {
   min-width: 148px;
 }
 
+.home-community-about {
+  position: relative;
+  z-index: 2;
+  align-self: flex-start;
+  margin-top: 6px;
+  padding: 0;
+  color: var(--text-soft);
+}
+
 .home-community-ride-link {
   display: inline-flex;
   align-items: flex-start;
@@ -7193,24 +7202,24 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .account-shell {
-  width: min(1180px, 100%);
+  width: min(1180px, calc(100% - 28px));
   margin: 0 auto 22px;
 }
 
 .account-topbar {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 18px;
   padding: 24px 28px;
   border-radius: 24px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.028));
 }
 
 .account-kicker {
   color: var(--text-muted);
-  line-height: 1.6;
+  line-height: 1.55;
   max-width: 42ch;
 }
 
@@ -7224,9 +7233,9 @@ input[type="range"]::-moz-range-thumb {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 24px;
-  max-width: 1200px;
+  width: min(1200px, calc(100% - 28px));
   margin: 0 auto;
-  padding: 40px 6%;
+  padding: 0 0 40px;
   align-items: stretch;
 }
 
@@ -7234,6 +7243,8 @@ input[type="range"]::-moz-range-thumb {
   max-width: none;
   width: 100%;
   height: 100%;
+  padding: 24px;
+  border-radius: 24px;
 }
 
 .account-stack {
@@ -7279,17 +7290,92 @@ input[type="range"]::-moz-range-thumb {
 
 .account-note {
   color: var(--text-muted);
-  line-height: 1.6;
+  line-height: 1.55;
+  font-size: 0.9rem;
 }
 
 .account-community-hero-card {
   gap: 18px;
 }
 
+.account-community-perks {
+  display: grid;
+  gap: 6px;
+  color: var(--text-soft);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
 .profile-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px 16px;
+}
+
+.account-inline-header {
+  align-items: center;
+}
+
+.account-bike-block,
+.account-bike-list {
+  display: grid;
+  gap: 14px;
+}
+
+.account-bike-card {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.account-bike-card.active {
+  border-color: rgba(123, 97, 255, 0.32);
+  box-shadow: 0 0 0 1px rgba(123, 97, 255, 0.12);
+}
+
+.account-bike-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.account-bike-head strong {
+  font-size: 1rem;
+  line-height: 1.15;
+}
+
+.account-bike-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.account-form-actions {
+  align-items: center;
+}
+
+.account-card-head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.account-card-icon {
+  flex: 0 0 auto;
+}
+
+.account-card-reset {
+  min-height: 30px;
+  padding: 0.38rem 0.72rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
 }
 
 .account-credit-grid {
@@ -7304,6 +7390,7 @@ input[type="range"]::-moz-range-thumb {
 
 .account-grid .form-header {
   align-items: flex-start;
+  gap: 14px;
 }
 
 .account-credit-grid div {
@@ -7318,8 +7405,8 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .account-grid .metric-group strong {
-  font-size: 1.2rem;
-  line-height: 1.1;
+  font-size: 1.28rem;
+  line-height: 1.04;
 }
 
 .admin-search-shell {
@@ -7520,6 +7607,12 @@ input[type="range"]::-moz-range-thumb {
   font-size: 0.85rem;
   line-height: 1.5;
   overflow-wrap: anywhere;
+}
+
+.history-row strong,
+.purchase-row strong {
+  font-size: 1rem;
+  line-height: 1.18;
 }
 
 .history-actions {
@@ -8103,6 +8196,11 @@ input[type="range"]::-moz-range-thumb {
     padding: 0;
   }
 
+  .account-shell,
+  .account-grid {
+    width: min(100%, calc(100% - 20px));
+  }
+
   .wall-section {
     border: 1px solid var(--border);
     border-radius: 22px;
@@ -8115,6 +8213,16 @@ input[type="range"]::-moz-range-thumb {
     padding: 20px;
     gap: 18px;
     border-radius: 22px;
+  }
+
+  .page-account .hero-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .page-account .hero-actions .ghost-button.small {
+    min-height: 40px;
+    padding-inline: 12px;
+    font-size: 0.66rem;
   }
 
   .messenger-page-grid .form-card,
@@ -8508,6 +8616,7 @@ input[type="range"]::-moz-range-thumb {
   .page-account .account-topbar-actions {
     justify-content: center;
     gap: 8px;
+    width: 100%;
   }
 
   .page-account .account-topbar-actions .mini-chip {
@@ -8547,6 +8656,46 @@ input[type="range"]::-moz-range-thumb {
 
   .profile-grid {
     grid-template-columns: 1fr;
+  }
+
+  .account-inline-header,
+  .account-bike-head {
+    align-items: flex-start;
+  }
+
+  .account-bike-head {
+    flex-direction: column;
+  }
+
+  .account-bike-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .account-grid .form-card {
+    padding: 18px;
+    border-radius: 20px;
+  }
+
+  .account-note,
+  .history-row span,
+  .purchase-row span {
+    font-size: 0.8rem;
+    line-height: 1.45;
+  }
+
+  .account-grid .metric-group strong {
+    font-size: 1.12rem;
+  }
+
+  .account-card-head-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .account-card-reset {
+    min-height: 28px;
+    padding: 0.34rem 0.62rem;
   }
 
   .wall-card {

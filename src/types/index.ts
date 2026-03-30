@@ -15,6 +15,14 @@ export type Suggestion = {
   lng: number;
 };
 
+export type RiderBike = {
+  id: string;
+  bike_name: string;
+  bike_ratio: string;
+  is_default: boolean;
+  sort_order?: number;
+};
+
 export type MessengerCheckpoint = {
   id: string;
   order: number;
@@ -65,6 +73,9 @@ export type MessengerRun = {
   finishedAt: string | null;
   status?: string;
   proofs?: MessengerProof[];
+  bike_id?: string | null;
+  bike_name?: string | null;
+  bike_ratio?: string | null;
 };
 
 export type MessengerProof = {
@@ -132,6 +143,12 @@ export type AccountSummary = {
     access_state?: string;
     access_active?: boolean;
     has_invite?: boolean;
+    discord_linked?: boolean;
+    discord_username?: string | null;
+    discord_role_status?: string | null;
+    discord_access_granted_at?: string | null;
+    discord_access_revoked_at?: string | null;
+    requires_discord_link?: boolean;
   } | null;
   profile: {
     user_id: string;
@@ -139,10 +156,12 @@ export type AccountSummary = {
     home_location: string;
     bike_name: string;
     bike_ratio: string;
+    primary_bike_id?: string | null;
     collaboration_note?: string;
     collaboration_status?: string;
     collaboration_requested_at?: string | null;
   };
+  bikes: RiderBike[];
   purchases: {
     session_id: string;
     amount_cents: number;
@@ -186,6 +205,9 @@ export type AccountSummary = {
     surface: string;
     vibe: string;
     route_url: string;
+    bike_id?: string | null;
+    bike_name?: string | null;
+    bike_ratio?: string | null;
     created_at: string;
   }[];
   alleycat_history: {
@@ -262,6 +284,9 @@ export type NightRideAccountSession = {
   mode: "loop" | "roulette";
   difficulty: "easy" | "medium" | "hard";
   distance_km: number;
+  bike_id?: string | null;
+  bike_name?: string | null;
+  bike_ratio?: string | null;
   ride_city?: string | null;
   crew_name?: string | null;
   crew_members?: string[] | null;

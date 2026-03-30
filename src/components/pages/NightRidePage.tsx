@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Hero from "../Hero";
 import { useI18n } from "../../i18n";
 import { normalizeMapsUrl, openMapsUrl } from "../../utils/maps";
+import { useCreditStore } from "../../store/useCreditStore";
+import { useAuthStore } from "../../store/useAuthStore";
 import { 
   Users, Zap, Camera, 
   Compass, 
@@ -38,6 +40,9 @@ type NightRideSession = {
   share_code: string;
   route_url: string;
   distance_km: number;
+  bike_id?: string | null;
+  bike_name?: string | null;
+  bike_ratio?: string | null;
   origin_label: string;
   destination_label?: string | null;
   ride_city?: string | null;
@@ -91,6 +96,8 @@ const NightRidePage = ({
   heroImage,
 }: Props) => {
   const { t } = useI18n();
+  const { accountSummary, fetchAccountSummary } = useCreditStore();
+  const { accessToken } = useAuthStore();
   const [mode, setMode] = useState<"loop" | "roulette">("loop");
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("medium");
   const [unit, setUnit] = useState<"km" | "mi">("km");
@@ -105,6 +112,7 @@ const NightRidePage = ({
   const [crewMembersInput, setCrewMembersInput] = useState("");
   const [shareInput, setShareInput] = useState("");
   const [showCodeModal, setShowCodeModal] = useState(false);
+  const [selectedBikeId, setSelectedBikeId] = useState("");
   const [status, setStatus] = useState("");
   const [isBuilding, setIsBuilding] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
@@ -121,6 +129,27 @@ const NightRidePage = ({
     ...nextSession,
     route_url: normalizeMapsUrl(nextSession.route_url),
   });
+  const riderBikes = accountSummary?.bikes || [];
+  const selectedBike =
+    riderBikes.find((bike) => bike.id === selectedBikeId) ||
+    riderBikes.find((bike) => bike.is_default) ||
+    riderBikes[0] ||
+    null;
+
+  useEffect(() => {
+    if (!accessToken || accountSummary) return;
+    void fetchAccountSummary(accessToken);
+  }, [accessToken, accountSummary, fetchAccountSummary]);
+
+  useEffect(() => {
+    if (!riderBikes.length) {
+      setSelectedBikeId("");
+      return;
+    }
+    if (!selectedBikeId || !riderBikes.some((bike) => bike.id === selectedBikeId)) {
+      setSelectedBikeId((riderBikes.find((bike) => bike.is_default) || riderBikes[0]).id);
+    }
+  }, [riderBikes, selectedBikeId]);
 
   const searchLocations = async (query: string, setResults: (results: Suggestion[]) => void) => {
     if (query.trim().length < 3) {
@@ -245,6 +274,7 @@ const NightRidePage = ({
         destination_lng: mode === "roulette" ? (endCoords?.lng || null) : null,
         crew_name: crewName.trim(),
         crew_members: members.length > 0 ? members : null,
+        bike_id: selectedBike?.id || null,
       };
 
       const results = await postJSON<{ session: NightRideSession }>("/api/night-rides/create", payload);
@@ -513,6 +543,25 @@ const NightRidePage = ({
               </div>
 
               <div className="form-section section-block">
+                <label className="field">
+                  <span>{t("common.bikeInUse")}</span>
+                  {riderBikes.length > 1 ? (
+                    <select value={selectedBikeId} onChange={(event) => setSelectedBikeId(event.target.value)}>
+                      {riderBikes.map((bike) => (
+                        <option key={bike.id} value={bike.id}>
+                          {bike.bike_name} · {bike.bike_ratio}
+                        </option>
+                      ))}
+                    </select>
+                  ) : riderBikes.length === 1 ? (
+                    <div className="account-note">
+                      {t("common.standardBike")}: {riderBikes[0].bike_name} · {riderBikes[0].bike_ratio}
+                    </div>
+                  ) : (
+                    <div className="account-note">{t("common.noBikeSaved")}</div>
+                  )}
+                </label>
+
                 <label className="field range-field">
                   <span>{t("night.builder.distance")}</span>
                   <div className="pill-group range-unit-toggle builder-option-grid builder-option-grid-2 night-ride-unit-toggle">
@@ -583,6 +632,11 @@ const NightRidePage = ({
                   <span>{Number(session.distance_km).toFixed(1)} KM</span>
                   <span>{session.ride_city}</span>
                 </div>
+                {session.bike_name ? (
+                  <div className="account-note">
+                    {t("common.bikeUsed")}: {session.bike_name} · {session.bike_ratio || "--"}
+                  </div>
+                ) : null}
                 <div className="share-code-box">
                   <span>{t("night.result.crewCode")}</span>
                   <strong className="share-code-value">{session.share_code}</strong>
