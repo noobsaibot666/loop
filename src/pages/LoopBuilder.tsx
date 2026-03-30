@@ -6,6 +6,7 @@ import { useLoopStore } from "../store/useLoopStore";
 import { useAuthStore } from "../store/useAuthStore";
 import { useUIStore } from "../store/useUIStore";
 import { useCreditStore } from "../store/useCreditStore";
+import { normalizeMapsUrl, openMapsUrl } from "../utils/maps";
 
 const LoopBuilder: React.FC = () => {
   const { t } = useI18n();
@@ -67,10 +68,15 @@ const LoopBuilder: React.FC = () => {
   const handleCopy = async () => {
     if (!lastRouteUrl) return;
     try {
-      await navigator.clipboard.writeText(lastRouteUrl);
+      await navigator.clipboard.writeText(normalizeMapsUrl(lastRouteUrl));
     } catch {
       // no-op, parity fallback stays the open link action
     }
+  };
+
+  const handleOpenMaps = () => {
+    if (!lastRouteUrl) return;
+    openMapsUrl(lastRouteUrl);
   };
 
   const minDistance = unit === "km" ? 5 : 3;
@@ -293,9 +299,9 @@ const LoopBuilder: React.FC = () => {
                   <button className="ghost-button small" type="button" onClick={handleCopy}>
                     {t("loop.copyLink")}
                   </button>
-                  <a href={lastRouteUrl} target="_blank" rel="noopener noreferrer" className="primary-button small">
+                  <button className="primary-button small" type="button" onClick={handleOpenMaps}>
                     {t("loop.openMaps")}
-                  </a>
+                  </button>
                 </div>
                 <div className="loop-community-card">
                   <strong>{t("loop.result.communityTitle")}</strong>

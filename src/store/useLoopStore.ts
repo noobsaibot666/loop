@@ -1,34 +1,9 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { postJSON } from "../utils/routeUtils";
+import { normalizeMapsUrl } from "../utils/maps";
 
-interface LoopState {
-  loopPoint: string;
-  distance: number;
-  terrain: string;
-  surface: string;
-  vibe: string;
-  unit: "km" | "mi";
-  selectedCoords: { lat: number; lng: number } | null;
-  lastRouteUrl: string;
-  isGenerating: boolean;
-  statusMessage: string;
-  isSuggesting: boolean;
-  suggestions: any[];
-  
-  setLoopPoint: (point: string) => void;
-  setDistance: (distance: number) => void;
-  setTerrain: (terrain: string) => void;
-  setSurface: (surface: string) => void;
-  setVibe: (vibe: string) => void;
-  setUnit: (unit: "km" | "mi") => void;
-  setSelectedCoords: (coords: { lat: number; lng: number } | null) => void;
-  setLastRouteUrl: (url: string) => void;
-  
-  fetchSuggestions: (text: string) => Promise<void>;
-  generateLoop: (userId: string, deviceId: string, currentUsage: any, updateUsage: (u: any) => void) => Promise<void>;
-}
-
+const MIN_LOOP_WAYPOINTS = 5;
 const toRadians = (value: number) => (value * Math.PI) / 180;
 
 const haversineKm = (start: { lat: number; lng: number }, end: { lat: number; lng: number }) => {
@@ -77,7 +52,7 @@ const pointAtDistance = (
   };
 };
 
-const sampleLoopWaypoints = (routeCoords: [number, number][], targetDistanceKm: number) => {
+const sampleLoopMapsWaypoints = (routeCoords: [number, number][], targetDistanceKm: number) => {
   const points = routeCoords
     .map((point) => ({ lat: Number(point[1]), lng: Number(point[0]) }))
     .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng));
@@ -89,50 +64,146 @@ const sampleLoopWaypoints = (routeCoords: [number, number][], targetDistanceKm: 
   const minOriginDistanceKm = Math.max(0.35, targetDistanceKm * 0.06);
   const picked: { lat: number; lng: number }[] = [];
   const keys = new Set<string>();
+  const candidates: Array<{ point: { lat: number; lng: number }; routeIndex: number; priority: number }> = [];
+  const pushCandidate = (point: { lat: number; lng: number } | null, routeIndex: number, priority: number) => {
+    if (!point) return;
+    candidates.push({ point, routeIndex, priority });
+  };
 
   for (let index = 0; index < waypointCount; index += 1) {
     const ratio = (index + 1) / (waypointCount + 1);
     const sample = pointAtDistance(points, cumulative, total * (0.08 + ratio * 0.82));
-    if (!sample) continue;
-    if (haversineKm(points[0], sample) < minOriginDistanceKm) continue;
-    if (picked.some((existing) => haversineKm(existing, sample) < minSpacingKm)) continue;
-    const key = `${sample.lat.toFixed(4)},${sample.lng.toFixed(4)}`;
-    if (keys.has(key)) continue;
-    keys.add(key);
-    picked.push(sample);
+    pushCandidate(sample, Math.round((points.length - 1) * ratio), 1);
   }
 
+  const extrema = [
+    points.reduce<{ lat: number; lng: number } | null>((best, point) => (!best || point.lat > best.lat ? point : best), null),
+    points.reduce<{ lat: number; lng: number } | null>((best, point) => (!best || point.lng > best.lng ? point : best), null),
+    points.reduce<{ lat: number; lng: number } | null>((best, point) => (!best || point.lat < best.lat ? point : best), null),
+    points.reduce<{ lat: number; lng: number } | null>((best, point) => (!best || point.lng < best.lng ? point : best), null),
+    points.reduce<{ lat: number; lng: number } | null>(
+      (best, point) => (!best || haversineKm(points[0], point) > haversineKm(points[0], best) ? point : best),
+      null,
+    ),
+  ];
+
+  extrema.forEach((point, index) => {
+    if (!point) return;
+    const routeIndex = points.findIndex((candidate) => candidate.lat === point.lat && candidate.lng === point.lng);
+    pushCandidate(point, routeIndex, index === 4 ? 4 : 3);
+  });
+
+  candidates
+    .sort((left, right) => {
+      if (right.priority !== left.priority) return right.priority - left.priority;
+      return left.routeIndex - right.routeIndex;
+    })
+    .forEach(({ point }) => {
+      if (haversineKm(points[0], point) < minOriginDistanceKm) return;
+      if (picked.some((existing) => haversineKm(existing, point) < minSpacingKm)) return;
+      const key = `${point.lat.toFixed(4)},${point.lng.toFixed(4)}`;
+      if (keys.has(key)) return;
+      keys.add(key);
+      picked.push(point);
+    });
+
   if (picked.length < 4) {
-    [0.18, 0.34, 0.5, 0.66, 0.82].forEach((ratio) => {
-      if (picked.length >= 4) return;
+    [0.14, 0.3, 0.48, 0.64, 0.8, 0.9].forEach((ratio) => {
+      if (picked.length >= 5) return;
       const sample = pointAtDistance(points, cumulative, total * ratio);
       if (!sample) return;
       if (haversineKm(points[0], sample) < minOriginDistanceKm) return;
       const key = `${sample.lat.toFixed(4)},${sample.lng.toFixed(4)}`;
+      if (picked.some((existing) => haversineKm(existing, sample) < minSpacingKm * 0.8)) return;
       if (keys.has(key)) return;
       keys.add(key);
       picked.push(sample);
     });
   }
 
-  return picked;
+  return picked
+    .sort((left, right) => {
+      const leftKey = `${left.lat.toFixed(4)},${left.lng.toFixed(4)}`;
+      const rightKey = `${right.lat.toFixed(4)},${right.lng.toFixed(4)}`;
+      const leftIndex = points.findIndex((point) => `${point.lat.toFixed(4)},${point.lng.toFixed(4)}` === leftKey);
+      const rightIndex = points.findIndex((point) => `${point.lat.toFixed(4)},${point.lng.toFixed(4)}` === rightKey);
+      return leftIndex - rightIndex;
+    })
+    .slice(0, Math.max(MIN_LOOP_WAYPOINTS, waypointCount));
 };
 
 const buildGoogleMapsLoopUrl = (
   origin: { lat: number; lng: number },
   routeWaypoints: { lat: number; lng: number }[],
 ) => {
-  const params = new URLSearchParams();
-  params.set("api", "1");
-  params.set("origin", `${origin.lat},${origin.lng}`);
-  params.set("destination", `${origin.lat},${origin.lng}`);
-  params.set("travelmode", "bicycling");
-  params.set("dir_action", "navigate");
-  if (routeWaypoints.length) {
-    params.set("waypoints", routeWaypoints.map((point) => `via:${point.lat},${point.lng}`).join("|"));
-  }
-  return `https://www.google.com/maps/dir/?${params.toString()}`;
+  const points = routeWaypoints.filter((point) => Number.isFinite(point?.lat) && Number.isFinite(point?.lng));
+  if (!points.length) return "";
+  const orderedPoints = [origin, ...points, origin];
+  const path = orderedPoints.map((point) => `${point.lat},${point.lng}`).join("/");
+  return `https://www.google.com/maps/dir/${path}/data=!4m2!4m1!3e1`;
 };
+
+const hasUsableLoopWaypoints = (waypoints: { lat: number; lng: number }[]) =>
+  waypoints.filter((point) => Number.isFinite(point?.lat) && Number.isFinite(point?.lng)).length >= MIN_LOOP_WAYPOINTS;
+
+const buildFallbackLoopWaypoints = (
+  origin: { lat: number; lng: number },
+  distanceKm: number,
+  seed: number,
+) => {
+  const radiusBase = Math.min(5.8, Math.max(1.2, distanceKm * 0.17));
+  const seedRotation = ((seed * 37) % 360 + 360) % 360;
+  const bearings = [28, 94, 172, 246, 318].map((offset) => (offset + seedRotation) % 360);
+  const radiusFactors = [0.96, 1.14, 1.02, 1.18, 0.92];
+  return bearings.map((bearing, index) => {
+    const earthRadiusKm = 6371;
+    const distance = Math.max(0.9, Math.min(radiusBase * radiusFactors[index], radiusBase * 1.25));
+    const bearingRad = (bearing * Math.PI) / 180;
+    const lat1 = (origin.lat * Math.PI) / 180;
+    const lng1 = (origin.lng * Math.PI) / 180;
+    const lat2 = Math.asin(
+      Math.sin(lat1) * Math.cos(distance / earthRadiusKm) +
+        Math.cos(lat1) * Math.sin(distance / earthRadiusKm) * Math.cos(bearingRad),
+    );
+    const lng2 =
+      lng1 +
+      Math.atan2(
+        Math.sin(bearingRad) * Math.sin(distance / earthRadiusKm) * Math.cos(lat1),
+        Math.cos(distance / earthRadiusKm) - Math.sin(lat1) * Math.sin(lat2),
+      );
+    return {
+      lat: Number(((lat2 * 180) / Math.PI).toFixed(6)),
+      lng: Number(((lng2 * 180) / Math.PI).toFixed(6)),
+    };
+  });
+};
+
+interface LoopState {
+  loopPoint: string;
+  distance: number;
+  terrain: string;
+  surface: string;
+  vibe: string;
+  unit: "km" | "mi";
+  selectedCoords: { lat: number; lng: number } | null;
+  lastRouteUrl: string;
+  isGenerating: boolean;
+  statusMessage: string;
+  isSuggesting: boolean;
+  suggestions: any[];
+  
+  setLoopPoint: (point: string) => void;
+  setDistance: (distance: number) => void;
+  setTerrain: (terrain: string) => void;
+  setSurface: (surface: string) => void;
+  setVibe: (vibe: string) => void;
+  setUnit: (unit: "km" | "mi") => void;
+  setSelectedCoords: (coords: { lat: number; lng: number } | null) => void;
+  setLastRouteUrl: (url: string) => void;
+  
+  fetchSuggestions: (text: string) => Promise<void>;
+  generateLoop: (userId: string, deviceId: string, currentUsage: any, updateUsage: (u: any) => void) => Promise<void>;
+}
 
 export const useLoopStore = create<LoopState>()(
   persist(
@@ -205,6 +276,7 @@ export const useLoopStore = create<LoopState>()(
             const first = geo?.features?.[0];
             if (!first) throw new Error("loop.status.noLocation");
             origin = { lat: first.geometry.coordinates[1], lng: first.geometry.coordinates[0] };
+            set({ selectedCoords: origin });
           }
 
           const distanceKm = unit === "km" ? distance : distance * 1.60934;
@@ -226,12 +298,16 @@ export const useLoopStore = create<LoopState>()(
                 }))
                 .filter((point: any) => Number.isFinite(point.lat) && Number.isFinite(point.lng))
             : [];
-          const waypoints = serverWaypoints.length >= 4 ? serverWaypoints : sampleLoopWaypoints(coords, distanceKm);
-          let routeUrl = "";
+          const waypoints = hasUsableLoopWaypoints(serverWaypoints) ? serverWaypoints : sampleLoopMapsWaypoints(coords, distanceKm);
+          let routeUrl = String(loop?.route_url || "").trim();
+          const resolvedWaypoints =
+            hasUsableLoopWaypoints(waypoints)
+              ? waypoints
+              : buildFallbackLoopWaypoints(origin, distanceKm, Number(loop?.candidate_seed || Math.floor(Math.random() * 1000)));
 
-          if (waypoints.length) {
-            routeUrl = buildGoogleMapsLoopUrl(origin, waypoints);
-          } else {
+          if ((!routeUrl || !routeUrl.includes("/maps/dir/")) && hasUsableLoopWaypoints(resolvedWaypoints)) {
+            routeUrl = buildGoogleMapsLoopUrl(origin, resolvedWaypoints);
+          } else if (!routeUrl) {
             const fallbackDistanceKm = Math.max(1.2, distanceKm * 0.18);
             const bearings = [55, 235];
             const fallbackWaypoints = bearings
@@ -260,6 +336,12 @@ export const useLoopStore = create<LoopState>()(
                 lng: Number(point.lng.toFixed(6)),
               }));
             routeUrl = buildGoogleMapsLoopUrl(origin, fallbackWaypoints);
+          }
+
+          routeUrl = normalizeMapsUrl(routeUrl);
+
+          if (!routeUrl) {
+            throw new Error("loop.status.failed");
           }
 
           set({ lastRouteUrl: routeUrl, statusMessage: "loop.status.ready" });

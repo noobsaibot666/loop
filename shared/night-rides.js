@@ -1,3 +1,5 @@
+import { buildFallbackLoopWaypoints, buildGoogleMapsLoopUrl, sampleLoopMapsWaypoints } from "./loop-quality.js";
+
 export const NIGHT_RIDE_CREDIT_COST = 1;
 export const NIGHT_RIDE_CREW_BUILD_COST = 2;
 export const NIGHT_RIDE_CREW_JOIN_COST = 1;
@@ -68,28 +70,31 @@ export const computeOffsetPoint = (origin, bearingDegrees, distanceKm) => {
 };
 
 export const buildNightRideMapsUrl = ({ origin, destination, waypoints = [] }) => {
-  const params = new URLSearchParams();
-  params.set("api", "1");
-  params.set("origin", `${origin.lat},${origin.lng}`);
-  params.set("destination", `${destination.lat},${destination.lng}`);
-  params.set("travelmode", "bicycling");
-  if (waypoints.length) {
-    params.set(
-      "waypoints",
-      waypoints.map((point) => `via:${point.lat},${point.lng}`).join("|")
-    );
+  const allPoints = waypoints
+    .filter((point) => Number.isFinite(point?.lat) && Number.isFinite(point?.lng));
+
+  if (
+    Number.isFinite(origin?.lat) &&
+    Number.isFinite(origin?.lng) &&
+    Number.isFinite(destination?.lat) &&
+    Number.isFinite(destination?.lng) &&
+    Math.abs(origin.lat - destination.lat) < 0.000001 &&
+    Math.abs(origin.lng - destination.lng) < 0.000001
+  ) {
+    return buildGoogleMapsLoopUrl(origin, allPoints);
   }
-  return `https://www.google.com/maps/dir/?${params.toString()}`;
+
+  const orderedPoints = [origin, ...allPoints, destination]
+    .filter((point) => Number.isFinite(point?.lat) && Number.isFinite(point?.lng));
+  const path = orderedPoints.map((point) => `${point.lat},${point.lng}`).join("/");
+  return `https://www.google.com/maps/dir/${path}/data=!4m2!4m1!3e1`;
 };
 
-export const sampleLoopWaypoints = (routeCoords = []) => {
-  if (!Array.isArray(routeCoords) || routeCoords.length < 6) return [];
-  const ratios = [0.33, 0.66];
-  return ratios
-    .map((ratio) => routeCoords[Math.min(routeCoords.length - 1, Math.floor(routeCoords.length * ratio))])
-    .filter(Boolean)
-    .map((point) => ({ lat: Number(point[1].toFixed(6)), lng: Number(point[0].toFixed(6)) }));
-};
+export const sampleLoopWaypoints = (routeCoords = [], distanceKm = 0) =>
+  sampleLoopMapsWaypoints(routeCoords, distanceKm);
+
+export const buildNightRideFallbackLoopWaypoints = (origin, distanceKm = 0, seed = 1) =>
+  buildFallbackLoopWaypoints(origin, distanceKm, seed);
 
 export const buildRouletteWaypoint = ({ start, end, targetKm, difficulty }) => {
   const directKm = Math.max(0.8, distanceBetweenKm(start, end));

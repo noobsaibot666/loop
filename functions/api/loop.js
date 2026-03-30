@@ -1,8 +1,11 @@
 import { getAuthUser, json, parseJSON, requireEnv, supabaseRequest } from "../_utils.js";
 import {
+  buildFallbackLoopWaypoints,
+  buildGoogleMapsLoopUrl,
   buildLoopCandidateProfiles,
   buildLoopCandidateRequest,
   evaluateLoopCandidate,
+  hasUsableLoopWaypoints,
   selectBestLoopCandidate,
 } from "../../shared/loop-quality.js";
 
@@ -15,6 +18,9 @@ export async function onRequest({ request, env }) {
   const authUser = await getAuthUser(env, request);
   const requestedDistanceKm = Math.max(1, Number(distance_km || 0));
   const origin = { lng: Number(coords[0]), lat: Number(coords[1]) };
+  if (!Number.isFinite(origin.lng) || !Number.isFinite(origin.lat)) {
+    return json({ error: "coords must be numeric" }, { status: 400 });
+  }
   let recentRoutes = [];
   if (authUser?.id) {
     try {
@@ -39,16 +45,36 @@ export async function onRequest({ request, env }) {
       seed: candidateSeed,
       profile,
     });
-    const response = await fetch("https://api.openrouteservice.org/v2/directions/cycling-regular", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: key,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await response.json();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    let response;
+    let data;
+    try {
+      response = await fetch("https://api.openrouteservice.org/v2/directions/cycling-regular", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: key,
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+      const raw = await response.text();
+      data = raw ? JSON.parse(raw) : {};
+    } catch (error) {
+      clearTimeout(timeout);
+      return {
+        ok: false,
+        status: error?.name === "AbortError" ? 504 : 502,
+        error: error?.name === "AbortError" ? "ORS request timed out" : "ORS request failed",
+        detail: error instanceof Error ? error.message : null,
+        profile,
+        candidateIndex,
+        candidateSeed,
+      };
+    } finally {
+      clearTimeout(timeout);
+    }
     if (!response.ok) {
       return {
         ok: false,
@@ -81,8 +107,8 @@ export async function onRequest({ request, env }) {
     };
   };
 
-  const runCandidateBatch = async (reroll = false) => {
-    const profiles = buildLoopCandidateProfiles({ terrain, surface, vibe, reroll });
+  const runCandidateBatch = async (reroll = false, strict = false) => {
+    const profiles = buildLoopCandidateProfiles({ terrain, surface, vibe, reroll, strict });
     return Promise.all(profiles.map((profile, candidateIndex) => requestCandidate(profile, candidateIndex)));
   };
 
@@ -92,6 +118,10 @@ export async function onRequest({ request, env }) {
   if (!successfulFirstPass.some((candidate) => candidate.evaluation.valid)) {
     const secondPass = await runCandidateBatch(true);
     candidates = [...successfulFirstPass, ...secondPass.filter((candidate) => candidate.ok)];
+  }
+  if (!candidates.some((candidate) => candidate.evaluation.valid)) {
+    const strictPass = await runCandidateBatch(true, true);
+    candidates = [...candidates, ...strictPass.filter((candidate) => candidate.ok)];
   }
 
   if (!candidates.length) {
@@ -107,16 +137,59 @@ export async function onRequest({ request, env }) {
 
   const bestCandidate = selectBestLoopCandidate(candidates);
   if (!bestCandidate) {
-    return json({ error: "loop generation failed" }, { status: 502 });
+    const fallbackWaypoints = buildFallbackLoopWaypoints(origin, requestedDistanceKm, seed);
+    return json({
+      route_url: buildGoogleMapsLoopUrl(origin, fallbackWaypoints),
+      sampled_waypoints: fallbackWaypoints,
+      quality_score: 0,
+      overlap_ratio: 1,
+      candidate_seed: Number(seed || 1),
+      candidate_index: -1,
+      candidate_profile: "synthetic-fallback",
+      route_debug: {
+        synthetic: true,
+        reason: "no_candidate",
+      },
+    });
+  }
+  const resolvedWaypoints =
+    hasUsableLoopWaypoints(bestCandidate.evaluation.sampledWaypoints)
+      ? bestCandidate.evaluation.sampledWaypoints
+      : buildFallbackLoopWaypoints(origin, requestedDistanceKm, bestCandidate.candidateSeed);
+  if (
+    !bestCandidate.evaluation.valid &&
+    (
+      !hasUsableLoopWaypoints(resolvedWaypoints) ||
+      bestCandidate.evaluation.metrics.overlapRatio >= 0.66 ||
+      bestCandidate.evaluation.metrics.corridorDuplication >= 0.74 ||
+      bestCandidate.evaluation.metrics.dominantLegRatio >= 0.76
+    )
+  ) {
+    return json({
+      ...bestCandidate.data,
+      route_url: buildGoogleMapsLoopUrl(origin, resolvedWaypoints),
+      quality_score: bestCandidate.evaluation.score,
+      overlap_ratio: bestCandidate.evaluation.metrics.overlapRatio,
+      candidate_seed: bestCandidate.candidateSeed,
+      candidate_index: bestCandidate.candidateIndex,
+      candidate_profile: "synthetic-fallback",
+      route_debug: {
+        ...bestCandidate.evaluation.metrics,
+        synthetic: true,
+        reason: "weak_candidate",
+      },
+      sampled_waypoints: resolvedWaypoints,
+    });
   }
   return json({
     ...bestCandidate.data,
+    route_url: buildGoogleMapsLoopUrl(origin, resolvedWaypoints),
     quality_score: bestCandidate.evaluation.score,
     overlap_ratio: bestCandidate.evaluation.metrics.overlapRatio,
     candidate_seed: bestCandidate.candidateSeed,
     candidate_index: bestCandidate.candidateIndex,
     candidate_profile: bestCandidate.profile.label,
     route_debug: bestCandidate.evaluation.metrics,
-    sampled_waypoints: bestCandidate.evaluation.sampledWaypoints,
+    sampled_waypoints: resolvedWaypoints,
   });
 }

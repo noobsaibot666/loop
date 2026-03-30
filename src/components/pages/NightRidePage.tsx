@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Hero from "../Hero";
 import { useI18n } from "../../i18n";
+import { normalizeMapsUrl, openMapsUrl } from "../../utils/maps";
 import { 
   Users, Zap, Camera, 
   Compass, 
@@ -116,6 +117,10 @@ const NightRidePage = ({
   const [postStatus, setPostStatus] = useState("");
   const startSuggestionRef = useRef<HTMLDivElement | null>(null);
   const endSuggestionRef = useRef<HTMLDivElement | null>(null);
+  const normalizeSessionRoute = (nextSession: NightRideSession) => ({
+    ...nextSession,
+    route_url: normalizeMapsUrl(nextSession.route_url),
+  });
 
   const searchLocations = async (query: string, setResults: (results: Suggestion[]) => void) => {
     if (query.trim().length < 3) {
@@ -244,7 +249,7 @@ const NightRidePage = ({
 
       const results = await postJSON<{ session: NightRideSession }>("/api/night-rides/create", payload);
       if (results?.session) {
-        setSession(results.session);
+        setSession(normalizeSessionRoute(results.session));
         setStatus(t("night.messages.built"));
       }
     } catch (error) {
@@ -270,7 +275,7 @@ const NightRidePage = ({
         share_code: code,
       });
       if (results?.session) {
-        setSession(results.session);
+        setSession(normalizeSessionRoute(results.session));
         setStatus(t("night.messages.joined"));
         setShowCodeModal(false);
       }
@@ -571,7 +576,7 @@ const NightRidePage = ({
             {status ? <div className="status-message compact-status">{status}</div> : null}
 
             {session && (
-              <div className="manifest-result-overlay glass-card animation-slide-up">
+              <div className="night-ride-result-card glass-card animation-slide-up">
                 <h3 className="card-title">{session.crew_name || session.title}</h3>
                 <div className="result-grid-mini">
                   <span>{session.mode.toUpperCase()}</span>
@@ -580,13 +585,13 @@ const NightRidePage = ({
                 </div>
                 <div className="share-code-box">
                   <span>{t("night.result.crewCode")}</span>
-                  <strong>{session.share_code}</strong>
+                  <strong className="share-code-value">{session.share_code}</strong>
                 </div>
                 <div className="form-actions">
-                  <a className="primary-button" href={session.route_url} target="_blank" rel="noreferrer">
+                  <button className="primary-button" type="button" onClick={() => openMapsUrl(session.route_url)}>
                     {t("loop.openMaps")}
-                  </a>
-                  <button className="secondary-button" type="button" onClick={() => setShowPostModal(true)}>
+                  </button>
+                  <button className="secondary-button night-ride-post-button" type="button" onClick={() => setShowPostModal(true)}>
                     <Camera size={16} />
                     <span>{t("night.result.postShot")}</span>
                   </button>

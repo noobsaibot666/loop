@@ -1,4 +1,5 @@
 const EARTH_RADIUS_KM = 6371;
+export const MIN_LOOP_WAYPOINTS = 5;
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const toRadians = (value) => (value * Math.PI) / 180;
@@ -27,6 +28,21 @@ const computeOffsetPoint = (origin, bearingDegrees, distanceKm) => {
     lng: Number(toDegrees(lng2).toFixed(6)),
   };
 };
+
+export const buildFallbackLoopWaypoints = (origin, distanceKm = 0, seed = 1) => {
+  const originPoint = normalizePoint(origin);
+  if (!originPoint || !Number.isFinite(originPoint.lat) || !Number.isFinite(originPoint.lng)) return [];
+  const radiusBase = clamp(Math.max(1.2, distanceKm * 0.17), 1.2, 5.8);
+  const seedRotation = ((Number(seed || 1) * 37) % 360 + 360) % 360;
+  const bearings = [28, 94, 172, 246, 318].map((offset) => (offset + seedRotation) % 360);
+  const radiusFactors = [0.96, 1.14, 1.02, 1.18, 0.92];
+  return bearings.map((bearing, index) =>
+    computeOffsetPoint(originPoint, bearing, clamp(radiusBase * radiusFactors[index], 0.9, radiusBase * 1.25)),
+  );
+};
+
+export const hasUsableLoopWaypoints = (waypoints = []) =>
+  waypoints.filter((point) => Number.isFinite(point?.lat) && Number.isFinite(point?.lng)).length >= MIN_LOOP_WAYPOINTS;
 
 const normalizePoint = (point) => {
   if (!point) return null;
@@ -235,48 +251,91 @@ export const sampleLoopMapsWaypoints = (routeCoords = [], distanceKm = 0) => {
   const minOriginDistanceKm = Math.max(0.35, (distanceKm || total) * 0.06);
   const samples = [];
   const keys = new Set();
+  const candidates = [];
+  const pushCandidate = (point, routeIndex = null, priority = 0) => {
+    if (!point) return;
+    const normalized = normalizePoint(point);
+    if (!normalized) return;
+    candidates.push({ point: normalized, routeIndex, priority });
+  };
+
   for (let index = 0; index < count; index += 1) {
     const ratio = (index + 1) / (count + 1);
     const targetDistance = total * (0.08 + ratio * 0.82);
     const point = pointAtDistance(points, cumulative, targetDistance);
-    if (!point) continue;
-    if (haversineKm(points[0], point) < minOriginDistanceKm) continue;
-    const tooClose = samples.some((sample) => haversineKm(sample, point) < minSpacingKm);
-    const key = roundedPointKey(point, 4);
-    if (tooClose || keys.has(key)) continue;
-    keys.add(key);
-    samples.push(point);
+    pushCandidate(point, Math.round((points.length - 1) * ratio), 1);
   }
+
+  const routeExtrema = [
+    { point: points.reduce((best, point) => (!best || point.lat > best.lat ? point : best), null), priority: 3 },
+    { point: points.reduce((best, point) => (!best || point.lng > best.lng ? point : best), null), priority: 3 },
+    { point: points.reduce((best, point) => (!best || point.lat < best.lat ? point : best), null), priority: 3 },
+    { point: points.reduce((best, point) => (!best || point.lng < best.lng ? point : best), null), priority: 3 },
+    {
+      point: points.reduce(
+        (best, point) =>
+          !best || haversineKm(points[0], point) > haversineKm(points[0], best) ? point : best,
+        null,
+      ),
+      priority: 4,
+    },
+  ];
+
+  routeExtrema.forEach(({ point, priority }) => {
+    if (!point) return;
+    const routeIndex = points.findIndex(
+      (candidate) => candidate.lat === point.lat && candidate.lng === point.lng,
+    );
+    pushCandidate(point, routeIndex, priority);
+  });
+
+  candidates
+    .sort((left, right) => {
+      if (right.priority !== left.priority) return right.priority - left.priority;
+      return (left.routeIndex ?? 0) - (right.routeIndex ?? 0);
+    })
+    .forEach(({ point }) => {
+      if (haversineKm(points[0], point) < minOriginDistanceKm) return;
+      const tooClose = samples.some((sample) => haversineKm(sample, point) < minSpacingKm);
+      const key = roundedPointKey(point, 4);
+      if (tooClose || keys.has(key)) return;
+      keys.add(key);
+      samples.push(point);
+    });
+
   if (samples.length < 4) {
-    const fallbackRatios = [0.18, 0.34, 0.5, 0.66, 0.82];
-    fallbackRatios.forEach((ratio) => {
-      if (samples.length >= 4) return;
+    [0.14, 0.3, 0.48, 0.64, 0.8, 0.9].forEach((ratio) => {
+      if (samples.length >= 5) return;
       const point = pointAtDistance(points, cumulative, total * ratio);
       if (!point) return;
-      const key = roundedPointKey(point, 4);
-      if (keys.has(key)) return;
       if (haversineKm(points[0], point) < minOriginDistanceKm) return;
+      const tooClose = samples.some((sample) => haversineKm(sample, point) < minSpacingKm * 0.8);
+      const key = roundedPointKey(point, 4);
+      if (tooClose || keys.has(key)) return;
       keys.add(key);
       samples.push(point);
     });
   }
-  return samples.slice(0, Math.max(4, count));
+
+  return samples
+    .sort((left, right) => {
+      const leftIndex = points.findIndex((point) => roundedPointKey(point, 4) === roundedPointKey(left, 4));
+      const rightIndex = points.findIndex((point) => roundedPointKey(point, 4) === roundedPointKey(right, 4));
+      return leftIndex - rightIndex;
+    })
+    .slice(0, Math.max(MIN_LOOP_WAYPOINTS, count));
 };
 
 export const buildGoogleMapsLoopUrl = (origin, sampledWaypoints = []) => {
+  const originPoint = normalizePoint(origin);
+  if (!originPoint || !Number.isFinite(originPoint.lat) || !Number.isFinite(originPoint.lng)) return "";
   const points = sampledWaypoints
     .map(normalizePoint)
     .filter((point) => Number.isFinite(point?.lat) && Number.isFinite(point?.lng));
-  const params = new URLSearchParams();
-  params.set("api", "1");
-  params.set("origin", `${origin.lat},${origin.lng}`);
-  params.set("destination", `${origin.lat},${origin.lng}`);
-  params.set("travelmode", "bicycling");
-  params.set("dir_action", "navigate");
-  if (points.length) {
-    params.set("waypoints", points.map((point) => `via:${point.lat},${point.lng}`).join("|"));
-  }
-  return `https://www.google.com/maps/dir/?${params.toString()}`;
+  if (!points.length) return "";
+  const orderedPoints = [originPoint, ...points, originPoint];
+  const path = orderedPoints.map((point) => `${point.lat},${point.lng}`).join("/");
+  return `https://www.google.com/maps/dir/${path}/data=!4m2!4m1!3e1`;
 };
 
 export const parseGoogleMapsLoopUrl = (routeUrl = "") => {
@@ -291,6 +350,30 @@ export const parseGoogleMapsLoopUrl = (routeUrl = "") => {
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
       return { lat, lng };
     };
+    if (!originRaw && !destinationRaw && url.pathname.includes("/maps/dir/")) {
+      const segments = url.pathname
+        .split("/maps/dir/")[1]
+        ?.split("/")
+        .map((segment) => decodeURIComponent(segment).trim())
+        .filter(Boolean)
+        .map(parsePair)
+        .filter(Boolean) || [];
+      return {
+        origin: segments[0] || null,
+        destination: segments[segments.length - 1] || null,
+        waypoints: segments.slice(1, -1),
+      };
+    }
+    if (url.searchParams.get("api") === "1") {
+      return {
+        origin: parsePair(originRaw),
+        destination: parsePair(destinationRaw),
+        waypoints: waypointsRaw
+          .split("|")
+          .map(parsePair)
+          .filter(Boolean),
+      };
+    }
     return {
       origin: parsePair(originRaw),
       destination: parsePair(destinationRaw),
@@ -302,6 +385,11 @@ export const parseGoogleMapsLoopUrl = (routeUrl = "") => {
   } catch {
     return { origin: null, destination: null, waypoints: [] };
   }
+};
+
+export const isUsableLoopRouteUrl = (routeUrl = "") => {
+  const parsed = parseGoogleMapsLoopUrl(routeUrl);
+  return Boolean(parsed.origin) && hasUsableLoopWaypoints(parsed.waypoints);
 };
 
 const computeRecentSimilarity = ({ origin, distanceKm, sampledWaypoints, recentRoutes = [] }) => {
@@ -454,13 +542,13 @@ export const evaluateLoopCandidate = ({
   });
 
   const valid =
-    sampledWaypoints.length >= 4 &&
-    overlap < 0.58 &&
-    corridorDup < 0.62 &&
-    dominantLegPenalty < 0.72 &&
+    hasUsableLoopWaypoints(sampledWaypoints) &&
+    overlap < 0.54 &&
+    corridorDup < 0.58 &&
+    dominantLegPenalty < 0.66 &&
     startEndGapKm < Math.max(targetDistanceKm * 0.08, 0.35) &&
-    radialBins >= 4 &&
-    score >= 16;
+    radialBins >= MIN_LOOP_WAYPOINTS &&
+    score >= 18;
 
   return {
     valid,
@@ -501,7 +589,7 @@ const uniqueProfiles = (profiles = []) => {
   });
 };
 
-export const buildLoopCandidateProfiles = ({ terrain, surface, vibe, reroll = false }) => {
+export const buildLoopCandidateProfiles = ({ terrain, surface, vibe, reroll = false, strict = false }) => {
   const terrainKey = String(terrain || "").trim().toLowerCase();
   const surfaceKey = String(surface || "").trim().toLowerCase();
   const vibeKey = String(vibe || "").trim().toLowerCase();
@@ -515,7 +603,7 @@ export const buildLoopCandidateProfiles = ({ terrain, surface, vibe, reroll = fa
           ? 5
           : 4;
 
-  return uniqueProfiles([
+  const anchorProfiles = [
     {
       label: "anchor-orbit",
       strategy: "anchors",
@@ -548,8 +636,35 @@ export const buildLoopCandidateProfiles = ({ terrain, surface, vibe, reroll = fa
       bearingOffsets: [80, 208, 332],
       radiusFactors: [1.0, 1.2, 0.96],
     },
-    { label: "roundtrip-fallback", strategy: "round_trip", points: clamp(surfaceKey === "mixed" || surfaceKey === "gravel" ? basePoints + 1 : 6, 3, 7), seedOffset: rerollOffset + 89 },
-  ]).slice(0, 5);
+    {
+      label: "anchor-deep",
+      strategy: "anchors",
+      points: clamp(basePoints + 2, 3, 7),
+      seedOffset: rerollOffset + 101,
+      bearingOffsets: [24, 118, 214, 308],
+      radiusFactors: [0.92, 1.22, 1.28, 0.98],
+    },
+    {
+      label: "anchor-laced",
+      strategy: "anchors",
+      points: clamp(basePoints + 1, 3, 7),
+      seedOffset: rerollOffset + 127,
+      bearingOffsets: [52, 136, 224, 314],
+      radiusFactors: [1.04, 0.96, 1.18, 1.02],
+    },
+  ];
+  const profiles = strict
+    ? anchorProfiles
+    : [
+        ...anchorProfiles,
+        {
+          label: "roundtrip-fallback",
+          strategy: "round_trip",
+          points: clamp(surfaceKey === "mixed" || surfaceKey === "gravel" ? basePoints + 1 : 6, 3, 7),
+          seedOffset: rerollOffset + 89,
+        },
+      ];
+  return uniqueProfiles(profiles).slice(0, strict ? 6 : 5);
 };
 
 export const buildLoopCandidateRequest = ({

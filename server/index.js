@@ -29,6 +29,7 @@ import {
   normalizeNightRideDifficulty,
   normalizeNightRideSessionType,
   createNightRideCode,
+  buildNightRideFallbackLoopWaypoints,
   sampleLoopWaypoints,
   buildNightRideMapsUrl,
   buildRouletteWaypoint,
@@ -36,9 +37,11 @@ import {
   sanitizeCrewMembers,
 } from "../shared/night-rides.js";
 import {
+  buildGoogleMapsLoopUrl,
   buildLoopCandidateRequest,
   buildLoopCandidateProfiles,
   evaluateLoopCandidate,
+  hasUsableLoopWaypoints,
   selectBestLoopCandidate,
 } from "../shared/loop-quality.js";
 import {
@@ -1826,6 +1829,9 @@ app.post("/api/loop", async (req, res) => {
 
   const requestedDistanceKm = Math.max(1, Number(distance_km || 0));
   const origin = { lng: Number(coords[0]), lat: Number(coords[1]) };
+  if (!Number.isFinite(origin.lng) || !Number.isFinite(origin.lat)) {
+    return res.status(400).json({ error: "coords must be numeric" });
+  }
   const recentRoutes =
     authUser?.id
       ? (
@@ -1851,15 +1857,36 @@ app.post("/api/loop", async (req, res) => {
       seed: candidateSeed,
       profile,
     });
-    const response = await fetch("https://api.openrouteservice.org/v2/directions/cycling-regular", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: ORS_API_KEY,
-      },
-      body: JSON.stringify(payload),
-    });
-    const data = await response.json();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    let response;
+    let data;
+    try {
+      response = await fetch("https://api.openrouteservice.org/v2/directions/cycling-regular", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: ORS_API_KEY,
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+      const raw = await response.text();
+      data = raw ? JSON.parse(raw) : {};
+    } catch (error) {
+      clearTimeout(timeout);
+      return {
+        ok: false,
+        status: error?.name === "AbortError" ? 504 : 502,
+        error: error?.name === "AbortError" ? "ORS request timed out" : "ORS request failed",
+        detail: error instanceof Error ? error.message : null,
+        profile,
+        candidateIndex,
+        candidateSeed,
+      };
+    } finally {
+      clearTimeout(timeout);
+    }
     if (!response.ok) {
       return {
         ok: false,
@@ -1890,8 +1917,8 @@ app.post("/api/loop", async (req, res) => {
     };
   };
 
-  const runCandidateBatch = async (reroll = false) => {
-    const profiles = buildLoopCandidateProfiles({ terrain, surface, vibe, reroll });
+  const runCandidateBatch = async (reroll = false, strict = false) => {
+    const profiles = buildLoopCandidateProfiles({ terrain, surface, vibe, reroll, strict });
     return Promise.all(profiles.map((profile, candidateIndex) => requestCandidate(profile, candidateIndex)));
   };
 
@@ -1901,6 +1928,10 @@ app.post("/api/loop", async (req, res) => {
   if (!successfulFirstPass.some((candidate) => candidate.evaluation.valid)) {
     const secondPass = await runCandidateBatch(true);
     candidates = [...successfulFirstPass, ...secondPass.filter((candidate) => candidate.ok)];
+  }
+  if (!candidates.some((candidate) => candidate.evaluation.valid)) {
+    const strictPass = await runCandidateBatch(true, true);
+    candidates = [...candidates, ...strictPass.filter((candidate) => candidate.ok)];
   }
 
   if (!candidates.length) {
@@ -1915,8 +1946,23 @@ app.post("/api/loop", async (req, res) => {
   if (!bestCandidate) {
     return res.status(502).json({ error: "loop generation failed" });
   }
+  if (
+    !bestCandidate.evaluation.valid &&
+    (
+      bestCandidate.evaluation.sampledWaypoints.length < 5 ||
+      bestCandidate.evaluation.metrics.overlapRatio >= 0.66 ||
+      bestCandidate.evaluation.metrics.corridorDuplication >= 0.74 ||
+      bestCandidate.evaluation.metrics.dominantLegRatio >= 0.76
+    )
+  ) {
+    return res.status(502).json({
+      error: "Could not shape a reliable loop from this start. Try a slightly larger distance or a different start point.",
+      detail: bestCandidate.evaluation.metrics,
+    });
+  }
   return res.json({
     ...bestCandidate.data,
+    route_url: buildGoogleMapsLoopUrl(origin, bestCandidate.evaluation.sampledWaypoints),
     quality_score: bestCandidate.evaluation.score,
     overlap_ratio: bestCandidate.evaluation.metrics.overlapRatio,
     candidate_seed: bestCandidate.candidateSeed,
@@ -2024,7 +2070,12 @@ app.post(["/api/night-rides/create", "/api/night-rides/generate"], async (req, r
     if (!response.ok) return res.status(response.status).json({ error: data?.error?.message || data?.message || "ORS error" });
     route_payload = data;
     const coords = data?.features?.[0]?.geometry?.coordinates || [];
-    route_url = buildNightRideMapsUrl({ origin, destination: origin, waypoints: sampleLoopWaypoints(coords) });
+    const waypoints = sampleLoopWaypoints(coords, distance_km);
+    const resolvedWaypoints =
+      hasUsableLoopWaypoints(waypoints)
+        ? waypoints
+        : buildNightRideFallbackLoopWaypoints(origin, distance_km, Math.floor(Math.random() * 1000) + 1);
+    route_url = buildNightRideMapsUrl({ origin, destination: origin, waypoints: resolvedWaypoints });
     title = session_type === "crew" ? `${crew_name} · Night Loop` : `Night Loop · ${origin_label}`;
   } else {
     const via = buildRouletteWaypoint({ start: origin, end: destination, targetKm: distance_km, difficulty });

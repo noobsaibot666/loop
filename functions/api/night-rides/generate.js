@@ -6,12 +6,14 @@ import {
   normalizeNightRideDifficulty,
   normalizeNightRideSessionType,
   createNightRideCode,
+  buildNightRideFallbackLoopWaypoints,
   sampleLoopWaypoints,
   buildNightRideMapsUrl,
   buildRouletteWaypoint,
   distanceBetweenKm,
   sanitizeCrewMembers,
 } from "../../../shared/night-rides.js";
+import { hasUsableLoopWaypoints } from "../../../shared/loop-quality.js";
 
 const riderLabelFromEmail = (email = "") => {
   const [local] = String(email || "").split("@");
@@ -125,8 +127,12 @@ export async function onRequest({ request, env }) {
     }
     routePayload = data;
     const coords = data?.features?.[0]?.geometry?.coordinates || [];
-    const waypoints = sampleLoopWaypoints(coords);
-    routeUrl = buildNightRideMapsUrl({ origin: start, destination: start, waypoints });
+    const waypoints = sampleLoopWaypoints(coords, distanceKm);
+    const resolvedWaypoints =
+      hasUsableLoopWaypoints(waypoints)
+        ? waypoints
+        : buildNightRideFallbackLoopWaypoints(start, distanceKm, Math.floor(Math.random() * 1000) + 1);
+    routeUrl = buildNightRideMapsUrl({ origin: start, destination: start, waypoints: resolvedWaypoints });
     title = sessionType === "crew" ? `${crewName} · Night Loop` : `Night Loop · ${originLabel}`;
   } else {
     const via = buildRouletteWaypoint({
