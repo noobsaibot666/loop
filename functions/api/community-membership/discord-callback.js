@@ -1,5 +1,6 @@
-import { supabaseRequest } from "../../_utils.js";
+import { supabaseAdminAuthRequest, supabaseRequest } from "../../_utils.js";
 import { COMMUNITY_INVITE_URL, isMembershipActive } from "../../../shared/community-membership.js";
+import { sendCommunityDiscordLinkedEmail } from "../../../shared/community-email.js";
 import {
   addDiscordRole,
   exchangeDiscordCode,
@@ -13,6 +14,22 @@ const redirectToAccount = (request, outcome) => {
   const url = new URL("/account", request.url);
   url.searchParams.set("community", outcome);
   return Response.redirect(url.toString(), 302);
+};
+
+const getMembershipRecipient = async (env, userId) => {
+  if (!userId) return { email: "", riderName: "" };
+  const authUser = await supabaseAdminAuthRequest(env, `admin/users/${encodeURIComponent(userId)}`, {
+    method: "GET",
+  }).catch(() => null);
+  const profileRows = await supabaseRequest(
+    env,
+    `user_profiles?user_id=eq.${encodeURIComponent(userId)}&select=rider_name&limit=1`,
+    { method: "GET" }
+  ).catch(() => []);
+  return {
+    email: authUser?.user?.email || "",
+    riderName: profileRows?.[0]?.rider_name?.trim() || authUser?.user?.email?.split("@")[0] || "Rider",
+  };
 };
 
 export async function onRequest({ request, env }) {
@@ -63,23 +80,33 @@ export async function onRequest({ request, env }) {
     await joinDiscordGuild(config, discordUser.id, token.access_token);
     await addDiscordRole(config, discordUser.id);
 
+    const nextMembership = {
+      ...membership,
+      discord_user_id: discordUser.id,
+      discord_username: formatDiscordUsername(discordUser),
+      discord_linked_at: membership.discord_linked_at || nowIso,
+      discord_role_status: "granted",
+      discord_access_granted_at: nowIso,
+      discord_access_revoked_at: null,
+      discord_link_state: null,
+      discord_link_state_expires_at: null,
+      discord_last_error: null,
+      discord_invite_url: membership.discord_invite_url || COMMUNITY_INVITE_URL,
+    };
+
     await supabaseRequest(env, "community_memberships", {
       method: "POST",
       headers: { Prefer: "resolution=merge-duplicates" },
-      body: JSON.stringify({
-        ...membership,
-        discord_user_id: discordUser.id,
-        discord_username: formatDiscordUsername(discordUser),
-        discord_linked_at: membership.discord_linked_at || nowIso,
-        discord_role_status: "granted",
-        discord_access_granted_at: nowIso,
-        discord_access_revoked_at: null,
-        discord_link_state: null,
-        discord_link_state_expires_at: null,
-        discord_last_error: null,
-        discord_invite_url: membership.discord_invite_url || COMMUNITY_INVITE_URL,
-      }),
+      body: JSON.stringify(nextMembership),
     });
+
+    const recipient = await getMembershipRecipient(env, membership.user_id);
+    await sendCommunityDiscordLinkedEmail({
+      env,
+      request,
+      membership: nextMembership,
+      user: recipient,
+    }).catch(() => null);
 
     return redirectToAccount(request, "discord-linked");
   } catch (error) {

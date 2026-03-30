@@ -120,6 +120,8 @@ export const formatDiscordUsername = (discordUser) => {
   return discordUser.username || "";
 };
 
+export const buildDiscordGuildUrl = (guildId) => `https://discord.com/channels/${guildId}`;
+
 export const joinDiscordGuild = async (config, discordUserId, accessToken) =>
   discordBotRequest(`/guilds/${config.guildId}/members/${discordUserId}`, config, {
     method: "PUT",

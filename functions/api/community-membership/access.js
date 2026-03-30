@@ -4,7 +4,7 @@ import {
   deriveMembershipAccessState,
   isMembershipActive,
 } from "../../../shared/community-membership.js";
-import { syncDiscordMembershipAccess } from "../../../shared/discord-community.js";
+import { buildDiscordGuildUrl, getDiscordConfig, syncDiscordMembershipAccess } from "../../../shared/discord-community.js";
 
 export async function onRequest({ request, env }) {
   if (request.method !== "POST") return json({ error: "method not allowed" }, { status: 405 });
@@ -86,6 +86,6 @@ export async function onRequest({ request, env }) {
   return json({
     ok: true,
     access_state: accessState,
-    url: currentMembership.discord_invite_url || COMMUNITY_INVITE_URL,
+    url: buildDiscordGuildUrl(getDiscordConfig(env, request).guildId),
   });
 }

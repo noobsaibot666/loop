@@ -63,6 +63,30 @@ const supabaseAuthUser = async (env, token) => {
   return res.json();
 };
 
+const supabaseAdminAuthRequest = async (env, path, options = {}) => {
+  const { url, key } = supabaseAdmin(env);
+  const headers = new Headers(options.headers || {});
+  headers.set("apikey", key);
+  headers.set("Authorization", `Bearer ${key}`);
+  if (!headers.has("Content-Type") && options.body) {
+    headers.set("Content-Type", "application/json");
+  }
+  const res = await fetch(`${url}/auth/v1/${path}`, { ...options, headers });
+  const text = await res.text();
+  let data = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { raw: text };
+    }
+  }
+  if (!res.ok) {
+    throw new Error(data?.message || data?.error || res.statusText || "Supabase auth admin request failed");
+  }
+  return data;
+};
+
 const getAdminEmails = (env) => (env.ADMIN_EMAILS || "").split(",").map((v) => v.trim()).filter(Boolean);
 const isAdminEmail = (env, email) => {
   if (!email) return false;
@@ -102,6 +126,7 @@ export {
   requireEnv,
   supabaseRequest,
   supabaseAuthUser,
+  supabaseAdminAuthRequest,
   getAuthUser,
   isAdminEmail,
   requireAdmin,

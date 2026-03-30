@@ -60,6 +60,7 @@ import {
 import {
   addDiscordRole,
   buildDiscordAuthorizeUrl,
+  buildDiscordGuildUrl,
   exchangeDiscordCode,
   formatDiscordUsername,
   getDiscordConfig,
@@ -67,6 +68,11 @@ import {
   joinDiscordGuild,
   syncDiscordMembershipAccess,
 } from "../shared/discord-community.js";
+import {
+  sendCommunityActivatedEmail,
+  sendCommunityCanceledEmail,
+  sendCommunityDiscordLinkedEmail,
+} from "../shared/community-email.js";
 
 const app = express();
 const PORT = process.env.PORT || 8787;
@@ -119,6 +125,19 @@ const safeNoThrow = async (promise) => {
   } catch {
     return null;
   }
+};
+
+const getCommunityRecipient = async (userId) => {
+  if (!userId) return { email: "", riderName: "" };
+  const authResult = await supabase.auth.admin.getUserById(userId).catch(() => ({ data: { user: null } }));
+  const authUser = authResult?.data?.user || null;
+  const { data: profile } = await safeMaybeSingle(
+    supabase.from("user_profiles").select("rider_name").eq("user_id", userId)
+  );
+  return {
+    email: authUser?.email || "",
+    riderName: profile?.rider_name?.trim() || authUser?.email?.split("@")[0] || "Rider",
+  };
 };
 
 const consumeMessengerCredits = async (user_id, user_email = "") => {
@@ -334,6 +353,13 @@ app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async
       await supabase
         .from("community_memberships")
         .upsert(nextMembership, { onConflict: "user_id" });
+      const recipient = await getCommunityRecipient(user_id);
+      await sendCommunityActivatedEmail({
+        env: process.env,
+        request: req,
+        membership: nextMembership,
+        user: recipient,
+      }).catch(() => null);
       return res.json({ received: true });
     }
 
@@ -414,6 +440,15 @@ app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async
       await supabase
         .from("community_memberships")
         .upsert(nextMembership, { onConflict: "user_id" });
+      if (event.type === "customer.subscription.deleted") {
+        const recipient = await getCommunityRecipient(membership.user_id);
+        await sendCommunityCanceledEmail({
+          env: process.env,
+          request: req,
+          membership: nextMembership,
+          user: recipient,
+        }).catch(() => null);
+      }
     }
   }
 
@@ -1861,6 +1896,19 @@ app.get("/api/community-membership/discord-callback", async (req, res) => {
       )
     );
 
+    const recipient = await getCommunityRecipient(membership.user_id);
+    await sendCommunityDiscordLinkedEmail({
+      env: process.env,
+      request: req,
+      membership: {
+        ...membership,
+        discord_user_id: discordUser.id,
+        discord_username: formatDiscordUsername(discordUser),
+        discord_role_status: "granted",
+      },
+      user: recipient,
+    }).catch(() => null);
+
     return redirect("discord-linked");
   } catch (error) {
     await safeNoThrow(
@@ -1932,7 +1980,7 @@ app.post("/api/community-membership/access", async (req, res) => {
   return res.json({
     ok: true,
     access_state: accessState,
-    url: currentMembership.discord_invite_url || COMMUNITY_INVITE_URL,
+    url: buildDiscordGuildUrl(getDiscordConfig(process.env, req).guildId),
   });
 });
 
