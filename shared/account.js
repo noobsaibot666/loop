@@ -9,6 +9,7 @@ const buildAlleycatHistory = ({ manifests = [], runs = [], proofs = [] }) =>
     .sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime())
     .slice(0, 8)
     .map((manifest) => {
+      const ghostSeconds = typeof manifest.ghost_seconds === "number" && manifest.ghost_seconds > 0 ? manifest.ghost_seconds : null;
       const manifestRuns = runs.filter((run) => run.manifest_id === manifest.id);
       const finishedRuns = manifestRuns.filter((run) => run.status === "finished" && typeof run.finish_seconds === "number");
       const bestRun = [...finishedRuns].sort((left, right) => (left.finish_seconds || 0) - (right.finish_seconds || 0))[0] || null;
@@ -35,8 +36,8 @@ const buildAlleycatHistory = ({ manifests = [], runs = [], proofs = [] }) =>
         created_at: manifest.created_at,
         status: bestRun ? "finished" : manifestRuns.length ? "active" : "ready",
         best_seconds: bestRun?.finish_seconds || null,
-        ghost_seconds: manifest.ghost_seconds || null,
-        ghost_delta: bestRun && typeof manifest.ghost_seconds === "number" ? bestRun.finish_seconds - manifest.ghost_seconds : null,
+        ghost_seconds: ghostSeconds,
+        ghost_delta: bestRun && ghostSeconds !== null ? bestRun.finish_seconds - ghostSeconds : null,
         proof_count: proofCount,
         proofs: manifestProofs,
         source_challenge_id: manifest.source_challenge_id || null,

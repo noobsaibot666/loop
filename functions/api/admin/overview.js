@@ -23,8 +23,8 @@ export async function onRequest({ request, env }) {
   const [credits, stripeSessions, manifests, runs, challenges, recentProofs, allProofs, quarterProofs, quarterRuns, packs, checkpoints, moderationHistory] = await Promise.all([
     supabaseRequest(env, "user_credits?select=user_id,credits,free_used", { method: "GET" }),
     supabaseRequest(env, "stripe_sessions?select=session_id,status,amount_cents,created_at&order=created_at.desc&limit=20", { method: "GET" }),
-    supabaseRequest(env, "messenger_manifests?select=id,city_name,created_at", { method: "GET" }),
-    supabaseRequest(env, "messenger_runs?select=id,status", { method: "GET" }),
+    supabaseRequest(env, "messenger_manifests?select=id,city_name,manifest_title,checkpoint_count,ghost_seconds,created_at", { method: "GET" }),
+    supabaseRequest(env, "messenger_runs?select=id,user_id,manifest_id,status,finish_seconds,finished_at", { method: "GET" }),
     supabaseRequest(env, "messenger_challenges?select=id", { method: "GET" }),
     supabaseRequest(
       env,
@@ -61,6 +61,7 @@ export async function onRequest({ request, env }) {
 
   const proofs = allProofs || [];
   const recentSessions = stripeSessions || [];
+  const manifestMap = new Map((manifests || []).map((manifest) => [manifest.id, manifest]));
   const counts = new Map();
   const districtsByPack = new Map();
   for (const checkpoint of checkpoints || []) {
@@ -123,6 +124,32 @@ export async function onRequest({ request, env }) {
   const activeRuns = (runs || []).filter((run) => run.status === "active").length;
   const abandonedRuns = (runs || []).filter((run) => run.status === "abandoned").length;
   const finishedRuns = (runs || []).filter((run) => run.status === "finished").length;
+  const fastestRunCandidates = (runs || [])
+    .filter((run) => run.status === "finished" && typeof run.finish_seconds === "number" && manifestMap.has(run.manifest_id))
+    .sort((left, right) => left.finish_seconds - right.finish_seconds)
+    .slice(0, 12);
+  const fastestUserIds = [...new Set(fastestRunCandidates.map((run) => run.user_id).filter(Boolean))];
+  const profileRows = fastestUserIds.length
+    ? await supabaseRequest(
+        env,
+        `user_profiles?user_id=in.(${fastestUserIds.map((id) => encodeURIComponent(id)).join(",")})&select=user_id,rider_name`,
+        { method: "GET" }
+      ).catch(() => [])
+    : [];
+  const profileMap = new Map((profileRows || []).map((profile) => [profile.user_id, profile.rider_name]));
+  const fastest_runs = fastestRunCandidates.map((run) => {
+    const manifest = manifestMap.get(run.manifest_id);
+    return {
+      run_id: run.id,
+      rider_name: profileMap.get(run.user_id) || "Rider",
+      city_name: manifest?.city_name || "",
+      manifest_title: manifest?.manifest_title || "",
+      checkpoint_count: manifest?.checkpoint_count || null,
+      ghost_seconds: manifest?.ghost_seconds || null,
+      finish_seconds: run.finish_seconds,
+      finished_at: run.finished_at,
+    };
+  });
   const checkoutFailures = recentSessions.filter((session) => !["checkout_created", "completed", "paid"].includes(String(session.status || "").toLowerCase())).length;
   const completionRate = runs?.length ? Math.round((finishedRuns / runs.length) * 100) : 0;
   const publicProofs = proofs.filter((proof) => proof.is_public).length;
@@ -166,6 +193,7 @@ export async function onRequest({ request, env }) {
     },
     recent_sessions: recentSessions.slice(0, 5),
     recent_proofs: recentProofs || [],
+    fastest_runs,
     city_pulse: cityPulse,
     abuse_watch: abuseWatch,
     moderation_history: moderationHistory || [],

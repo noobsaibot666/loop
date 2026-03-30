@@ -60,6 +60,7 @@ export type MessengerRun = {
   runId: string;
   startedAt: string;
   completedIds: string[];
+  checkins?: Record<string, string>;
   finishSeconds: number | null;
   finishedAt: string | null;
   status?: string;
@@ -224,10 +225,13 @@ export type AccountSummary = {
 export type WallPost = {
   id: string;
   run_id?: string;
+  manifest_id?: string;
   user_id?: string;
   rider_name: string;
   city_name: string;
   city_slug: string;
+  manifest_title?: string;
+  checkpoint_count?: number | null;
   checkpoint_name: string;
   location_label: string;
   bike_name?: string | null;

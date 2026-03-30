@@ -9,11 +9,11 @@ create table if not exists public.messenger_manifests (
   source_challenge_id uuid,
   city_slug text not null,
   city_name text not null,
-  difficulty text not null,
+  difficulty text,
   style text not null,
   manifest_title text not null,
   estimated_minutes integer not null,
-  ghost_seconds integer not null,
+  ghost_seconds integer,
   checkpoint_count integer not null,
   manifest jsonb not null,
   created_at timestamptz not null default now()
@@ -62,6 +62,10 @@ create table if not exists public.messenger_challenge_entries (
 
 alter table if exists public.messenger_manifests
   add column if not exists source_challenge_id uuid;
+
+alter table if exists public.messenger_manifests
+  alter column difficulty drop not null,
+  alter column ghost_seconds drop not null;
 
 alter table if exists public.messenger_run_checkins
   add column if not exists rider_lat double precision,

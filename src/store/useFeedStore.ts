@@ -10,7 +10,7 @@ interface FeedState {
   selectedCity: string;
   
   setSelectedCity: (city: string) => void;
-  fetchWall: (city: string) => Promise<void>;
+  fetchWall: (city: string, checkpointCount?: string) => Promise<void>;
   fetchNightRide: (city?: string) => Promise<void>;
   addNightRidePost: (post: NightRideFeedPost) => void;
 }
@@ -24,10 +24,10 @@ export const useFeedStore = create<FeedState>((set, get) => ({
 
   setSelectedCity: (city) => set({ selectedCity: city }),
 
-  fetchWall: async (city) => {
+  fetchWall: async (city, checkpointCount = "") => {
     set({ isLoadingWall: true });
     try {
-      const data = await postJSON<any>("/api/messenger/wall", { city });
+      const data = await postJSON<any>("/api/messenger/wall", { city, checkpoint_count: checkpointCount });
       set({ wallPosts: data.posts || [] });
     } catch {
       set({ wallPosts: [] });

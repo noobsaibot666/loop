@@ -9,6 +9,7 @@ export async function onRequest({ request, env }) {
   if (!userId) return json({ error: "login required" }, { status: 401 });
 
   const { city, difficulty, style, start_lat, start_lng, start_label, range_km, checkpoint_count } = body;
+  const ghostEnabled = body?.ghost_enabled !== false && body?.ghost_enabled !== "false" && body?.ghost_enabled !== 0;
   if (!String(start_label || "").trim() || !Number.isFinite(Number(start_lat)) || !Number.isFinite(Number(start_lng))) {
     return json({ error: "start area required" }, { status: 400 });
   }
@@ -42,7 +43,8 @@ export async function onRequest({ request, env }) {
             task_fast: checkpoint.task_fast,
             task_chaotic: checkpoint.task_chaotic,
           })),
-          difficulty,
+          ghostEnabled,
+          difficulty: ghostEnabled ? difficulty : null,
           style,
           seed,
           startPoint,
@@ -54,7 +56,8 @@ export async function onRequest({ request, env }) {
 
   const fallbackBuilt = buildMessengerManifest({
     city,
-    difficulty,
+    ghostEnabled,
+    difficulty: ghostEnabled ? difficulty : null,
     style,
     seed,
     startPoint,

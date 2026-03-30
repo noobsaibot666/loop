@@ -8,15 +8,48 @@ import { useAlleycatStore } from "../store/useAlleycatStore";
 import { useAuthStore } from "../store/useAuthStore";
 import { ALLEYCAT_CITY_PRESETS, MESSENGER_CREDIT_COST } from "../config";
 import { Link, useSearchParams } from "react-router-dom";
+import { ArrowDown, ArrowUp, Check, ChevronDown, ChevronUp, Ghost, ImagePlus, LocateFixed } from "lucide-react";
+
+const CHECKPOINT_HELP_RADIUS_METERS = 250;
+
+const formatMinutes = (seconds: number | null | undefined) => {
+  if (typeof seconds !== "number" || Number.isNaN(seconds)) return "--";
+  const minutes = Math.floor(seconds / 60);
+  const remainder = Math.max(0, Math.round(seconds % 60));
+  return `${minutes}m ${String(remainder).padStart(2, "0")}s`;
+};
+
+const distanceBetweenMeters = (
+  start: { lat: number; lng: number },
+  end: { lat: number; lng: number }
+) => {
+  const toRadians = (value: number) => (value * Math.PI) / 180;
+  const earthRadius = 6371000;
+  const lat1 = toRadians(start.lat);
+  const lat2 = toRadians(end.lat);
+  const dLat = toRadians(end.lat - start.lat);
+  const dLng = toRadians(end.lng - start.lng);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return Math.round(earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+};
 
 const AlleycatMode: React.FC = () => {
   const { t } = useI18n();
   const [searchParams] = useSearchParams();
   const [showCodeModal, setShowCodeModal] = useState(false);
   const [showCityMenu, setShowCityMenu] = useState(false);
+  const [showGhostPanel, setShowGhostPanel] = useState(false);
+  const [comparisonNow, setComparisonNow] = useState(() => Date.now());
+  const [checkpointOrder, setCheckpointOrder] = useState<string[]>([]);
+  const [proofFiles, setProofFiles] = useState<Record<string, File | null>>({});
+  const [hintUnlocked, setHintUnlocked] = useState<Record<string, boolean>>({});
+  const [nearCheckpointId, setNearCheckpointId] = useState<string | null>(null);
   const cityMenuRef = useRef<HTMLDivElement | null>(null);
   const suggestionShellRef = useRef<HTMLDivElement | null>(null);
   const codeModalCardRef = useRef<HTMLDivElement | null>(null);
+  const manifestResultRef = useRef<HTMLDivElement | null>(null);
   const {
     config, setConfig,
     manifest,
@@ -34,6 +67,14 @@ const AlleycatMode: React.FC = () => {
     suggestions,
     fetchSuggestions,
     generateManifest,
+    startRun,
+    checkIn,
+    setStatus,
+    finishRun,
+    abandonRun,
+    restartRun,
+    uploadProof,
+    isUploading,
     setShareCodeInput,
     resetState,
     createShareCode,
@@ -129,6 +170,35 @@ const AlleycatMode: React.FC = () => {
     };
   }, [showCodeModal]);
 
+  useEffect(() => {
+    if (!manifest?.id) return;
+    window.setTimeout(() => {
+      manifestResultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 120);
+  }, [manifest?.id]);
+
+  useEffect(() => {
+    if (!manifest?.checkpoints?.length) {
+      setCheckpointOrder([]);
+      setProofFiles({});
+      setHintUnlocked({});
+      setNearCheckpointId(null);
+      setShowGhostPanel(false);
+      return;
+    }
+    setCheckpointOrder(manifest.checkpoints.map((checkpoint) => checkpoint.id));
+    setProofFiles({});
+    setHintUnlocked({});
+    setNearCheckpointId(null);
+    setShowGhostPanel(false);
+  }, [manifest?.id, manifest?.checkpoints]);
+
+  useEffect(() => {
+    if (run?.status !== "active") return;
+    const timer = window.setInterval(() => setComparisonNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [run?.status]);
+
   const handleGenerate = () => {
     if (!user) {
       useUIStore.getState().setAuthMode("signin");
@@ -149,6 +219,18 @@ const AlleycatMode: React.FC = () => {
       return;
     }
     setShowCodeModal(true);
+  };
+
+  const moveCheckpoint = (checkpointId: string, direction: "up" | "down") => {
+    setCheckpointOrder((current) => {
+      const index = current.indexOf(checkpointId);
+      if (index < 0) return current;
+      const targetIndex = direction === "up" ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= current.length) return current;
+      const next = [...current];
+      [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+      return next;
+    });
   };
 
   const minDistance = config.unit === "km" ? 5 : 3;
@@ -172,6 +254,171 @@ const AlleycatMode: React.FC = () => {
   const canBuildManifest = Boolean(config.city && config.location.trim());
   const boardLeader = leaderboard[0] || null;
   const finishedRiders = leaderboard.filter((entry) => entry.best_seconds !== null).length;
+  const manifestCheckpoints = manifest?.checkpoints || [];
+  const orderedCheckpoints = useMemo(() => {
+    if (!manifestCheckpoints.length) return [];
+    const checkpointMap = new Map(manifestCheckpoints.map((checkpoint) => [checkpoint.id, checkpoint]));
+    const ordered = checkpointOrder
+      .map((checkpointId) => checkpointMap.get(checkpointId))
+      .filter((checkpoint): checkpoint is NonNullable<typeof checkpoint> => Boolean(checkpoint));
+    const missing = manifestCheckpoints.filter((checkpoint) => !checkpointOrder.includes(checkpoint.id));
+    return [...ordered, ...missing];
+  }, [checkpointOrder, manifestCheckpoints]);
+  const completedCheckpointIds = run?.completedIds || [];
+  const checkinMap = run?.checkins || {};
+  const completedCount = orderedCheckpoints.filter((checkpoint) => completedCheckpointIds.includes(checkpoint.id)).length;
+  const totalCheckpoints = orderedCheckpoints.length;
+  const hasActiveRun = run?.status === "active";
+  const checkpointProofs = run?.proofs || [];
+  const ghostTotalSeconds = manifest?.ghost_seconds ?? null;
+  const riderElapsedSeconds = run
+    ? run.finishSeconds ?? Math.max(0, Math.floor((comparisonNow - new Date(run.startedAt).getTime()) / 1000))
+    : null;
+  const ghostSplitSeconds = useMemo(() => {
+    if (!orderedCheckpoints.length) return [] as number[];
+    const totalSeconds = ghostTotalSeconds ?? Math.max(60, (manifest?.estimated_minutes || 1) * 60);
+    return orderedCheckpoints.map((_, index) => Math.round((totalSeconds * (index + 1)) / (orderedCheckpoints.length + 1)));
+  }, [ghostTotalSeconds, manifest?.estimated_minutes, orderedCheckpoints]);
+  const completedCheckpointSequence = useMemo(
+    () =>
+      Object.entries(checkinMap)
+        .sort((left, right) => new Date(left[1]).getTime() - new Date(right[1]).getTime())
+        .map(([checkpointId]) => checkpointId),
+    [checkinMap]
+  );
+  const completionOrderMap = useMemo(
+    () =>
+      completedCheckpointSequence.reduce<Record<string, number>>((acc, checkpointId, index) => {
+        acc[checkpointId] = index;
+        return acc;
+      }, {}),
+    [completedCheckpointSequence]
+  );
+  const riderCheckpointSeconds = (checkpointId: string) => {
+    if (!run?.startedAt || !checkinMap[checkpointId]) return null;
+    return Math.max(1, Math.round((new Date(checkinMap[checkpointId]).getTime() - new Date(run.startedAt).getTime()) / 1000));
+  };
+  const riderProgress = totalCheckpoints ? (completedCount / totalCheckpoints) * 100 : 0;
+  const ghostProgress = totalCheckpoints && ghostSplitSeconds.length && riderElapsedSeconds !== null
+    ? Math.min(100, (riderElapsedSeconds / (ghostTotalSeconds ?? ((manifest?.estimated_minutes || 1) * 60))) * 100)
+    : 0;
+  const latestCompletedCheckpointId = completedCheckpointSequence[completedCheckpointSequence.length - 1] || null;
+  const latestCompletedOrder = latestCompletedCheckpointId ? completionOrderMap[latestCompletedCheckpointId] ?? null : null;
+  const latestCheckpointActualSeconds = latestCompletedCheckpointId ? riderCheckpointSeconds(latestCompletedCheckpointId) : null;
+  const riderCheckpointTarget = latestCompletedOrder !== null ? ghostSplitSeconds[latestCompletedOrder] : null;
+  const riderDeltaSeconds = latestCheckpointActualSeconds !== null && riderCheckpointTarget !== null
+    ? latestCheckpointActualSeconds - riderCheckpointTarget
+    : null;
+  const ghostStyleLabel = t(`alleycat.style.${manifest?.style || config.style}`);
+  const ghostPressureLabel = t(`difficulty.${manifest?.difficulty || config.difficulty}`);
+  const allCheckpointsCleared = totalCheckpoints > 0 && completedCount >= totalCheckpoints;
+  const nextGhostSplitSeconds = completedCount < ghostSplitSeconds.length ? ghostSplitSeconds[completedCount] : null;
+  const activeCheckpoint = hasActiveRun
+    ? orderedCheckpoints.find((checkpoint) => !completedCheckpointIds.includes(checkpoint.id)) || null
+    : null;
+  const manifestRangeLabel = manifest?.range_km
+    ? `${manifest.range_km.toFixed(1)} km`
+    : `${manifest?.estimated_minutes || 0} min`;
+  const manifestStartLabel = manifest?.start_label || manifest?.city || config.city;
+  const manifestDistrictCount = manifest?.district_count || manifest?.checkpoint_count || 0;
+  const resolvedShareCode = String(shareCode || challenge?.code || "").trim().toUpperCase();
+  const manifestInsightCards = manifest
+    ? [
+        {
+          label: t("alleycat.run.routeLine"),
+          title: manifest.route_note,
+          body: t("alleycat.result.routeLineBody", {
+            start: manifestStartLabel,
+            districts: manifestDistrictCount,
+            range: manifestRangeLabel,
+          }),
+        },
+        {
+          label: t("alleycat.run.taskMix"),
+          title: manifest.task_mix || t("alleycat.run.formatAny"),
+          body: t("alleycat.result.taskMixBody", {
+            taskMix: manifest.task_mix || t("alleycat.run.formatAny"),
+            pressure: ghostPressureLabel,
+          }),
+        },
+        {
+          label: t("alleycat.run.finishCall"),
+          title: manifest.finish_label,
+          body: t("alleycat.result.finishCallBody", {
+            finish: manifest.finish_label,
+          }),
+        },
+        {
+          label: t("alleycat.run.replayHook"),
+          title: manifest.replay_hook || manifest.manifest_title,
+          body: t("alleycat.result.replayHookBody", {
+            count: manifest.checkpoint_count,
+            city: manifest.city,
+          }),
+        },
+      ]
+    : [];
+
+  useEffect(() => {
+    if (!hasActiveRun || !activeCheckpoint || typeof navigator === "undefined" || !navigator.geolocation) {
+      setNearCheckpointId(null);
+      return;
+    }
+    let cancelled = false;
+    const updateProximity = () => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          if (cancelled) return;
+          const meters = distanceBetweenMeters(
+            { lat: position.coords.latitude, lng: position.coords.longitude },
+            { lat: activeCheckpoint.lat, lng: activeCheckpoint.lng }
+          );
+          setNearCheckpointId(meters <= CHECKPOINT_HELP_RADIUS_METERS ? activeCheckpoint.id : null);
+        },
+        () => {
+          if (!cancelled) setNearCheckpointId(null);
+        },
+        { enableHighAccuracy: true, maximumAge: 15000, timeout: 10000 }
+      );
+    };
+    updateProximity();
+    const timer = window.setInterval(updateProximity, 20000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [hasActiveRun, activeCheckpoint?.id, activeCheckpoint?.lat, activeCheckpoint?.lng]);
+
+  const unlockCheckpointHint = async (checkpoint: NonNullable<typeof orderedCheckpoints[number]>) => {
+    setStatus("alleycat.status.checkingLocation");
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setStatus("alleycat.status.hintFar");
+      return;
+    }
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          maximumAge: 10000,
+          timeout: 10000,
+        })
+      );
+      const meters = distanceBetweenMeters(
+        { lat: position.coords.latitude, lng: position.coords.longitude },
+        { lat: checkpoint.lat, lng: checkpoint.lng }
+      );
+      const isNearby = meters <= CHECKPOINT_HELP_RADIUS_METERS;
+      setNearCheckpointId(isNearby ? checkpoint.id : null);
+      if (!isNearby) {
+        setStatus("alleycat.status.hintFar");
+        return;
+      }
+      setHintUnlocked((current) => ({ ...current, [checkpoint.id]: true }));
+      setStatus("alleycat.status.hintReady");
+    } catch {
+      setStatus("alleycat.status.hintFar");
+    }
+  };
 
   return (
     <div className="sequential-layout sub-page page-messenger page-stage-enter">
@@ -243,6 +490,7 @@ const AlleycatMode: React.FC = () => {
                             onClick={() => {
                               setConfig({ city: c });
                               setShowCityMenu(false);
+                              if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
                             }}
                           >
                             {c}
@@ -279,6 +527,7 @@ const AlleycatMode: React.FC = () => {
                                 selectedCoords: { lat: item.lat, lng: item.lng },
                               });
                               fetchSuggestions("");
+                              if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
                             }}
                           >
                             {item.label}
@@ -438,8 +687,15 @@ const AlleycatMode: React.FC = () => {
 
             {status && <div className="status-message">{t(status)}</div>}
 
-            {manifest && (
-              <div className="manifest-result-overlay glass-card animation-slide-up">
+          </div>
+        </div>
+      </section>
+
+      {manifest && (
+        <section className="split-module reveals route-builder-section">
+          <div className="module-content">
+            <div ref={manifestResultRef} className="glass-card animation-slide-up manifest-result-panel" id="manifest-killer-result">
+              <div className="manifest-result-header">
                 <div className="messenger-output">
                   <div className="manifest-brief">
                     <div>
@@ -458,60 +714,323 @@ const AlleycatMode: React.FC = () => {
                               minutes: manifest.estimated_minutes,
                             })}
                       </div>
-                    </div>
-                    <div className="manifest-metrics">
-                      {typeof manifest.ghost_seconds === "number" ? (
-                        <div>
-                          <span>{t("alleycat.run.ghost")}</span>
-                          <strong>{Math.floor(manifest.ghost_seconds / 60)}m</strong>
+                      <div className="manifest-summary-strip">
+                        <div className="manifest-summary-card">
+                          <span>{t("alleycat.rideZone")}</span>
+                          <strong>{manifestRangeLabel}</strong>
+                        </div>
+                        <div className="manifest-summary-card">
+                          <span>{t("alleycat.run.format")}</span>
+                          <strong>{ghostStyleLabel}</strong>
+                        </div>
+                        <div className="manifest-summary-card">
+                          <span>{t("alleycat.checkpoints")}</span>
+                          <strong>{completedCount}/{totalCheckpoints}</strong>
+                        </div>
+                      </div>
+                      {!run ? (
+                        <div className="manifest-top-actions">
+                          <button className="primary-button" type="button" onClick={() => startRun(manifest.id)}>
+                            {t("alleycat.result.start")}
+                          </button>
                         </div>
                       ) : null}
+                    </div>
+                  </div>
+
+                  <div className="manifest-result-grid">
+                    <div className="manifest-primary-stack">
+                      <div className="manifest-notes manifest-insight-grid">
+                        {manifestInsightCards.map((card) => (
+                          <div key={card.label} className="manifest-note-card">
+                            <span>{card.label}</span>
+                            <strong>{card.title}</strong>
+                            <p>{card.body}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="manifest-side-stack">
+                      {resolvedShareCode && (
+                        <div className="challenge-rivalry-card result-bridge-card">
+                          <span>{t("alleycat.run.shareCode")}</span>
+                          <strong className="share-code-value">{resolvedShareCode}</strong>
+                          <em>{t("share.ready")}</em>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <section className="manifest-checkpoint-section" id="manifest-checkpoints">
+                    <div className="challenge-card-head">
                       <div>
-                        <span>{t("alleycat.run.format")}</span>
-                        <strong>{t("alleycat.run.formatAny")}</strong>
+                        <div className="manifest-subtitle">{t("alleycat.checkpoints")}</div>
+                        <div className="challenge-card-copy">{t("alleycat.result.checkpointsBody")}</div>
                       </div>
                     </div>
-                  </div>
+                    <div className="checkpoint-list">
+                      {orderedCheckpoints.map((checkpoint, index) => {
+                        const isDone = completedCheckpointIds.includes(checkpoint.id);
+                        const isNext = !isDone && completedCount === index;
+                        const showHint = Boolean(hintUnlocked[checkpoint.id] || isDone);
+                        const helpReady = Boolean(isNext && nearCheckpointId === checkpoint.id);
+                        const proof = checkpointProofs.find((entry) => entry.checkpoint_id === checkpoint.id);
+                        const completionIndex = completionOrderMap[checkpoint.id];
+                        const actualCheckpointSeconds = riderCheckpointSeconds(checkpoint.id);
+                        const ghostCheckpointSeconds = typeof completionIndex === "number"
+                          ? ghostSplitSeconds[completionIndex]
+                          : isNext && hasActiveRun
+                            ? nextGhostSplitSeconds
+                            : null;
+                        const showGhostCheckpointRing = Boolean(
+                          manifest.ghost_enabled && (hasActiveRun || run?.status === "finished") && ghostCheckpointSeconds !== null
+                        );
+                        const ghostCheckpointProgress = showGhostCheckpointRing && riderElapsedSeconds !== null && ghostCheckpointSeconds
+                          ? Math.max(0, Math.min(100, (riderElapsedSeconds / ghostCheckpointSeconds) * 100))
+                          : 0;
+                        return (
+                          <div key={checkpoint.id} className={`checkpoint-card ${isDone ? "done" : isNext ? "up-next" : ""} ${proof ? "proofed" : ""}`}>
+                            <div className="checkpoint-header">
+                              <div className="checkpoint-meta">
+                                <span>CP {index + 1}</span>
+                                <span>{checkpoint.district}</span>
+                              </div>
+                              <div className="checkpoint-header-tools">
+                                {isDone ? (
+                                  <div className="checkpoint-state-mark" aria-label={t("alleycat.result.checkpointDone")}>
+                                    <Check size={16} />
+                                  </div>
+                                ) : null}
+                                {showGhostCheckpointRing ? (
+                                  <div
+                                    className={`checkpoint-ghost-indicator ${ghostCheckpointProgress >= 100 ? "done" : ""}`}
+                                    style={{ ["--ghost-ring-progress" as any]: `${ghostCheckpointProgress}%` }}
+                                    title={`${t("alleycat.run.ghost")}: ${formatMinutes(ghostCheckpointSeconds)}`}
+                                  >
+                                    <div className="checkpoint-ghost-ring">
+                                      <Ghost size={14} />
+                                    </div>
+                                    <span>{formatMinutes(ghostCheckpointSeconds)}</span>
+                                  </div>
+                                ) : null}
+                                <div className="checkpoint-order-controls">
+                                  <button type="button" className="ghost-button small checkpoint-order-button" onClick={() => moveCheckpoint(checkpoint.id, "up")} disabled={index === 0}>
+                                    <ArrowUp size={14} />
+                                  </button>
+                                  <button type="button" className="ghost-button small checkpoint-order-button" onClick={() => moveCheckpoint(checkpoint.id, "down")} disabled={index === orderedCheckpoints.length - 1}>
+                                    <ArrowDown size={14} />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="checkpoint-name">{checkpoint.name}</div>
+                            <div className="checkpoint-task">{checkpoint.task}</div>
+                            {showHint && checkpoint.hint ? <div className="checkpoint-hint">{checkpoint.hint}</div> : null}
+                            <div className="manifest-metrics checkpoint-split-grid">
+                              <div>
+                                <span>{t("alleycat.run.ghost")}</span>
+                                <strong>{hasActiveRun || run?.status === "finished" ? formatMinutes(ghostCheckpointSeconds) : "--"}</strong>
+                              </div>
+                              <div>
+                                <span>{t("alleycat.run.yourTime")}</span>
+                                <strong>{actualCheckpointSeconds !== null ? formatMinutes(actualCheckpointSeconds) : "--"}</strong>
+                              </div>
+                            </div>
+                            <div className="checkpoint-actions">
+                              {hasActiveRun && isNext ? (
+                                <>
+                                  <button
+                                    className={`ghost-button small checkpoint-help-button ${helpReady ? "ready" : ""}`}
+                                    type="button"
+                                    onClick={() => void unlockCheckpointHint(checkpoint)}
+                                  >
+                                    <LocateFixed size={14} />
+                                    <span>{t("alleycat.result.hint")}</span>
+                                  </button>
+                                  <button className="primary-button small checkpoint-tick-button" type="button" onClick={() => checkIn(checkpoint.id)}>
+                                  <Check size={14} />
+                                  <span>{t("alleycat.result.checkpointClear")}</span>
+                                </button>
+                                </>
+                              ) : null}
+                              <span className={`checkpoint-state-text ${isDone ? "done" : isNext ? "next" : "waiting"}`}>
+                                {isDone ? t("alleycat.result.checkpointDone") : isNext ? t("alleycat.result.checkpointNext") : t("alleycat.result.checkpointWaiting")}
+                              </span>
+                            </div>
+                            {isDone ? (
+                              <div className="proof-panel checkpoint-proof-panel">
+                                <div className="proof-callout">
+                                  <strong>{proof ? t("alleycat.result.proofReady") : t("alleycat.result.proofNeeded")}</strong>
+                                  <span>{proof ? t("alleycat.result.proofReadyBody") : t("alleycat.result.proofNeededBody")}</span>
+                                </div>
+                                <div className="checkpoint-actions checkpoint-proof-actions">
+                                  <label className="ghost-button small checkpoint-proof-picker">
+                                    <ImagePlus size={14} />
+                                    <span>{proofFiles[checkpoint.id]?.name || t("alleycat.result.pickProof")}</span>
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      onChange={(event) =>
+                                        setProofFiles((current) => ({
+                                          ...current,
+                                          [checkpoint.id]: event.target.files?.[0] || null,
+                                        }))
+                                      }
+                                    />
+                                  </label>
+                                  <button
+                                    className="primary-button small"
+                                    type="button"
+                                    disabled={Boolean(isUploading?.[checkpoint.id]) || (!proofFiles[checkpoint.id] && !proof)}
+                                    onClick={() => {
+                                      if (!proof && proofFiles[checkpoint.id]) {
+                                        void uploadProof(checkpoint, proofFiles[checkpoint.id]).then(() =>
+                                          setProofFiles((current) => ({ ...current, [checkpoint.id]: null }))
+                                        );
+                                      }
+                                    }}
+                                  >
+                                    {proof ? t("alleycat.result.proofSent") : isUploading?.[checkpoint.id] ? t("alleycat.result.proofSending") : t("alleycat.result.sendProof")}
+                                  </button>
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                  {manifest.ghost_enabled ? (
+                    <section className="ghost-preview-panel">
+                      <div className="ghost-preview-card">
+                        <button className="ghost-toggle-button" type="button" onClick={() => setShowGhostPanel((open) => !open)}>
+                          <div>
+                            <div className="manifest-subtitle">{t("alleycat.result.ghostToggle")}</div>
+                            <div className="challenge-card-copy">
+                              {t("alleycat.result.ghostStyleBody", {
+                                style: ghostStyleLabel,
+                                pressure: ghostPressureLabel,
+                              })}
+                            </div>
+                          </div>
+                          {showGhostPanel ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                        </button>
+                        {showGhostPanel ? (
+                          <>
+                            <div className="ghost-preview-shell">
+                              <div className="ghost-preview-head">
+                                <div>
+                                  <div className="manifest-title">{manifest.ghost_label || t("alleycat.run.ghost")}</div>
+                                  <p className="ghost-preview-copy">
+                                    {hasActiveRun || run?.status === "finished"
+                                      ? t("alleycat.result.ghostNoticeLive")
+                                      : t("alleycat.result.ghostLockedBody")}
+                                  </p>
+                                </div>
+                                <div className="ghost-preview-chip-row">
+                                  <span className="status-chip open">{ghostPressureLabel}</span>
+                                  <span className="status-chip">{ghostStyleLabel}</span>
+                                </div>
+                              </div>
+                              <div className="manifest-metrics ghost-preview-metrics">
+                                <div>
+                                  <span>{t("alleycat.run.yourTime")}</span>
+                                  <strong>{riderElapsedSeconds !== null ? formatMinutes(riderElapsedSeconds) : "--"}</strong>
+                                </div>
+                                <div>
+                                  <span>{t("alleycat.result.nextGhostCall")}</span>
+                                  <strong>
+                                    {hasActiveRun || run?.status === "finished"
+                                      ? formatMinutes(nextGhostSplitSeconds)
+                                      : "--"}
+                                  </strong>
+                                </div>
+                              </div>
+                              <div className="ghost-preview-track">
+                                <div className="ghost-preview-line">
+                                  <div className="ghost-preview-marker ghost" style={{ left: `${ghostProgress}%` }} />
+                                  <div className="ghost-preview-marker rider" style={{ left: `${riderProgress}%` }} />
+                                </div>
+                                <div className="ghost-preview-legend">
+                                  <span>{t("alleycat.run.ghost")}</span>
+                                  <span>{t("alleycat.run.yourTime")}</span>
+                                </div>
+                              </div>
+                              <div className="ghost-split-grid">
+                                {orderedCheckpoints.map((checkpoint, index) => {
+                                  const done = completedCount > index;
+                                  const next = completedCount === index;
+                                  const splitTarget = ghostSplitSeconds[index];
+                                  const splitActual = riderCheckpointSeconds(checkpoint.id);
+                                  return (
+                                    <div key={checkpoint.id} className={`ghost-split-card ${done ? "done" : next ? "next" : ""}`}>
+                                      <div className="ghost-split-meta">
+                                        <span>{`CP ${index + 1}`}</span>
+                                        <span className={`ghost-split-status ${done ? "done" : next ? "next" : ""}`}>
+                                          {done ? t("alleycat.result.ghostNoticeDone") : next ? t("alleycat.result.ghostNoticeLive") : t("alleycat.result.ghostNoticeStart")}
+                                        </span>
+                                      </div>
+                                      <div className="ghost-split-name">{checkpoint.name}</div>
+                                      <div className="manifest-metrics">
+                                        <div>
+                                          <span>{t("alleycat.run.ghost")}</span>
+                                          <strong>{hasActiveRun || run?.status === "finished" ? formatMinutes(splitTarget) : "--"}</strong>
+                                        </div>
+                                        <div>
+                                          <span>{t("alleycat.run.yourTime")}</span>
+                                          <strong>{splitActual !== null ? formatMinutes(splitActual) : "--"}</strong>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              <div className="ghost-notice-card">
+                                <strong>{t(allCheckpointsCleared ? "alleycat.result.ghostNoticeDone" : hasActiveRun ? "alleycat.result.ghostNoticeLive" : "alleycat.result.ghostNoticeStart")}</strong>
+                                <span>
+                                  {riderDeltaSeconds !== null
+                                    ? t("alleycat.result.ghostNoticeDelta", {
+                                        delta:
+                                          riderDeltaSeconds === null
+                                            ? "--"
+                                            : `${riderDeltaSeconds > 0 ? "+" : "-"}${formatMinutes(Math.abs(riderDeltaSeconds))}`,
+                                      })
+                                    : t("alleycat.result.ghostNoticeStart")}
+                                </span>
+                              </div>
+                            </div>
+                          </>
+                        ) : null}
+                      </div>
+                    </section>
+                  ) : null}
 
-                  <div className="manifest-notes">
-                    <div className="manifest-note-card">
-                      <span>{t("alleycat.run.routeLine")}</span>
-                      <strong>{manifest.route_note}</strong>
-                    </div>
-                    {manifest.task_mix ? (
-                      <div className="manifest-note-card">
-                        <span>{t("alleycat.run.taskMix")}</span>
-                        <strong>{manifest.task_mix}</strong>
-                      </div>
+                  <div className="route-actions manifest-result-actions">
+                    {!run ? (
+                      <button className="primary-button" type="button" onClick={() => startRun(manifest.id)}>
+                        {t("alleycat.result.start")}
+                      </button>
                     ) : null}
-                    <div className="manifest-note-card">
-                      <span>{t("alleycat.run.finishCall")}</span>
-                      <strong>{manifest.finish_label}</strong>
-                    </div>
-                    {manifest.replay_hook ? (
-                      <div className="manifest-note-card">
-                        <span>{t("alleycat.run.replayHook")}</span>
-                        <strong>{manifest.replay_hook}</strong>
-                      </div>
+                    {hasActiveRun && allCheckpointsCleared ? (
+                      <button className="primary-button" type="button" onClick={() => finishRun()}>
+                        {t("alleycat.result.finish")}
+                      </button>
                     ) : null}
-                  </div>
-
-                  <div className="route-actions">
-                    <Link to={`/messenger/manifest/${manifest.id}`} className="primary-button">
-                      {t("alleycat.result.view")}
-                    </Link>
-                    <button className="ghost-button small" onClick={handleReset}>
+                    {hasActiveRun && !allCheckpointsCleared ? (
+                      <button className="ghost-button manifest-abandon-button" type="button" onClick={() => abandonRun()}>
+                        {t("alleycat.result.abandon")}
+                      </button>
+                    ) : null}
+                    {run && !hasActiveRun ? (
+                      <button className="ghost-button" type="button" onClick={() => restartRun()}>
+                        {t("alleycat.result.restart")}
+                      </button>
+                    ) : null}
+                    <button className="ghost-button small" type="button" onClick={handleReset}>
                       {t("alleycat.result.reset")}
                     </button>
                   </div>
-
-                  {(shareCode || challenge) && (
-                    <div className="challenge-rivalry-card result-bridge-card">
-                      <span>{t("alleycat.run.shareCode")}</span>
-                      <strong>{shareCode || challenge?.code}</strong>
-                      <em>{t("share.ready")}</em>
-                    </div>
-                  )}
 
                   {challenge && (
                     <section className="challenge-board-shell" id="challenge-board">
@@ -521,9 +1040,9 @@ const AlleycatMode: React.FC = () => {
                           <div className="result-title">{t("alleycat.run.sharedStandings")}</div>
                         </div>
                         <div className="challenge-board-code">
-                          <span>{t("alleycat.run.code", { code: challenge.code })}</span>
+                          <strong className="challenge-board-code-value">{challenge.code}</strong>
                           {challengeSummary?.status ? (
-                            <span className={`status-chip ${challengeSummary.status}`}>{challengeSummary.status}</span>
+                            <span className={`challenge-board-status ${challengeSummary.status}`}>{challengeSummary.status}</span>
                           ) : null}
                         </div>
                       </div>
@@ -534,41 +1053,21 @@ const AlleycatMode: React.FC = () => {
                             <strong>
                               {challengeSummary?.winner_name
                                 ? t("alleycat.board.winnerNow", { name: challengeSummary.winner_name })
-                                : t("alleycat.board.noWinner")}
+                                : t("alleycat.board.pending")}
                             </strong>
-                            <span>{challengeSummary?.rivalry || t("share.subtitle")}</span>
+                            <span>{challengeSummary?.rivalry || t("alleycat.board.pendingBody")}</span>
                           </div>
-
                           <div className="challenge-stats-grid">
                             <div className="challenge-stat">
-                              <span>{t("alleycat.board.status")}</span>
-                              <strong>
-                                {challengeSummary?.status
-                                  ? t(`share.status.${challengeSummary.status}`)
-                                  : challenge.status
-                                    ? t(`share.status.${challenge.status}`)
-                                    : t("share.status.open")}
-                              </strong>
-                            </div>
-                            <div className="challenge-stat">
                               <span>{t("alleycat.board.riders")}</span>
-                              <strong>{leaderboard.length}</strong>
-                            </div>
-                            <div className="challenge-stat">
-                              <span>{t("alleycat.board.finished")}</span>
                               <strong>{finishedRiders}</strong>
                             </div>
                             <div className="challenge-stat">
-                              <span>{t("alleycat.board.bestTime")}</span>
-                              <strong>
-                                {boardLeader?.best_seconds !== null && boardLeader?.best_seconds !== undefined
-                                  ? `${Math.floor(boardLeader.best_seconds / 60)}m`
-                                  : t("common.emptyTime")}
-                              </strong>
+                              <span>{t("alleycat.board.topTime")}</span>
+                              <strong>{boardLeader?.best_seconds ? formatMinutes(boardLeader.best_seconds) : "--"}</strong>
                             </div>
                           </div>
                         </div>
-
                         <div className="challenge-leaderboard-card">
                           <div className="challenge-card-head">
                             <div>
@@ -576,40 +1075,27 @@ const AlleycatMode: React.FC = () => {
                               <div className="challenge-card-copy">{t("alleycat.board.subtitle")}</div>
                             </div>
                           </div>
-                          {!leaderboard.length ? (
-                            <div className="empty-state">
-                              <div className="empty-state-body">{t("share.ready")}</div>
-                            </div>
-                          ) : (
-                            <div className="leaderboard-list compact-leaderboard-list">
-                              {leaderboard.slice(0, 5).map((entry, index) => (
-                                <div key={entry.user_id} className="leaderboard-row">
-                                  <div className="leaderboard-rank">{index + 1}</div>
-                                  <div className="leaderboard-meta">
-                                    <strong>{entry.rider_name}</strong>
-                                    <span>{entry.city_name || manifest.city}</span>
-                                  </div>
-                                  <div className="leaderboard-score">
-                                    <strong>
-                                      {entry.best_seconds !== null && entry.best_seconds !== undefined
-                                        ? `${Math.floor(entry.best_seconds / 60)}m`
-                                        : t("common.emptyTime")}
-                                    </strong>
-                                  </div>
+                          <div className="leaderboard-list">
+                            {leaderboard.map((entry, index) => (
+                              <div key={`${entry.user_id}-${index}`} className="leaderboard-row">
+                                <div className="leaderboard-rank">{index + 1}</div>
+                                <div className="leaderboard-body">
+                                  <strong>{entry.rider_name}</strong>
+                                  <span>{entry.best_seconds ? formatMinutes(entry.best_seconds) : t("alleycat.board.waiting")}</span>
                                 </div>
-                              ))}
-                            </div>
-                          )}
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </section>
                   )}
                 </div>
               </div>
-            )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {showCodeModal && (
         <div

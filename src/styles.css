@@ -1583,12 +1583,17 @@ p {
 }
 
 .home-community-card-strava .home-community-action {
-  padding-top: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 8px;
+  padding-bottom: 8px;
   justify-content: center;
   text-align: center;
   min-width: 148px;
   padding-left: 18px;
   padding-right: 18px;
+  line-height: 1.15;
 }
 
 .home-community-card-strava .home-community-brand-footer {
@@ -1596,7 +1601,9 @@ p {
 }
 
 .home-community-card-strava .home-community-action span {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   text-align: center;
 }
@@ -1800,9 +1807,73 @@ p {
 .night-ride-shell .night-ride-helper,
 .night-ride-shell .night-ride-join,
 .night-ride-shell .form-actions,
-.night-ride-shell .status-message {
+.night-ride-shell .status-message,
+.night-ride-result-card {
   width: min(100%, 680px);
   margin-inline: auto;
+}
+
+.night-ride-result-card {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  padding: 28px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(12, 12, 18, 0.76);
+}
+
+.night-ride-result-card .card-title {
+  margin-bottom: 2px;
+}
+
+.night-ride-result-card .result-grid-mini {
+  margin-bottom: 2px;
+}
+
+.night-ride-result-card .share-code-box {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  min-width: min(100%, 240px);
+  padding: 16px 18px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.night-ride-result-card .share-code-box span {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.night-ride-result-card .share-code-value {
+  display: block;
+  padding-top: 4px;
+  font-size: clamp(1.24rem, 1.1rem + 0.45vw, 1.5rem);
+  letter-spacing: 0.2em;
+}
+
+.night-ride-result-card .form-actions {
+  gap: 12px;
+}
+
+.night-ride-post-button {
+  padding-inline: 20px;
+  border-color: rgba(255, 255, 255, 0.18);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(36, 36, 44, 0.92) 100%);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+  gap: 12px;
+}
+
+.night-ride-post-button svg {
+  flex: 0 0 auto;
+}
+
+.night-ride-post-button span {
+  letter-spacing: 0.04em;
 }
 
 .night-ride-shell .field > span,
@@ -3820,10 +3891,31 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .challenge-board-code {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
+  display: grid;
+  justify-items: end;
+  gap: 6px;
   flex-wrap: wrap;
+}
+
+.challenge-board-code-value {
+  display: block;
+  padding: 8px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 181, 117, 0.16);
+  background: rgba(255, 181, 117, 0.08);
+  color: #ffb575;
+  font-family: var(--font-header);
+  font-size: 1.08rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  text-shadow: 0 0 18px rgba(255, 181, 117, 0.16);
+}
+
+.challenge-board-status {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .challenge-board-grid {
@@ -3870,6 +3962,13 @@ input[type="range"]::-moz-range-thumb {
   background: rgba(255, 255, 255, 0.04);
 }
 
+.result-bridge-card {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 8px;
+}
+
 .challenge-rivalry-card span,
 .challenge-rivalry-card em {
   display: block;
@@ -3882,9 +3981,18 @@ input[type="range"]::-moz-range-thumb {
 
 .challenge-rivalry-card strong {
   display: block;
-  margin: 8px 0 10px;
+  margin: 4px 0 2px;
   color: var(--text-soft);
   line-height: 1.55;
+}
+
+.share-code-value {
+  font-family: var(--font-header);
+  font-size: 1.64rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #ffb575;
+  text-shadow: 0 0 18px rgba(255, 181, 117, 0.22);
 }
 
 .challenge-rivalry-actions {
@@ -4765,6 +4873,52 @@ input[type="range"]::-moz-range-thumb {
   align-items: flex-start;
 }
 
+.manifest-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.manifest-top-actions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.manifest-summary-card {
+  display: grid;
+  gap: 8px;
+  padding: 16px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  align-content: start;
+  text-align: left;
+  min-width: 0;
+}
+
+.manifest-summary-card span {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.manifest-summary-card strong {
+  font-size: 1.18rem;
+  line-height: 1.04;
+  color: var(--text-bright);
+  overflow-wrap: anywhere;
+}
+
+.manifest-summary-card:last-child strong {
+  color: #ffb575;
+  text-shadow: 0 0 18px rgba(255, 181, 117, 0.18);
+}
+
 .manifest-metrics,
 .result-grid {
   display: grid;
@@ -4794,25 +4948,48 @@ input[type="range"]::-moz-range-thumb {
   line-height: 1.6;
 }
 
+.manifest-insight-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .manifest-note-card {
-  padding: 14px 16px;
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
   border-radius: 18px;
   border: 1px solid var(--card-stroke);
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.04);
+  min-height: 100%;
+  align-content: start;
+  text-align: left;
+  min-width: 0;
 }
 
 .manifest-note-card span {
   display: block;
-  margin-bottom: 6px;
   color: var(--text-muted);
-  font-size: 0.76rem;
+  font-size: 0.74rem;
+  line-height: 1;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .manifest-note-card strong {
+  color: var(--text-bright);
+  font-size: 1.18rem;
+  line-height: 1.12;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.manifest-note-card p {
+  margin: 0;
   color: var(--text-soft);
-  font-weight: 500;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  max-width: 28ch;
 }
 
 .run-progress {
@@ -4849,6 +5026,186 @@ input[type="range"]::-moz-range-thumb {
   gap: 10px;
 }
 
+.manifest-result-panel {
+  display: grid;
+  gap: 22px;
+  width: 100%;
+  padding: 28px;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 8, 12, 0.72);
+}
+
+.manifest-result-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.manifest-primary-stack,
+.manifest-side-stack,
+.manifest-checkpoint-section {
+  display: grid;
+  gap: 16px;
+}
+
+.ghost-preview-card {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 96, 96, 0.1);
+  background: linear-gradient(180deg, rgba(18, 8, 10, 0.96) 0%, rgba(58, 18, 24, 0.9) 18%, rgba(255, 86, 86, 0.08) 100%);
+}
+
+.ghost-preview-panel {
+  gap: 0;
+}
+
+.ghost-preview-shell {
+  display: grid;
+  gap: 16px;
+  padding-top: 14px;
+}
+
+.ghost-preview-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.ghost-preview-copy {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.ghost-preview-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ghost-preview-track {
+  display: grid;
+  gap: 10px;
+}
+
+.ghost-preview-line {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 221, 221, 0.12) 0%, rgba(255, 40, 40, 0.28) 100%);
+  overflow: hidden;
+}
+
+.ghost-preview-line::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0,
+      transparent calc(25% - 1px),
+      rgba(255, 255, 255, 0.16) calc(25% - 1px),
+      rgba(255, 255, 255, 0.16) 25%
+    );
+  opacity: 0.5;
+}
+
+.ghost-preview-marker {
+  position: absolute;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(10, 10, 14, 0.9);
+  transform: translate(-50%, -50%);
+  z-index: 1;
+}
+
+.ghost-preview-marker.ghost {
+  background: #ff3030;
+  box-shadow: 0 0 0 4px rgba(255, 48, 48, 0.26);
+}
+
+.ghost-preview-marker.rider {
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.12);
+}
+
+.ghost-preview-legend {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ghost-preview-metrics {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ghost-split-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ghost-split-card {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.ghost-split-card.done {
+  border-color: rgba(255, 181, 117, 0.32);
+  background: rgba(255, 181, 117, 0.08);
+}
+
+.ghost-split-card.next {
+  border-color: rgba(255, 72, 72, 0.42);
+  background: rgba(255, 72, 72, 0.12);
+}
+
+.ghost-split-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.ghost-split-meta span {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+}
+
+.ghost-split-name {
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.ghost-split-status {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ghost-split-status.done,
+.ghost-split-status.next {
+  color: var(--text-bright);
+}
+
 .checkpoint-list {
   display: grid;
   gap: 12px;
@@ -4856,7 +5213,7 @@ input[type="range"]::-moz-range-thumb {
 
 .checkpoint-card {
   border-radius: 20px;
-  padding: 18px;
+  padding: 18px 18px 16px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
   display: grid;
@@ -4864,9 +5221,175 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .checkpoint-card.done {
-  border-color: rgba(100, 90, 208, 0.35);
-  background: rgba(100, 90, 208, 0.08);
-  box-shadow: inset 0 0 0 1px rgba(255, 143, 61, 0.18);
+  border-color: rgba(128, 104, 255, 0.42);
+  background:
+    linear-gradient(180deg, rgba(126, 91, 255, 0.16) 0%, rgba(70, 46, 142, 0.16) 100%),
+    rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 0 0 1px rgba(190, 176, 255, 0.14);
+}
+
+.checkpoint-card.up-next {
+  border-color: rgba(255, 110, 24, 0.3);
+  background: rgba(255, 110, 24, 0.08);
+}
+
+.checkpoint-card.proofed {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 18px 34px rgba(0, 0, 0, 0.26);
+}
+
+.checkpoint-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.checkpoint-header-tools {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.checkpoint-state-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  color: #f2ebff;
+  background: linear-gradient(180deg, rgba(152, 112, 255, 0.88) 0%, rgba(92, 53, 183, 0.96) 100%);
+  box-shadow:
+    0 10px 24px rgba(86, 54, 180, 0.28),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+
+.checkpoint-ghost-indicator {
+  --ghost-ring-progress: 0%;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffb575;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.checkpoint-ghost-indicator.done {
+  color: rgba(255, 221, 221, 0.92);
+}
+
+.checkpoint-ghost-ring {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: #ff5a5a;
+  background:
+    radial-gradient(circle at center, rgba(18, 18, 26, 0.94) 58%, transparent 59%),
+    conic-gradient(#ff4545 var(--ghost-ring-progress), rgba(255, 255, 255, 0.12) 0);
+}
+
+.checkpoint-ghost-ring::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.checkpoint-order-controls {
+  display: flex;
+  gap: 6px;
+  margin-left: 4px;
+}
+
+.checkpoint-order-button {
+  min-width: 36px;
+  min-height: 36px;
+  padding-inline: 0;
+  border-radius: 999px;
+}
+
+.checkpoint-split-grid {
+  margin-top: 10px;
+}
+
+.checkpoint-tick-button {
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.checkpoint-help-button {
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.checkpoint-help-button.ready {
+  color: #ffb575;
+  border-color: rgba(255, 181, 117, 0.26);
+}
+
+.checkpoint-proof-panel {
+  margin-top: 2px;
+}
+
+.checkpoint-proof-actions {
+  align-items: stretch;
+}
+
+.checkpoint-proof-picker {
+  position: relative;
+  overflow: hidden;
+  flex: 1 1 220px;
+}
+
+.checkpoint-proof-picker input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.ghost-toggle-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: transparent;
+  border: 0;
+  color: var(--text-bright);
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.ghost-notice-card {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 112, 112, 0.22);
+  background: rgba(255, 230, 230, 0.08);
+}
+
+.manifest-result-actions {
+  margin-top: 4px;
+}
+
+.wall-checkpoint-strip {
+  gap: 8px;
+  margin-top: -4px;
+  justify-content: flex-start;
 }
 
 .proof-panel {
@@ -4929,32 +5452,74 @@ input[type="range"]::-moz-range-thumb {
   justify-content: space-between;
   gap: 10px;
   color: var(--text-muted);
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
 }
 
+.checkpoint-meta span:first-child {
+  color: #ffb575;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.checkpoint-meta span:last-child {
+  color: var(--accent);
+  font-weight: 700;
+}
+
 .checkpoint-name {
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 1.2rem;
+  line-height: 1.06;
+  font-weight: 700;
+  color: var(--text-bright);
 }
 
 .checkpoint-task {
-  color: var(--text-soft);
-  line-height: 1.6;
+  color: var(--text-bright);
+  line-height: 1.18;
+  font-size: 1.02rem;
+  font-weight: 700;
+  max-width: 24ch;
 }
 
 .checkpoint-hint {
   color: var(--text-muted);
-  line-height: 1.55;
-  font-size: 0.9rem;
+  line-height: 1.35;
+  font-size: 0.82rem;
+  max-width: 28ch;
 }
 
 .checkpoint-actions {
-  margin-top: 4px;
+  margin-top: 10px;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  align-items: center;
+}
+
+.checkpoint-state-text {
+  font-size: 0.76rem;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.checkpoint-state-text.next,
+.checkpoint-split-grid strong,
+.checkpoint-split-grid span {
+  color: #ffb575;
+}
+
+.checkpoint-state-text.done {
+  color: #c8bbff;
+}
+
+.checkpoint-state-text.waiting {
+  color: rgba(255, 255, 255, 0.54);
 }
 
 .checkpoint-chip-row {
@@ -4964,6 +5529,16 @@ input[type="range"]::-moz-range-thumb {
 
 .result-bridge-card {
   margin-top: 0;
+}
+
+.manifest-abandon-button {
+  color: #ff6a6a;
+  border-color: rgba(255, 106, 106, 0.2);
+}
+
+.manifest-abandon-button:hover {
+  color: #ff8e8e;
+  border-color: rgba(255, 106, 106, 0.3);
 }
 
 .checkpoint-done,
@@ -5302,8 +5877,8 @@ input[type="range"]::-moz-range-thumb {
 .city-lane-card {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px;
+  gap: 14px;
+  padding: 16px;
   position: relative;
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
@@ -5320,18 +5895,17 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .city-lane-header-premium {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  gap: 8px;
   min-width: 0;
 }
 
 .lane-status-indicator {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.56rem;
-  letter-spacing: 0.08em;
+  gap: 8px;
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
   font-family: var(--font-mono);
   color: var(--text-muted);
 }
@@ -5348,13 +5922,28 @@ input[type="range"]::-moz-range-thumb {
 .city-lane-header-premium strong {
   display: block;
   font-family: var(--font-header);
-  font-size: 0.94rem;
+  font-size: 1.12rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  line-height: 1.02;
+  line-height: 0.98;
   color: var(--text);
   overflow-wrap: anywhere;
   text-wrap: balance;
+}
+
+.city-lane-gallery {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.city-lane-proof-thumb {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .status-pill {
@@ -5372,7 +5961,7 @@ input[type="range"]::-moz-range-thumb {
 .city-lane-meta {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   margin-top: auto;
 }
 
@@ -5448,9 +6037,9 @@ input[type="range"]::-moz-range-thumb {
 
 .city-lane-actions .small {
   min-width: 0;
-  min-height: 32px;
-  font-size: 0.64rem;
-  border-radius: 4px;
+  min-height: 34px;
+  font-size: 0.7rem;
+  border-radius: 999px;
 }
 
 .city-lane-actions .small span {
@@ -5475,8 +6064,8 @@ input[type="range"]::-moz-range-thumb {
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 24px;
+  gap: 16px;
+  padding: 22px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
   position: relative;
@@ -5501,7 +6090,7 @@ input[type="range"]::-moz-range-thumb {
 
 .city-editorial-card strong {
   font-family: var(--font-header);
-  font-size: 1.34rem;
+  font-size: 1.22rem;
   line-height: 0.98;
   text-transform: uppercase;
   color: var(--text);
@@ -5520,10 +6109,46 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .editorial-eyebrow .winner-label {
-  font-size: 0.65rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
   font-family: var(--font-mono);
-  letter-spacing: 0.05em;
+  letter-spacing: 0.12em;
+}
+
+.editorial-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.city-editorial-copy {
+  margin: 0;
+  color: var(--text-soft);
+  line-height: 1.45;
+  max-width: 34ch;
+}
+
+.growth-list {
+  display: grid;
+  gap: 10px;
+}
+
+.growth-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.growth-item strong {
+  font-size: 0.98rem;
+  line-height: 1.05;
+}
+
+.city-see-more {
+  align-self: flex-start;
+  padding: 0;
+  font-size: 0.76rem;
 }
 
 .rider-city-grid {
@@ -7594,7 +8219,8 @@ input[type="range"]::-moz-range-thumb {
   }
 
   .home-community-card-strava .home-community-action {
-    padding-top: 30px;
+    padding-top: 8px;
+    padding-bottom: 8px;
     min-width: 138px;
   }
 
@@ -7712,6 +8338,41 @@ input[type="range"]::-moz-range-thumb {
     justify-content: center;
   }
 
+  .manifest-result-panel {
+    padding: 20px;
+  }
+
+  .manifest-result-grid,
+  .ghost-split-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .manifest-insight-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .manifest-summary-strip {
+    gap: 8px;
+  }
+
+  .checkpoint-card {
+    padding: 16px;
+  }
+
+  .checkpoint-name {
+    font-size: 1.12rem;
+  }
+
+  .checkpoint-task {
+    font-size: 0.98rem;
+    max-width: none;
+  }
+
+  .checkpoint-hint {
+    font-size: 0.8rem;
+    max-width: none;
+  }
+
   .loops-left,
   .manifest-metrics,
   .result-grid,
@@ -7726,6 +8387,7 @@ input[type="range"]::-moz-range-thumb {
 
   .checkpoint-task,
   .checkpoint-hint,
+  .manifest-note-card p,
   .account-note,
   .challenge-summary-copy span,
   .challenge-card-copy,
@@ -7930,6 +8592,11 @@ input[type="range"]::-moz-range-thumb {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
+  }
+
+  .city-lane-gallery {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
   }
 
   .city-lane-grid,
@@ -8509,17 +9176,16 @@ input[type="range"]::-moz-range-thumb {
     width: min(100%, 318px);
   }
 
+  .city-lane-header-premium strong {
+    font-size: 0.94rem;
+  }
+
   .city-lane-actions {
     grid-template-columns: 1fr 1fr;
   }
 
-  .city-lane-header-premium strong {
-    font-size: 0.82rem;
-    letter-spacing: 0.02em;
-  }
-
   .lane-status-indicator {
-    font-size: 0.52rem;
+    font-size: 0.58rem;
     gap: 5px;
   }
 
@@ -8548,12 +9214,24 @@ input[type="range"]::-moz-range-thumb {
   }
 
   .city-editorial-card {
-    gap: 14px;
-    padding: 18px;
+    gap: 12px;
+    padding: 16px;
   }
 
   .city-editorial-card strong {
-    font-size: 1.1rem;
+    font-size: 0.98rem;
+  }
+
+  .editorial-eyebrow .winner-label {
+    font-size: 0.66rem;
+  }
+
+  .city-editorial-copy {
+    font-size: 0.82rem;
+  }
+
+  .growth-item strong {
+    font-size: 0.88rem;
   }
 }
 
@@ -9458,4 +10136,98 @@ input[type="range"]::-webkit-slider-thumb {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@media (min-width: 980px) {
+  .manifest-insight-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .manifest-summary-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .manifest-insight-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .manifest-summary-card,
+  .manifest-note-card {
+    padding: 14px;
+  }
+
+  .manifest-summary-card span,
+  .manifest-note-card span {
+    font-size: 0.68rem;
+  }
+
+  .manifest-summary-card strong {
+    font-size: 0.94rem;
+    line-height: 1.02;
+  }
+
+  .manifest-note-card strong {
+    font-size: 1.02rem;
+    line-height: 1.12;
+  }
+
+  .manifest-note-card p {
+    font-size: 0.78rem;
+    line-height: 1.38;
+    max-width: none;
+  }
+
+  .checkpoint-header {
+    gap: 10px;
+  }
+
+  .checkpoint-header-tools {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .checkpoint-meta {
+    width: 100%;
+  }
+
+  .checkpoint-state-mark {
+    width: 30px;
+    height: 30px;
+  }
+
+  .checkpoint-order-button,
+  .checkpoint-help-button,
+  .checkpoint-tick-button {
+    min-height: 34px;
+    min-width: 34px;
+    border-radius: 999px;
+    padding-inline: 10px;
+    font-size: 0.78rem;
+  }
+
+  .checkpoint-actions {
+    gap: 8px;
+  }
+
+  .challenge-board-code {
+    width: 100%;
+    justify-items: start;
+  }
+
+  .checkpoint-name {
+    font-size: 1.04rem;
+  }
+
+  .checkpoint-task {
+    font-size: 0.92rem;
+    line-height: 1.16;
+  }
+
+  .checkpoint-hint {
+    font-size: 0.76rem;
+    line-height: 1.3;
+  }
 }

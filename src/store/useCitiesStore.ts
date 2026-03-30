@@ -13,6 +13,11 @@ export interface CityLane {
   route_note: string;
   finish_label: string;
   last_requested_at: string | null;
+  recent_proofs?: Array<{
+    id: string;
+    public_url: string;
+    created_at: string | null;
+  }>;
 }
 
 interface CitiesState {

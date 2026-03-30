@@ -8,6 +8,7 @@ export async function onRequest(context) {
   const body = await parseJSON(request);
   const nextUrl = new URL(request.url);
   if (body?.city) nextUrl.searchParams.set("city", String(body.city));
+  if (body?.checkpoint_count) nextUrl.searchParams.set("checkpoint_count", String(body.checkpoint_count));
 
   const nextRequest = new Request(nextUrl.toString(), {
     method: "GET",

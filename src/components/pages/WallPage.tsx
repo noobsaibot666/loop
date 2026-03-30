@@ -12,6 +12,8 @@ type WallPost = {
   user_id?: string;
   rider_name: string;
   city_name: string;
+  manifest_title?: string;
+  checkpoint_count?: number | null;
   checkpoint_name: string;
   location_label: string;
   bike_name?: string | null;
@@ -35,6 +37,8 @@ type WallPageProps = {
   publicQuarterLabel: string;
   selectedWallCity: string;
   setSelectedWallCity: (value: string) => void;
+  selectedCheckpointCount: string;
+  setSelectedCheckpointCount: (value: string) => void;
   cityPresets: string[];
   toCitySlug: (value?: string) => string;
   getCityLabel: (value?: string) => string;
@@ -51,6 +55,8 @@ export default function WallPage({
   publicQuarterLabel,
   selectedWallCity,
   setSelectedWallCity,
+  selectedCheckpointCount,
+  setSelectedCheckpointCount,
   cityPresets,
   toCitySlug,
   getCityLabel,
@@ -143,6 +149,27 @@ export default function WallPage({
             <span>{selectedWallCity ? getCityLabel(selectedWallCity) : t("wall.allCities")}</span>
           </button>
         </div>
+        {activeFeed === "wall" && (
+          <div className="leaderboard-country-strip wall-checkpoint-strip">
+            <button
+              type="button"
+              className={`mini-chip ${selectedCheckpointCount === "" ? "active" : ""}`}
+              onClick={() => setSelectedCheckpointCount("")}
+            >
+              {t("common.all")}
+            </button>
+            {[4, 6, 8, 10, 12, 16].map((count) => (
+              <button
+                key={count}
+                type="button"
+                className={`mini-chip ${selectedCheckpointCount === String(count) ? "active" : ""}`}
+                onClick={() => setSelectedCheckpointCount(String(count))}
+              >
+                {t("alleycat.stops", { count })}
+              </button>
+            ))}
+          </div>
+        )}
         {isLoadingWall && <div className="status-message">{t("wall.loading")}</div>}
         {activeFeed === "wall" && (
           <div className="wall-subsection-head">
@@ -180,6 +207,10 @@ export default function WallPage({
                     <div className="wall-detail-item">
                       <MapPin size={14} />
                       <strong>{post.location_label || post.city_name}</strong>
+                    </div>
+                    <div className="wall-detail-item">
+                      <ArrowRight size={14} />
+                      <strong>{post.checkpoint_count ? t("alleycat.stops", { count: post.checkpoint_count }) : t("common.all")}</strong>
                     </div>
                     <div className="wall-detail-item">
                       <Calendar size={14} />

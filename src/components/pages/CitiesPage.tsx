@@ -1,6 +1,7 @@
+import { useMemo, useState } from "react";
 import { useI18n } from "../../i18n";
 import Hero from "../Hero";
-import { MapPin, Zap, LayoutGrid, Trophy, ArrowRight, MessageSquare, Plus } from "lucide-react";
+import { MapPin, Zap, LayoutGrid, Trophy, Plus } from "lucide-react";
 
 type CityLane = {
   city_slug: string;
@@ -14,6 +15,11 @@ type CityLane = {
   route_note: string;
   finish_label: string;
   last_requested_at: string | null;
+  recent_proofs?: Array<{
+    id: string;
+    public_url: string;
+    created_at: string | null;
+  }>;
 };
 
 type CitiesPageProps = {
@@ -37,15 +43,12 @@ export default function CitiesPage({
   heroImage,
 }: CitiesPageProps) {
   const { t } = useI18n();
+  const [expandedCityProofs, setExpandedCityProofs] = useState<Record<string, boolean>>({});
   const liveCities = cityLanes.filter((lane) => lane.status === "live");
   const nextCities = cityLanes.filter((lane) => lane.status !== "live");
   const leadLane = [...liveCities].sort((left, right) => {
     return (right.active_checkpoint_count + right.district_count) - (left.active_checkpoint_count + left.district_count);
   })[0];
-  const hottestAsk = [...cityLanes]
-    .filter((lane) => lane.demand_count > 0)
-    .sort((left, right) => right.demand_count - left.demand_count)[0];
-
   const getStatusLabel = (status: CityLane["status"]) =>
     status === "requested"
       ? t("cities.requested")
@@ -54,6 +57,25 @@ export default function CitiesPage({
         : status === "review"
           ? t("cities.review")
           : t("cities.draft");
+  const growthItems = useMemo(
+    () =>
+      [
+        ...liveCities
+          .sort((left, right) => right.checkpoint_count - left.checkpoint_count)
+          .slice(0, 4)
+          .map((lane) => ({
+            city: lane.city_name,
+            tag: lane.checkpoint_count ? `${lane.checkpoint_count} ${t("cities.checkpoints")}` : t("cities.statusLive"),
+            active: true,
+          })),
+        ...nextCities.slice(0, 2).map((lane) => ({
+          city: lane.city_name,
+          tag: lane.status === "requested" ? t("cities.newCity") : getStatusLabel(lane.status),
+          active: false,
+        })),
+      ].slice(0, 6),
+    [liveCities, nextCities, t]
+  );
 
   return (
     <div className="sequential-layout sub-page page-cities page-stage-enter">
@@ -73,7 +95,7 @@ export default function CitiesPage({
 
       {!isLoadingCityLanes && (
         <>
-          {(leadLane || hottestAsk) && (
+          {leadLane && (
             <section className="builder-grid single reveals">
               <div className="glass-card form-card city-editorial-section">
                 <div className="wall-editorial-grid city-editorial-grid">
@@ -83,30 +105,12 @@ export default function CitiesPage({
                       <span className="winner-label">{t("cities.growthReport")}</span>
                     </div>
                     <div className="growth-list">
-                      <div className="growth-item">
-                        <strong>Berlin</strong>
-                        <span className="mini-chip active">24 {t("cities.checkpoints")}</span>
-                      </div>
-                      <div className="growth-item">
-                        <strong>Santos</strong>
-                        <span className="mini-chip active">24 {t("cities.checkpoints")}</span>
-                      </div>
-                      <div className="growth-item">
-                        <strong>São Paulo + ABC</strong>
-                        <span className="mini-chip active">24 {t("cities.checkpoints")}</span>
-                      </div>
-                      <div className="growth-item">
-                        <strong>Curitiba</strong>
-                        <span className="mini-chip">{t("cities.newCity")}</span>
-                      </div>
-                      <div className="growth-item">
-                        <strong>Munich</strong>
-                        <span className="mini-chip">{t("cities.newCity")}</span>
-                      </div>
-                      <div className="growth-item">
-                        <strong>Guarulhos</strong>
-                        <span className="mini-chip">24 {t("cities.checkpoints")}</span>
-                      </div>
+                      {growthItems.map((item) => (
+                        <div key={item.city} className="growth-item">
+                          <strong>{item.city}</strong>
+                          <span className={`mini-chip ${item.active ? "active" : ""}`}>{item.tag}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                   {leadLane && (
@@ -116,6 +120,7 @@ export default function CitiesPage({
                         <span className="winner-label">{t("cities.operationalHub")}</span>
                       </div>
                       <strong>{leadLane.city_name}</strong>
+                      <p className="city-editorial-copy">{leadLane.route_note || leadLane.finish_label}</p>
                       <div className="mini-chip-row compact city-editorial-stats">
                         <div className="mini-chip active">
                           <Zap size={12} />
@@ -134,29 +139,6 @@ export default function CitiesPage({
                         <button className="ghost-button small city-action-secondary" type="button" onClick={() => onOpenLeaderboardCity(leadLane.city_name)}>
                           <Trophy size={14} />
                           <span>{t("common.board")}</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  {hottestAsk && (
-                    <div className="wall-editorial-card city-editorial-card editorial-priority">
-                      <div className="editorial-eyebrow">
-                        <span className="winner-label">{t("cities.expansionPriority")}</span>
-                      </div>
-                      <strong>{hottestAsk.city_name}</strong>
-                      <div className="mini-chip-row compact city-editorial-stats">
-                        <div className="mini-chip active">
-                          <span className="clue-tag">{t("cities.clueDemand")}</span>
-                          {hottestAsk.demand_count}
-                        </div>
-                        <div className="mini-chip">
-                          <span className="clue-tag">{t("cities.openAsksLabel")}</span>
-                          {hottestAsk.open_request_count}
-                        </div>
-                      </div>
-                      <div className="city-lane-actions city-lane-actions-compact">
-                        <button className="primary-button small city-action-accent" type="button" onClick={() => onOpenCityRequest(hottestAsk.city_name)}>
-                          {t("cities.pushCity", { city: hottestAsk.city_name })}
                         </button>
                       </div>
                     </div>
@@ -182,6 +164,20 @@ export default function CitiesPage({
                         </div>
                         <strong>{lane.city_name}</strong>
                       </div>
+                      {lane.recent_proofs?.length ? (
+                        <div className="city-lane-gallery">
+                          {(expandedCityProofs[lane.city_slug] ? lane.recent_proofs : lane.recent_proofs.slice(0, 5)).map((proof) => (
+                            <img
+                              key={proof.id}
+                              src={proof.public_url}
+                              alt={`${lane.city_name} proof`}
+                              className="city-lane-proof-thumb"
+                              loading="lazy"
+                              decoding="async"
+                            />
+                          ))}
+                        </div>
+                      ) : null}
                       
                       <div className="city-lane-meta">
                         <div className="city-lane-stats-box">
@@ -204,6 +200,20 @@ export default function CitiesPage({
                             {t("common.board")}
                           </button>
                         </div>
+                        {lane.recent_proofs && lane.recent_proofs.length > 5 ? (
+                          <button
+                            className="text-link-button city-see-more"
+                            type="button"
+                            onClick={() =>
+                              setExpandedCityProofs((current) => ({
+                                ...current,
+                                [lane.city_slug]: !current[lane.city_slug],
+                              }))
+                            }
+                          >
+                            {expandedCityProofs[lane.city_slug] ? t("common.close") : t("common.seeMore")}
+                          </button>
+                        ) : null}
                       </div>
                     </div>
                   ))}

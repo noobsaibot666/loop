@@ -170,7 +170,7 @@ export async function onRequest({ request, env }) {
   const lastActiveAt = Math.max(lastProofAt, lastRunAt) || null;
   const recentRuns = runs.slice(0, 6).map((run) => {
     const manifest = (runManifests || []).find((item) => item.id === run.manifest_id);
-    const ghostSeconds = typeof manifest?.ghost_seconds === "number" ? manifest.ghost_seconds : null;
+    const ghostSeconds = typeof manifest?.ghost_seconds === "number" && manifest.ghost_seconds > 0 ? manifest.ghost_seconds : null;
     return {
       id: run.id,
       finished_at: run.finished_at,

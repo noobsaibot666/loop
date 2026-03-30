@@ -35,10 +35,11 @@ const getPackStatus = (pack, countData, districtCount) => {
 };
 
 export async function onRequest({ env }) {
-  const [packs, checkpoints, requests] = await Promise.all([
+  const [packs, checkpoints, requests, proofs] = await Promise.all([
     supabaseRequest(env, "city_packs?order=name.asc&select=id,slug,name,route_note,finish_label,safety_note,is_active,created_at", { method: "GET" }).catch(() => []),
     supabaseRequest(env, "city_checkpoints?select=pack_id,id,is_active,district", { method: "GET" }).catch(() => []),
     supabaseRequest(env, "city_requests?select=requested_city,requested_location,status,created_at&order=created_at.desc&limit=300", { method: "GET" }).catch(() => []),
+    supabaseRequest(env, "messenger_proof_posts?is_public=eq.true&archived_at=is.null&select=id,city_name,city_slug,public_url,created_at&order=created_at.desc&limit=180", { method: "GET" }).catch(() => []),
   ]);
 
   const checkpointCounts = new Map();
@@ -56,6 +57,7 @@ export async function onRequest({ env }) {
   }
 
   const requestCounts = new Map();
+  const proofsByCity = new Map();
   for (const row of requests || []) {
     const cityValue = row.requested_city || row.requested_location || "";
     const normalized = normalizeCityKey(cityValue);
@@ -71,6 +73,21 @@ export async function onRequest({ env }) {
     if (row.status !== "done") current.open_count += 1;
     if (!current.last_requested_at || row.created_at > current.last_requested_at) current.last_requested_at = row.created_at;
     requestCounts.set(normalized, current);
+  }
+
+  for (const proof of proofs || []) {
+    const rawCity = proof.city_slug || proof.city_name || "";
+    const normalized = normalizeCityKey(rawCity);
+    const publicUrl = String(proof.public_url || "").trim();
+    if (!normalized || !publicUrl) continue;
+    const current = proofsByCity.get(normalized) || [];
+    if (current.length >= 12) continue;
+    current.push({
+      id: proof.id,
+      public_url: publicUrl,
+      created_at: proof.created_at || null,
+    });
+    proofsByCity.set(normalized, current);
   }
 
   const packedCityKeys = new Set();
@@ -91,6 +108,7 @@ export async function onRequest({ env }) {
       route_note: pack.route_note || "",
       finish_label: pack.finish_label || "",
       last_requested_at: demand?.last_requested_at || null,
+      recent_proofs: proofsByCity.get(normalizeCityKey(pack.name)) || [],
     };
   });
 
@@ -108,6 +126,7 @@ export async function onRequest({ env }) {
       route_note: "",
       finish_label: "",
       last_requested_at: demand.last_requested_at,
+      recent_proofs: [],
     });
   }
 

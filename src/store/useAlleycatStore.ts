@@ -191,9 +191,11 @@ export const useAlleycatStore = create<AlleycatState>()(
               runId: data.run_id,
               startedAt: data.started_at,
               completedIds: [],
+              checkins: {},
               finishSeconds: null,
               finishedAt: null,
               status: "active",
+              proofs: [],
             },
             status: "alleycat.status.clockLive" 
           });
@@ -216,7 +218,17 @@ export const useAlleycatStore = create<AlleycatState>()(
             lat: pos.coords.latitude,
             lng: pos.coords.longitude,
           });
-          set({ run: { ...run, completedIds: data.completed_ids }, status: "alleycat.status.checkpointClear" });
+          set({
+            run: {
+              ...run,
+              completedIds: data.completed_ids,
+              checkins: (data.checkins || []).reduce((acc: Record<string, string>, row: any) => {
+                if (row?.checkpoint_id && row?.checked_in_at) acc[row.checkpoint_id] = row.checked_in_at;
+                return acc;
+              }, {}),
+            },
+            status: "alleycat.status.checkpointClear",
+          });
         } catch (e) {
           set({ status: "alleycat.status.checkInFailed" });
         }
@@ -260,9 +272,11 @@ export const useAlleycatStore = create<AlleycatState>()(
               runId: data.run.id,
               startedAt: data.run.started_at,
               completedIds: [],
+              checkins: {},
               finishSeconds: null,
               finishedAt: null,
               status: data.run.status,
+              proofs: [],
             },
             status: "alleycat.status.restarted"
           });
@@ -355,11 +369,13 @@ export const useAlleycatStore = create<AlleycatState>()(
           const data = await postJSON<any>("/api/messenger/share", {
             manifest_id: manifest.id,
           });
+          const nextCode = String(data.code || data.source_code || "").trim().toUpperCase();
           set({
             challenge: data.challenge_id
-              ? { id: data.challenge_id, code: data.code, status: "open" }
+              ? { id: data.challenge_id, code: nextCode, status: "open" }
               : get().challenge,
-            shareCode: data.code || get().shareCode,
+            shareCode: nextCode || get().shareCode,
+            shareCodeInput: nextCode || get().shareCodeInput,
             status: "share.ready",
           });
         } catch {
@@ -423,10 +439,15 @@ export const useAlleycatStore = create<AlleycatState>()(
               runId: data.run.id,
               startedAt: data.run.started_at,
               completedIds: data.run.completed_ids,
+              checkins: (data.run.checkins || []).reduce((acc: Record<string, string>, row: any) => {
+                if (row?.checkpoint_id && row?.checked_in_at) acc[row.checkpoint_id] = row.checked_in_at;
+                return acc;
+              }, {}),
               finishSeconds: data.run.finish_seconds,
               finishedAt: data.run.finished_at,
               status: data.run.status,
-            }
+              proofs: data.proofs || [],
+            },
           });
         } catch {}
       }

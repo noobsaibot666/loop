@@ -24,6 +24,16 @@ type AdminOverview = {
     amount_cents: number;
   }[];
   recent_proofs: AdminProof[];
+  fastest_runs: {
+    run_id: string;
+    rider_name: string;
+    city_name: string;
+    manifest_title: string;
+    checkpoint_count: number | null;
+    ghost_seconds: number | null;
+    finish_seconds: number;
+    finished_at?: string | null;
+  }[];
   quarter: {
     label: string;
     leaders: {
@@ -756,6 +766,32 @@ const AdminDashboard: React.FC = () => {
                     </div>
                     <div className="history-actions">
                       <strong>{session.status}</strong>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="glass-card form-card account-purchases-card">
+              <div className="form-header">
+                <div>
+                  <div className="form-title">Fastest runs</div>
+                  <div className="form-subtitle">City, manifest, checkpoint bucket, and finish time.</div>
+                </div>
+                <Zap size={18} className="text-muted" />
+              </div>
+              <div className="history-list">
+                {overview.fastest_runs.map((entry) => (
+                  <div key={entry.run_id} className="history-row">
+                    <div>
+                      <strong>{entry.rider_name}</strong>
+                      <span>{entry.city_name} · {entry.manifest_title}</span>
+                      <span>
+                        {entry.checkpoint_count ? `${entry.checkpoint_count} CP` : "--"} · {entry.ghost_seconds ? `${Math.floor(entry.ghost_seconds / 60)}m ghost` : "no ghost"}
+                      </span>
+                    </div>
+                    <div className="history-actions">
+                      <strong>{Math.floor(entry.finish_seconds / 60)}m {String(entry.finish_seconds % 60).padStart(2, "0")}s</strong>
                     </div>
                   </div>
                 ))}

@@ -22,6 +22,8 @@ type LeaderboardPageProps = {
   setSelectedLeaderboardCountry: (value: string) => void;
   selectedLeaderboardCity: string;
   setSelectedLeaderboardCity: (value: string) => void;
+  selectedLeaderboardCheckpointCount: string;
+  setSelectedLeaderboardCheckpointCount: (value: string) => void;
   cityPresets: string[];
   toCitySlug: (value?: string) => string;
   getCityLabel: (value?: string) => string;
@@ -68,6 +70,8 @@ export default function LeaderboardPage({
   setSelectedLeaderboardCountry,
   selectedLeaderboardCity,
   setSelectedLeaderboardCity,
+  selectedLeaderboardCheckpointCount,
+  setSelectedLeaderboardCheckpointCount,
   cityPresets,
   toCitySlug,
   getCityLabel,
@@ -181,6 +185,25 @@ export default function LeaderboardPage({
                 }}
               >
                 {country}
+              </button>
+            ))}
+          </div>
+          <div className="leaderboard-country-strip wall-checkpoint-strip">
+            <button
+              type="button"
+              className={`mini-chip ${selectedLeaderboardCheckpointCount === "" ? "active" : ""}`}
+              onClick={() => setSelectedLeaderboardCheckpointCount("")}
+            >
+              {t("common.all")}
+            </button>
+            {[4, 6, 8, 10, 12, 16].map((count) => (
+              <button
+                key={count}
+                type="button"
+                className={`mini-chip ${selectedLeaderboardCheckpointCount === String(count) ? "active" : ""}`}
+                onClick={() => setSelectedLeaderboardCheckpointCount(String(count))}
+              >
+                {t("alleycat.stops", { count })}
               </button>
             ))}
           </div>

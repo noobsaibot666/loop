@@ -19,6 +19,7 @@ import { useCreditStore } from "../store/useCreditStore";
 import { useUIStore } from "../store/useUIStore";
 import { useNavigate } from "react-router-dom";
 import { formatDuration, getJSON, postJSON } from "../utils/routeUtils";
+import { openMapsUrl } from "../utils/maps";
 import type { NightRideAccountSession } from "../types";
 
 type StatusTone = "success" | "error" | "info";
@@ -756,7 +757,7 @@ const RiderAccount: React.FC = () => {
                         <button
                           type="button"
                           className="inline-link-button"
-                          onClick={() => window.open(route.route_url, "_blank", "noopener,noreferrer")}
+                          onClick={() => openMapsUrl(route.route_url)}
                         >
                           {t("account.loopHistory.open")}
                         </button>

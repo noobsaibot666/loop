@@ -14,6 +14,7 @@ const WallOfFame: React.FC = () => {
     wallPosts, nightRidePosts, isLoadingWall, fetchWall, fetchNightRide,
     selectedCity, setSelectedCity
   } = useFeedStore();
+  const selectedCheckpointCount = searchParams.get("checkpoints")?.trim() || "";
 
   useEffect(() => {
     const requestedCity = searchParams.get("city")?.trim();
@@ -22,14 +23,23 @@ const WallOfFame: React.FC = () => {
   }, [searchParams, selectedCity, setSelectedCity]);
 
   useEffect(() => {
-    fetchWall(selectedCity);
+    fetchWall(selectedCity, selectedCheckpointCount);
     fetchNightRide(selectedCity);
-  }, [selectedCity, fetchWall, fetchNightRide]);
+  }, [selectedCity, selectedCheckpointCount, fetchWall, fetchNightRide]);
 
   const handleSetSelectedCity = (value: string) => {
     setSelectedCity(value);
-    if (value) setSearchParams({ city: value });
-    else setSearchParams({});
+    const nextParams = new URLSearchParams(searchParams);
+    if (value) nextParams.set("city", value);
+    else nextParams.delete("city");
+    setSearchParams(nextParams);
+  };
+
+  const handleSetCheckpointCount = (value: string) => {
+    const nextParams = new URLSearchParams(searchParams);
+    if (value) nextParams.set("checkpoints", value);
+    else nextParams.delete("checkpoints");
+    setSearchParams(nextParams);
   };
 
   return (
@@ -37,6 +47,8 @@ const WallOfFame: React.FC = () => {
       publicQuarterLabel={t("leaderboard.currentQuarter")}
       selectedWallCity={selectedCity}
       setSelectedWallCity={handleSetSelectedCity}
+      selectedCheckpointCount={selectedCheckpointCount}
+      setSelectedCheckpointCount={handleSetCheckpointCount}
       cityPresets={ALLEYCAT_CITY_PRESETS}
       toCitySlug={toCitySlug}
       getCityLabel={getCityLabel}
@@ -45,7 +57,12 @@ const WallOfFame: React.FC = () => {
       nightRidePosts={nightRidePosts as any}
       onOpenRiderProfile={(userId) => navigate(`/rider/${userId}`)}
       onOpenWallCity={(cityName) => navigate(`/wall${cityName ? `?city=${toCitySlug(cityName)}` : ''}`)}
-      onOpenLeaderboardCity={(cityName) => navigate(`/leaderboard${cityName ? `?city=${toCitySlug(cityName)}` : ''}`)}
+      onOpenLeaderboardCity={(cityName) => {
+        const params = new URLSearchParams();
+        if (cityName) params.set("city", toCitySlug(cityName));
+        if (selectedCheckpointCount) params.set("checkpoints", selectedCheckpointCount);
+        navigate(`/leaderboard${params.toString() ? `?${params.toString()}` : ""}`);
+      }}
       heroImage={wallHero}
     />
   );

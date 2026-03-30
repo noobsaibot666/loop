@@ -48,12 +48,18 @@ export async function onRequest({ request, env }) {
   );
 
   const updated = rows?.[0];
+  const ghostSeconds =
+    typeof manifest?.ghost_seconds === "number" && manifest.ghost_seconds > 0
+      ? manifest.ghost_seconds
+      : typeof manifest?.manifest?.ghost_seconds === "number" && manifest.manifest.ghost_seconds > 0
+        ? manifest.manifest.ghost_seconds
+        : null;
   return json({
     ok: true,
     run_id: runId,
     status: updated?.status || "finished",
     finished_at: updated?.finished_at,
     finish_seconds: finishSeconds,
-    ghost_seconds: manifest?.ghost_seconds || manifest?.manifest?.ghost_seconds || 0,
+    ghost_seconds: ghostSeconds,
   });
 }

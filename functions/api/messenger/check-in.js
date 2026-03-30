@@ -76,6 +76,11 @@ export async function onRequest({ request, env }) {
     run_id: runId,
     checkpoint_id: checkpointId,
     completed_ids: updatedCheckins.map((row) => row.checkpoint_id),
+    checkins: updatedCheckins.map((row) => ({
+      checkpoint_id: row.checkpoint_id,
+      checked_in_at: row.checked_in_at,
+      distance_meters: row.distance_meters,
+    })),
     distance_meters: distanceMeters,
   });
 }

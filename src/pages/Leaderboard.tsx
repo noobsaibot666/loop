@@ -16,6 +16,7 @@ const Leaderboard: React.FC = () => {
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState("");
+  const selectedCheckpointCount = searchParams.get("checkpoints")?.trim() || "";
 
   useEffect(() => {
     const requestedCity = searchParams.get("city")?.trim();
@@ -29,7 +30,8 @@ const Leaderboard: React.FC = () => {
       try {
         const data = await postJSON<any>("/api/messenger/public-leaderboard", { 
           city: selectedCity,
-          country: selectedCountry 
+          country: selectedCountry,
+          checkpoint_count: selectedCheckpointCount,
         });
         setLeaderboard(data.leaderboard || []);
       } catch {
@@ -39,12 +41,21 @@ const Leaderboard: React.FC = () => {
       }
     }
     fetchPublicLeaderboard();
-  }, [selectedCity, selectedCountry]);
+  }, [selectedCity, selectedCountry, selectedCheckpointCount]);
 
   const handleSetSelectedCity = (value: string) => {
     setSelectedCity(value);
-    if (value) setSearchParams({ city: value });
-    else setSearchParams({});
+    const nextParams = new URLSearchParams(searchParams);
+    if (value) nextParams.set("city", value);
+    else nextParams.delete("city");
+    setSearchParams(nextParams);
+  };
+
+  const handleSetCheckpointCount = (value: string) => {
+    const nextParams = new URLSearchParams(searchParams);
+    if (value) nextParams.set("checkpoints", value);
+    else nextParams.delete("checkpoints");
+    setSearchParams(nextParams);
   };
 
   return (
@@ -54,6 +65,8 @@ const Leaderboard: React.FC = () => {
       setSelectedLeaderboardCountry={setSelectedCountry}
       selectedLeaderboardCity={selectedCity}
       setSelectedLeaderboardCity={handleSetSelectedCity}
+      selectedLeaderboardCheckpointCount={selectedCheckpointCount}
+      setSelectedLeaderboardCheckpointCount={handleSetCheckpointCount}
       cityPresets={ALLEYCAT_CITY_PRESETS}
       toCitySlug={toCitySlug}
       getCityLabel={getCityLabel}

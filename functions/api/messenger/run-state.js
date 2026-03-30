@@ -26,6 +26,11 @@ export async function onRequest({ request, env }) {
       finished_at: run.finished_at,
       finish_seconds: run.finish_seconds,
       completed_ids: checkins.map((row) => row.checkpoint_id),
+      checkins: checkins.map((row) => ({
+        checkpoint_id: row.checkpoint_id,
+        checked_in_at: row.checked_in_at,
+        distance_meters: row.distance_meters,
+      })),
     },
     manifest_id: manifest?.id || run.manifest_id,
     manifest: manifest?.manifest || null,
