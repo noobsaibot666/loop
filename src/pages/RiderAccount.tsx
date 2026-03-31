@@ -31,6 +31,8 @@ const CREDIT_PACKS = [
   { amount: 1500, labelKey: "account.credits.heavyPull" },
 ];
 
+const getBikeSlotLabel = (index: number) => `Bike ${String.fromCharCode(65 + index)}`;
+
 const RiderAccount: React.FC = () => {
   const { t, formatDate } = useI18n();
   const navigate = useNavigate();
@@ -249,7 +251,7 @@ const RiderAccount: React.FC = () => {
     try {
       setMembershipBusy("invite");
       const { url } = await postJSON<{ url: string }>("/api/community-membership/access", {});
-      window.open(url, "_blank", "noopener,noreferrer");
+      window.location.href = url;
     } catch (error: any) {
       pushStatus("error", error.message || t("common.requestFailed"));
     } finally {
@@ -521,7 +523,10 @@ const RiderAccount: React.FC = () => {
                   {bikes.map((bike, index) => (
                     <div key={bike.id} className={`account-bike-card ${bike.is_default ? "active" : ""}`}>
                       <div className="account-bike-head">
-                        <strong>{bike.bike_name.trim() || t("account.profile.bikeFallback", { number: index + 1 })}</strong>
+                        <div className="account-bike-title">
+                          <span className="account-bike-slot-pill">{getBikeSlotLabel(index)}</span>
+                          <strong>{bike.bike_name.trim() || t("account.profile.bikeFallback", { number: index + 1 })}</strong>
+                        </div>
                         <div className="account-bike-actions">
                           <button
                             type="button"
@@ -771,8 +776,8 @@ const RiderAccount: React.FC = () => {
                 </button>
               )}
               {membership && (
-                <button type="button" className="ghost-button" disabled={membershipBusy === "portal"} onClick={handleManagePortal}>
-                  {membershipBusy === "portal" ? t("common.working") : t("account.community.details")}
+                <button type="button" className="ghost-button account-community-secondary-action" disabled={membershipBusy === "portal"} onClick={handleManagePortal}>
+                  {membershipBusy === "portal" ? t("common.working") : t("account.community.manageBilling")}
                 </button>
               )}
             </div>

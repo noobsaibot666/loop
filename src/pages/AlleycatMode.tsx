@@ -259,6 +259,8 @@ const AlleycatMode: React.FC = () => {
   const messengerCreditsOnly = usage?.credits_remaining ?? 0;
   const canBuildManifest = Boolean(config.city && config.location.trim());
   const riderBikes = accountSummary?.bikes || [];
+  const formatBikeOptionLabel = (bike: (typeof riderBikes)[number], index: number) =>
+    `Bike ${String.fromCharCode(65 + index)} · ${bike.bike_name} · ${bike.bike_ratio}`;
   const selectedBike =
     riderBikes.find((bike) => bike.id === selectedBikeId) ||
     riderBikes.find((bike) => bike.is_default) ||
@@ -343,43 +345,6 @@ const AlleycatMode: React.FC = () => {
   const manifestStartLabel = manifest?.start_label || manifest?.city || config.city;
   const manifestDistrictCount = manifest?.district_count || manifest?.checkpoint_count || 0;
   const resolvedShareCode = String(shareCode || challenge?.code || "").trim().toUpperCase();
-  const manifestInsightCards = manifest
-    ? [
-        {
-          label: t("alleycat.run.routeLine"),
-          title: manifest.route_note,
-          body: t("alleycat.result.routeLineBody", {
-            start: manifestStartLabel,
-            districts: manifestDistrictCount,
-            range: manifestRangeLabel,
-          }),
-        },
-        {
-          label: t("alleycat.run.taskMix"),
-          title: manifest.task_mix || t("alleycat.run.formatAny"),
-          body: t("alleycat.result.taskMixBody", {
-            taskMix: manifest.task_mix || t("alleycat.run.formatAny"),
-            pressure: ghostPressureLabel,
-          }),
-        },
-        {
-          label: t("alleycat.run.finishCall"),
-          title: manifest.finish_label,
-          body: t("alleycat.result.finishCallBody", {
-            finish: manifest.finish_label,
-          }),
-        },
-        {
-          label: t("alleycat.run.replayHook"),
-          title: manifest.replay_hook || manifest.manifest_title,
-          body: t("alleycat.result.replayHookBody", {
-            count: manifest.checkpoint_count,
-            city: manifest.city,
-          }),
-        },
-      ]
-    : [];
-
   useEffect(() => {
     if (!hasActiveRun || !activeCheckpoint || typeof navigator === "undefined" || !navigator.geolocation) {
       setNearCheckpointId(null);
@@ -686,7 +651,7 @@ const AlleycatMode: React.FC = () => {
                 )}
                 {manifest && (
                   <button
-                    className="share-manifest-button"
+                    className="ghost-button"
                     type="button"
                     onClick={createShareCode}
                     disabled={isSharing}
@@ -755,15 +720,15 @@ const AlleycatMode: React.FC = () => {
                             <span>{t("common.bikeInUse")}</span>
                             {riderBikes.length > 1 ? (
                               <select value={selectedBikeId} onChange={(event) => setSelectedBikeId(event.target.value)}>
-                                {riderBikes.map((bike) => (
+                                {riderBikes.map((bike, index) => (
                                   <option key={bike.id} value={bike.id}>
-                                    {bike.bike_name} · {bike.bike_ratio}
+                                    {formatBikeOptionLabel(bike, index)}
                                   </option>
                                 ))}
                               </select>
                             ) : riderBikes.length === 1 ? (
                               <div className="account-note">
-                                {t("common.standardBike")}: {riderBikes[0].bike_name} · {riderBikes[0].bike_ratio}
+                                {t("common.standardBike")}: Bike A · {riderBikes[0].bike_name} · {riderBikes[0].bike_ratio}
                               </div>
                             ) : (
                               <div className="account-note">{t("common.noBikeSaved")}</div>
@@ -777,35 +742,21 @@ const AlleycatMode: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="manifest-result-grid">
-                    <div className="manifest-primary-stack">
-                      <div className="manifest-notes manifest-insight-grid">
-                        {manifestInsightCards.map((card) => (
-                          <div key={card.label} className="manifest-note-card">
-                            <span>{card.label}</span>
-                            <strong>{card.title}</strong>
-                            <p>{card.body}</p>
-                          </div>
-                        ))}
+                  {resolvedShareCode && (
+                    <div className="manifest-side-stack">
+                      <div className="challenge-rivalry-card result-bridge-card">
+                        <span>{t("alleycat.run.shareCode")}</span>
+                        <strong className="share-code-value">{resolvedShareCode}</strong>
+                        <em>{t("share.ready")}</em>
                       </div>
                     </div>
-
-                    <div className="manifest-side-stack">
-                      {resolvedShareCode && (
-                        <div className="challenge-rivalry-card result-bridge-card">
-                          <span>{t("alleycat.run.shareCode")}</span>
-                          <strong className="share-code-value">{resolvedShareCode}</strong>
-                          <em>{t("share.ready")}</em>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  )}
 
                   <section className="manifest-checkpoint-section" id="manifest-checkpoints">
-                    <div className="challenge-card-head">
+                    <div className="challenge-card-head checkpoint-section-head">
                       <div>
-                        <div className="manifest-subtitle">{t("alleycat.checkpoints")}</div>
-                        <div className="challenge-card-copy">{t("alleycat.result.checkpointsBody")}</div>
+                        <div className="manifest-subtitle checkpoint-section-title">{t("alleycat.checkpoints")}</div>
+                        <div className="challenge-card-copy checkpoint-section-copy">{t("alleycat.result.checkpointsBody")}</div>
                       </div>
                     </div>
                     <div className="checkpoint-list">
@@ -832,8 +783,8 @@ const AlleycatMode: React.FC = () => {
                           <div key={checkpoint.id} className={`checkpoint-card ${isDone ? "done" : isNext ? "up-next" : ""} ${proof ? "proofed" : ""}`}>
                             <div className="checkpoint-header">
                               <div className="checkpoint-meta">
-                                <span>CP {index + 1}</span>
-                                <span>{checkpoint.district}</span>
+                                <span className="checkpoint-number-pill">CP {index + 1}</span>
+                                <span className="checkpoint-district">{checkpoint.district}</span>
                               </div>
                               <div className="checkpoint-header-tools">
                                 {isDone ? (
@@ -853,14 +804,6 @@ const AlleycatMode: React.FC = () => {
                                     <span>{formatMinutes(ghostCheckpointSeconds)}</span>
                                   </div>
                                 ) : null}
-                                <div className="checkpoint-order-controls">
-                                  <button type="button" className="ghost-button small checkpoint-order-button" onClick={() => moveCheckpoint(checkpoint.id, "up")} disabled={index === 0}>
-                                    <ArrowUp size={14} />
-                                  </button>
-                                  <button type="button" className="ghost-button small checkpoint-order-button" onClick={() => moveCheckpoint(checkpoint.id, "down")} disabled={index === orderedCheckpoints.length - 1}>
-                                    <ArrowDown size={14} />
-                                  </button>
-                                </div>
                               </div>
                             </div>
                             <div className="checkpoint-name">{checkpoint.name}</div>
@@ -893,9 +836,19 @@ const AlleycatMode: React.FC = () => {
                                 </button>
                                 </>
                               ) : null}
-                              <span className={`checkpoint-state-text ${isDone ? "done" : isNext ? "next" : "waiting"}`}>
-                                {isDone ? t("alleycat.result.checkpointDone") : isNext ? t("alleycat.result.checkpointNext") : t("alleycat.result.checkpointWaiting")}
-                              </span>
+                              <div className="checkpoint-footer-row">
+                                <span className={`checkpoint-state-text ${isDone ? "done" : isNext ? "next" : "waiting"}`}>
+                                  {isDone ? t("alleycat.result.checkpointDone") : isNext ? t("alleycat.result.checkpointNext") : t("alleycat.result.checkpointWaiting")}
+                                </span>
+                                <div className="checkpoint-order-controls">
+                                  <button type="button" className="ghost-button small checkpoint-order-button" onClick={() => moveCheckpoint(checkpoint.id, "up")} disabled={index === 0}>
+                                    <ArrowUp size={14} />
+                                  </button>
+                                  <button type="button" className="ghost-button small checkpoint-order-button" onClick={() => moveCheckpoint(checkpoint.id, "down")} disabled={index === orderedCheckpoints.length - 1}>
+                                    <ArrowDown size={14} />
+                                  </button>
+                                </div>
+                              </div>
                             </div>
                             {isDone ? (
                               <div className="proof-panel checkpoint-proof-panel">
@@ -1046,6 +999,11 @@ const AlleycatMode: React.FC = () => {
                   ) : null}
 
                   <div className="route-actions manifest-result-actions">
+                    {!run ? (
+                      <button className="primary-button" type="button" onClick={() => startRun(manifest.id, selectedBike?.id || null)}>
+                        {t("alleycat.result.start")}
+                      </button>
+                    ) : null}
                     {hasActiveRun && allCheckpointsCleared ? (
                       <button className="primary-button" type="button" onClick={() => finishRun()}>
                         {t("alleycat.result.finish")}

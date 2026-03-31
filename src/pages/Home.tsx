@@ -26,7 +26,7 @@ const Home: React.FC = () => {
   const { accountSummary, fetchAccountSummary } = useCreditStore();
   const { setAuthModalOpen, setAuthMode } = useUIStore();
   const [communityModalOpen, setCommunityModalOpen] = React.useState(false);
-  const [communityBusy, setCommunityBusy] = React.useState<"checkout" | "invite" | "connect" | null>(null);
+  const [communityBusy, setCommunityBusy] = React.useState<"checkout" | "invite" | "connect" | "portal" | null>(null);
   const [communityError, setCommunityError] = React.useState("");
   const activateCard = (path: string) => ({
     onClick: () => navigate(path),
@@ -144,7 +144,7 @@ const Home: React.FC = () => {
         if (discordReady) {
           setCommunityBusy("invite");
           const { url } = await postJSON<{ url: string }>("/api/community-membership/access", {});
-          window.open(url, "_blank", "noopener,noreferrer");
+          window.location.href = url;
         } else {
           setCommunityBusy("connect");
           const { url } = await postJSON<{ url: string }>("/api/community-membership/discord-start", {});
@@ -155,6 +155,19 @@ const Home: React.FC = () => {
 
       setCommunityBusy("checkout");
       const { url } = await postJSON<{ url: string }>("/api/create-membership-session", {});
+      window.location.href = url;
+    } catch (error: any) {
+      setCommunityError(error?.message || t("common.requestFailed"));
+    } finally {
+      setCommunityBusy(null);
+    }
+  };
+
+  const handleCommunityBilling = async () => {
+    try {
+      setCommunityError("");
+      setCommunityBusy("portal");
+      const { url } = await postJSON<{ url: string }>("/api/stripe/portal", {});
       window.location.href = url;
     } catch (error: any) {
       setCommunityError(error?.message || t("common.requestFailed"));
@@ -310,9 +323,8 @@ const Home: React.FC = () => {
                 <span>• {t("home.community.line1")}</span>
                 <span>• {t("home.community.line2")}</span>
                 <span>• {t("home.community.line3")}</span>
-                <span>• {t("home.community.line4")}</span>
               </div>
-              <div className="account-note">{t("account.community.note")}</div>
+              <div className="account-note community-membership-note">{t("account.community.modalNote")}</div>
               {communityError ? <div className="status-line error">{communityError}</div> : null}
               <div className="modal-actions-row">
                 <button
@@ -331,10 +343,20 @@ const Home: React.FC = () => {
                         : communityBusy === "connect"
                           ? t("account.community.connectingDiscord")
                           : t("account.community.connectDiscord")
-                      : communityBusy === "checkout"
+                        : communityBusy === "checkout"
                         ? t("account.community.loading")
                         : t("account.community.action")}
                 </button>
+                {user && communityActive ? (
+                  <button
+                    type="button"
+                    className="ghost-button community-membership-secondary-action"
+                    disabled={communityBusy !== null}
+                    onClick={handleCommunityBilling}
+                  >
+                    {communityBusy === "portal" ? t("common.working") : t("account.community.manageBilling")}
+                  </button>
+                ) : null}
               </div>
             </div>
           </div>
