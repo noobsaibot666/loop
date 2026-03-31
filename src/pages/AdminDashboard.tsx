@@ -33,6 +33,17 @@ type AdminOverview = {
     ghost_seconds: number | null;
     finish_seconds: number;
     finished_at?: string | null;
+    bike_name?: string | null;
+    bike_ratio?: string | null;
+  }[];
+  community_events: {
+    id: string;
+    user_id?: string | null;
+    event_type: string;
+    membership_status?: string | null;
+    discord_role_status?: string | null;
+    details?: Record<string, any> | null;
+    created_at: string;
   }[];
   quarter: {
     label: string;
@@ -641,6 +652,22 @@ const AdminDashboard: React.FC = () => {
       minimumFractionDigits: 0,
     }).format((amountCents || 0) / 100);
 
+  const isRetryableCommunityEvent = (eventType: string) =>
+    ["discord_link_failed", "email_activation_failed", "email_discord_linked_failed", "email_cancellation_failed"].includes(
+      String(eventType || "")
+    );
+
+  const handleCommunityRetry = async (eventId: string) => {
+    try {
+      pushStatus("info", "Retrying community event...");
+      await postJSON("/api/admin/community-retry", { event_id: eventId });
+      pushStatus("success", "Community retry completed.");
+      await fetchOverview();
+    } catch (error: any) {
+      pushStatus("error", error.message || t("common.requestFailed"));
+    }
+  };
+
   if (isChecking) {
     return <div className="status-message page-loader">{t("admin.loadingCheck")}</div>;
   }
@@ -789,9 +816,43 @@ const AdminDashboard: React.FC = () => {
                       <span>
                         {entry.checkpoint_count ? `${entry.checkpoint_count} CP` : "--"} · {entry.ghost_seconds ? `${Math.floor(entry.ghost_seconds / 60)}m ghost` : "no ghost"}
                       </span>
+                      <span>{entry.bike_name ? `${entry.bike_name} · ${entry.bike_ratio || "--"}` : "bike not set"}</span>
                     </div>
                     <div className="history-actions">
                       <strong>{Math.floor(entry.finish_seconds / 60)}m {String(entry.finish_seconds % 60).padStart(2, "0")}s</strong>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="glass-card form-card account-purchases-card">
+              <div className="form-header">
+                <div>
+                  <div className="form-title">Community events</div>
+                  <div className="form-subtitle">Membership, Discord, and email state changes.</div>
+                </div>
+                <Shield size={18} className="text-muted" />
+              </div>
+              <div className="history-list">
+                {(overview.community_events || []).map((event) => (
+                  <div key={event.id} className="history-row">
+                    <div>
+                      <strong>{event.event_type}</strong>
+                      <span>{event.membership_status || "--"} · {event.discord_role_status || "--"}</span>
+                      <span>{formatDate(event.created_at)}</span>
+                    </div>
+                    <div className="history-actions">
+                      <strong>{event.details?.email || event.details?.discord_username || "--"}</strong>
+                      {isRetryableCommunityEvent(event.event_type) ? (
+                        <button
+                          type="button"
+                          className="ghost-button small"
+                          onClick={() => handleCommunityRetry(event.id)}
+                        >
+                          Retry
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 ))}

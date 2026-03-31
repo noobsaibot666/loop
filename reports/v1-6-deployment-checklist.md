@@ -45,13 +45,15 @@ Phase 2 notes:
 ## Phase 3: Membership ops hardening
 - [ ] Re-test cancel flow on production and confirm role revoke every time
 - [ ] Decide whether revoke should remove only the role or kick the member
-- [ ] Add a lightweight event log for Discord sync + membership emails
-- [ ] Add admin visibility for community pass state changes
-- [ ] Add retry handling for failed Discord sync or failed email delivery
+- [x] Add a lightweight event log for Discord sync + membership emails
+- [x] Add admin visibility for community pass state changes
+- [x] Add retry handling for failed Discord sync or failed email delivery
 
 Phase 3 notes:
 - `DISCORD_KICK_ON_REVOKE=false` is the current safe setting
 - Keep role-revoke-only until repeated production verification is complete
+- Apply [community_membership_events.sql](/Users/alan/_localDEV/Loop/db/sql/community_membership_events.sql) before using the new event log in production
+- Admin can now retry failed Discord sync and failed lifecycle emails from the community events block
 
 ## Phase 4: Rider account and bike flow follow-up
 - [x] Multi-bike profile support implemented
@@ -59,7 +61,7 @@ Phase 3 notes:
 - [x] Bike data is wired into run data
 - [ ] Confirm bike + ratio show consistently in wall and leaderboard surfaces
 - [ ] Final mobile QA pass for account cards and builder selectors
-- [ ] Add stronger admin visibility into bike usage by run
+- [x] Add stronger admin visibility into bike usage by run
 
 ## Phase 5: Route and builder stability
 - [x] Loop and night ride route generation hardened

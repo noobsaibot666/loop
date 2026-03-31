@@ -1,5 +1,6 @@
 import { json, requireAdmin, supabaseRequest } from "../../_utils.js";
 import { buildQuarterLeaderboard, getQuarterWindow } from "../../../shared/quarterly.js";
+import { listRecentCommunityEvents } from "../../../shared/community-events.js";
 
 function getPackReadiness(pack, countData, districtsByPack) {
   const checkpointCount = countData?.checkpoint_count || 0;
@@ -20,11 +21,11 @@ export async function onRequest({ request, env }) {
   const last7 = new Date(now - 7 * 24 * 60 * 60 * 1000);
   const last30 = new Date(now - 30 * 24 * 60 * 60 * 1000);
 
-  const [credits, stripeSessions, manifests, runs, challenges, recentProofs, allProofs, quarterProofs, quarterRuns, packs, checkpoints, moderationHistory] = await Promise.all([
+  const [credits, stripeSessions, manifests, runs, challenges, recentProofs, allProofs, quarterProofs, quarterRuns, packs, checkpoints, moderationHistory, communityEvents] = await Promise.all([
     supabaseRequest(env, "user_credits?select=user_id,credits,free_used", { method: "GET" }),
     supabaseRequest(env, "stripe_sessions?select=session_id,status,amount_cents,created_at&order=created_at.desc&limit=20", { method: "GET" }),
     supabaseRequest(env, "messenger_manifests?select=id,city_name,manifest_title,checkpoint_count,ghost_seconds,created_at", { method: "GET" }),
-    supabaseRequest(env, "messenger_runs?select=id,user_id,manifest_id,status,finish_seconds,finished_at", { method: "GET" }),
+    supabaseRequest(env, "messenger_runs?select=id,user_id,manifest_id,status,finish_seconds,finished_at,bike_name,bike_ratio", { method: "GET" }),
     supabaseRequest(env, "messenger_challenges?select=id", { method: "GET" }),
     supabaseRequest(
       env,
@@ -53,6 +54,7 @@ export async function onRequest({ request, env }) {
       "moderation_action_history?select=id,admin_email,action,target_type,target_id,target_label,details,created_at&order=created_at.desc&limit=12",
       { method: "GET" }
     ).catch(() => []),
+    listRecentCommunityEvents(env, 12).catch(() => []),
   ]);
   const quarterLeaderboard = buildQuarterLeaderboard({
     proofs: quarterProofs || [],
@@ -148,6 +150,8 @@ export async function onRequest({ request, env }) {
       ghost_seconds: manifest?.ghost_seconds || null,
       finish_seconds: run.finish_seconds,
       finished_at: run.finished_at,
+      bike_name: run.bike_name || null,
+      bike_ratio: run.bike_ratio || null,
     };
   });
   const checkoutFailures = recentSessions.filter((session) => !["checkout_created", "completed", "paid"].includes(String(session.status || "").toLowerCase())).length;
@@ -194,6 +198,7 @@ export async function onRequest({ request, env }) {
     recent_sessions: recentSessions.slice(0, 5),
     recent_proofs: recentProofs || [],
     fastest_runs,
+    community_events: communityEvents || [],
     city_pulse: cityPulse,
     abuse_watch: abuseWatch,
     moderation_history: moderationHistory || [],

@@ -7,6 +7,7 @@ import {
 } from "../../../shared/community-membership.js";
 import { sendCommunityActivatedEmail, sendCommunityCanceledEmail } from "../../../shared/community-email.js";
 import { syncDiscordMembershipAccess } from "../../../shared/discord-community.js";
+import { recordCommunityEvent } from "../../../shared/community-events.js";
 
 const textBuffer = async (request) => {
   const buf = await request.arrayBuffer();
@@ -179,13 +180,43 @@ export async function onRequest({ request, env }) {
         headers: { Prefer: "resolution=merge-duplicates" },
         body: JSON.stringify(mergedMembership),
       }).catch(() => null);
-      const recipient = await getMembershipRecipient(env, user_id);
-      await sendCommunityActivatedEmail({
-        env,
-        request,
-        membership: mergedMembership,
-        user: recipient,
+      await recordCommunityEvent(env, {
+        user_id: user_id,
+        event_type: "membership_activated",
+        membership_status: mergedMembership.status,
+        discord_role_status: mergedMembership.discord_role_status,
+        details: {
+          stripe_checkout_session_id: sessionId,
+          stripe_subscription_id: mergedMembership.stripe_subscription_id || null,
+        },
       }).catch(() => null);
+      const recipient = await getMembershipRecipient(env, user_id);
+      try {
+        await sendCommunityActivatedEmail({
+          env,
+          request,
+          membership: mergedMembership,
+          user: recipient,
+        });
+        await recordCommunityEvent(env, {
+          user_id: user_id,
+          event_type: "email_activation_sent",
+          membership_status: mergedMembership.status,
+          discord_role_status: mergedMembership.discord_role_status,
+          details: { email: recipient.email || null },
+        }).catch(() => null);
+      } catch (error) {
+        await recordCommunityEvent(env, {
+          user_id: user_id,
+          event_type: "email_activation_failed",
+          membership_status: mergedMembership.status,
+          discord_role_status: mergedMembership.discord_role_status,
+          details: {
+            email: recipient.email || null,
+            error: error instanceof Error ? error.message : "Activation email failed",
+          },
+        }).catch(() => null);
+      }
       return json({ received: true });
     }
 
@@ -262,13 +293,42 @@ export async function onRequest({ request, env }) {
     ).catch(() => []);
     const membership = rows?.[0] || null;
     if (membership?.user_id) {
-      const recipient = await getMembershipRecipient(env, membership.user_id);
-      await sendCommunityCanceledEmail({
-        env,
-        request,
-        membership,
-        user: recipient,
+      await recordCommunityEvent(env, {
+        user_id: membership.user_id,
+        event_type: "membership_canceled",
+        membership_status: membership.status,
+        discord_role_status: membership.discord_role_status,
+        details: {
+          stripe_subscription_id: subscription.id,
+        },
       }).catch(() => null);
+      const recipient = await getMembershipRecipient(env, membership.user_id);
+      try {
+        await sendCommunityCanceledEmail({
+          env,
+          request,
+          membership,
+          user: recipient,
+        });
+        await recordCommunityEvent(env, {
+          user_id: membership.user_id,
+          event_type: "email_cancellation_sent",
+          membership_status: membership.status,
+          discord_role_status: membership.discord_role_status,
+          details: { email: recipient.email || null },
+        }).catch(() => null);
+      } catch (error) {
+        await recordCommunityEvent(env, {
+          user_id: membership.user_id,
+          event_type: "email_cancellation_failed",
+          membership_status: membership.status,
+          discord_role_status: membership.discord_role_status,
+          details: {
+            email: recipient.email || null,
+            error: error instanceof Error ? error.message : "Cancellation email failed",
+          },
+        }).catch(() => null);
+      }
     }
   }
 

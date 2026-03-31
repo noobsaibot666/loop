@@ -1,6 +1,7 @@
 import { supabaseAdminAuthRequest, supabaseRequest } from "../../_utils.js";
 import { COMMUNITY_INVITE_URL, isMembershipActive } from "../../../shared/community-membership.js";
 import { sendCommunityDiscordLinkedEmail } from "../../../shared/community-email.js";
+import { recordCommunityEvent } from "../../../shared/community-events.js";
 import {
   addDiscordRole,
   exchangeDiscordCode,
@@ -99,17 +100,56 @@ export async function onRequest({ request, env }) {
       headers: { Prefer: "resolution=merge-duplicates" },
       body: JSON.stringify(nextMembership),
     });
+    await recordCommunityEvent(env, {
+      user_id: membership.user_id,
+      event_type: "discord_linked",
+      membership_status: nextMembership.status,
+      discord_role_status: nextMembership.discord_role_status,
+      details: {
+        discord_user_id: discordUser.id,
+        discord_username: nextMembership.discord_username,
+      },
+    }).catch(() => null);
 
     const recipient = await getMembershipRecipient(env, membership.user_id);
-    await sendCommunityDiscordLinkedEmail({
-      env,
-      request,
-      membership: nextMembership,
-      user: recipient,
-    }).catch(() => null);
+    try {
+      await sendCommunityDiscordLinkedEmail({
+        env,
+        request,
+        membership: nextMembership,
+        user: recipient,
+      });
+      await recordCommunityEvent(env, {
+        user_id: membership.user_id,
+        event_type: "email_discord_linked_sent",
+        membership_status: nextMembership.status,
+        discord_role_status: nextMembership.discord_role_status,
+        details: { email: recipient.email || null },
+      }).catch(() => null);
+    } catch (error) {
+      await recordCommunityEvent(env, {
+        user_id: membership.user_id,
+        event_type: "email_discord_linked_failed",
+        membership_status: nextMembership.status,
+        discord_role_status: nextMembership.discord_role_status,
+        details: {
+          email: recipient.email || null,
+          error: error instanceof Error ? error.message : "Discord linked email failed",
+        },
+      }).catch(() => null);
+    }
 
     return redirectToAccount(request, "discord-linked");
   } catch (error) {
+    await recordCommunityEvent(env, {
+      user_id: membership.user_id,
+      event_type: "discord_link_failed",
+      membership_status: membership.status,
+      discord_role_status: "link_required",
+      details: {
+        error: error instanceof Error ? error.message : "Discord link failed",
+      },
+    }).catch(() => null);
     await supabaseRequest(env, "community_memberships", {
       method: "POST",
       headers: { Prefer: "resolution=merge-duplicates" },

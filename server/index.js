@@ -73,6 +73,7 @@ import {
   sendCommunityCanceledEmail,
   sendCommunityDiscordLinkedEmail,
 } from "../shared/community-email.js";
+import { listRecentCommunityEvents, recordCommunityEvent } from "../shared/community-events.js";
 
 const app = express();
 const PORT = process.env.PORT || 8787;
@@ -353,13 +354,43 @@ app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async
       await supabase
         .from("community_memberships")
         .upsert(nextMembership, { onConflict: "user_id" });
-      const recipient = await getCommunityRecipient(user_id);
-      await sendCommunityActivatedEmail({
-        env: process.env,
-        request: req,
-        membership: nextMembership,
-        user: recipient,
+      await recordCommunityEvent(process.env, {
+        user_id,
+        event_type: "membership_activated",
+        membership_status: nextMembership.status,
+        discord_role_status: nextMembership.discord_role_status,
+        details: {
+          stripe_checkout_session_id: session.id,
+          stripe_subscription_id: nextMembership.stripe_subscription_id || null,
+        },
       }).catch(() => null);
+      const recipient = await getCommunityRecipient(user_id);
+      try {
+        await sendCommunityActivatedEmail({
+          env: process.env,
+          request: req,
+          membership: nextMembership,
+          user: recipient,
+        });
+        await recordCommunityEvent(process.env, {
+          user_id,
+          event_type: "email_activation_sent",
+          membership_status: nextMembership.status,
+          discord_role_status: nextMembership.discord_role_status,
+          details: { email: recipient.email || null },
+        }).catch(() => null);
+      } catch (error) {
+        await recordCommunityEvent(process.env, {
+          user_id,
+          event_type: "email_activation_failed",
+          membership_status: nextMembership.status,
+          discord_role_status: nextMembership.discord_role_status,
+          details: {
+            email: recipient.email || null,
+            error: error instanceof Error ? error.message : "Activation email failed",
+          },
+        }).catch(() => null);
+      }
       return res.json({ received: true });
     }
 
@@ -441,13 +472,42 @@ app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async
         .from("community_memberships")
         .upsert(nextMembership, { onConflict: "user_id" });
       if (event.type === "customer.subscription.deleted") {
-        const recipient = await getCommunityRecipient(membership.user_id);
-        await sendCommunityCanceledEmail({
-          env: process.env,
-          request: req,
-          membership: nextMembership,
-          user: recipient,
+        await recordCommunityEvent(process.env, {
+          user_id: membership.user_id,
+          event_type: "membership_canceled",
+          membership_status: nextMembership.status,
+          discord_role_status: nextMembership.discord_role_status,
+          details: {
+            stripe_subscription_id: subscription.id,
+          },
         }).catch(() => null);
+        const recipient = await getCommunityRecipient(membership.user_id);
+        try {
+          await sendCommunityCanceledEmail({
+            env: process.env,
+            request: req,
+            membership: nextMembership,
+            user: recipient,
+          });
+          await recordCommunityEvent(process.env, {
+            user_id: membership.user_id,
+            event_type: "email_cancellation_sent",
+            membership_status: nextMembership.status,
+            discord_role_status: nextMembership.discord_role_status,
+            details: { email: recipient.email || null },
+          }).catch(() => null);
+        } catch (error) {
+          await recordCommunityEvent(process.env, {
+            user_id: membership.user_id,
+            event_type: "email_cancellation_failed",
+            membership_status: nextMembership.status,
+            discord_role_status: nextMembership.discord_role_status,
+            details: {
+              email: recipient.email || null,
+              error: error instanceof Error ? error.message : "Cancellation email failed",
+            },
+          }).catch(() => null);
+        }
       }
     }
   }
@@ -641,12 +701,13 @@ app.post("/api/admin/overview", requireAdmin, async (req, res) => {
     { data: proofs, error: proofsError },
     { data: quarterProofs, error: quarterProofsError },
     { data: quarterRuns, error: quarterRunsError },
+    communityEvents,
   ] =
     await Promise.all([
       supabase.from("user_credits").select("user_id, credits, free_used"),
       supabase.from("stripe_sessions").select("session_id, status, amount_cents").order("created_at", { ascending: false }).limit(5),
-      supabase.from("messenger_manifests").select("id"),
-      supabase.from("messenger_runs").select("id, status"),
+      supabase.from("messenger_manifests").select("id, city_name, manifest_title, checkpoint_count, ghost_seconds"),
+      supabase.from("messenger_runs").select("id, user_id, manifest_id, status, finish_seconds, finished_at, bike_name, bike_ratio"),
       supabase.from("messenger_challenges").select("id"),
       supabase
         .from("messenger_proof_posts")
@@ -665,6 +726,7 @@ app.post("/api/admin/overview", requireAdmin, async (req, res) => {
         .eq("status", "finished")
         .gte("finished_at", quarter.start.toISOString())
         .lt("finished_at", quarter.end.toISOString()),
+      listRecentCommunityEvents(process.env, 12).catch(() => []),
     ]);
 
   const error = creditsError || stripeError || manifestsError || runsError || challengesError || proofsError || quarterProofsError || quarterRunsError;
@@ -672,6 +734,31 @@ app.post("/api/admin/overview", requireAdmin, async (req, res) => {
   const quarterLeaderboard = buildQuarterLeaderboard({
     proofs: quarterProofs || [],
     finishedRuns: quarterRuns || [],
+  });
+  const manifestMap = new Map((manifests || []).map((manifest) => [manifest.id, manifest]));
+  const fastestRunCandidates = (runs || [])
+    .filter((run) => run.status === "finished" && typeof run.finish_seconds === "number" && manifestMap.has(run.manifest_id))
+    .sort((left, right) => left.finish_seconds - right.finish_seconds)
+    .slice(0, 12);
+  const fastestUserIds = [...new Set(fastestRunCandidates.map((run) => run.user_id).filter(Boolean))];
+  const { data: profileRows } = fastestUserIds.length
+    ? await supabase.from("user_profiles").select("user_id, rider_name").in("user_id", fastestUserIds)
+    : { data: [] };
+  const profileMap = new Map((profileRows || []).map((profile) => [profile.user_id, profile.rider_name]));
+  const fastest_runs = fastestRunCandidates.map((run) => {
+    const manifest = manifestMap.get(run.manifest_id);
+    return {
+      run_id: run.id,
+      rider_name: profileMap.get(run.user_id) || "Rider",
+      city_name: manifest?.city_name || "",
+      manifest_title: manifest?.manifest_title || "",
+      checkpoint_count: manifest?.checkpoint_count || null,
+      ghost_seconds: manifest?.ghost_seconds || null,
+      finish_seconds: run.finish_seconds,
+      finished_at: run.finished_at,
+      bike_name: run.bike_name || null,
+      bike_ratio: run.bike_ratio || null,
+    };
   });
 
   return res.json({
@@ -687,11 +774,90 @@ app.post("/api/admin/overview", requireAdmin, async (req, res) => {
     },
     recent_sessions: stripeSessions || [],
     recent_proofs: proofs || [],
+    fastest_runs,
+    community_events: communityEvents || [],
     quarter: {
       label: quarter.label,
       leaders: quarterLeaderboard.slice(0, 3),
     },
   });
+});
+
+app.post("/api/admin/community-retry", requireAdmin, async (req, res) => {
+  const eventId = String(req.body?.event_id || "").trim();
+  if (!eventId) return res.status(400).json({ error: "event_id required" });
+
+  const { data: event } = await safeMaybeSingle(
+    supabase.from("community_membership_events").select("*").eq("id", eventId)
+  );
+  if (!event) return res.status(404).json({ error: "event not found" });
+  if (!event.user_id) return res.status(400).json({ error: "event has no user_id" });
+
+  const { data: membership } = await safeMaybeSingle(
+    supabase.from("community_memberships").select("*").eq("user_id", event.user_id)
+  );
+  if (!membership) return res.status(404).json({ error: "membership not found" });
+
+  try {
+    if (event.event_type === "discord_link_failed") {
+      const nextMembership = await syncDiscordMembershipAccess({
+        env: process.env,
+        request: req,
+        membership,
+      });
+      await safeNoThrow(supabase.from("community_memberships").upsert(nextMembership, { onConflict: "user_id" }));
+      await recordCommunityEvent(process.env, {
+        user_id: nextMembership.user_id,
+        event_type: "discord_sync_retried",
+        membership_status: nextMembership.status,
+        discord_role_status: nextMembership.discord_role_status,
+        details: {
+          source_event_id: eventId,
+          admin_email: req.adminUser?.email || null,
+        },
+      }).catch(() => null);
+      return res.json({ ok: true, retried: "discord_sync", membership: nextMembership });
+    }
+
+    const recipient = await getCommunityRecipient(membership.user_id);
+    if (event.event_type === "email_activation_failed") {
+      await sendCommunityActivatedEmail({ env: process.env, request: req, membership, user: recipient });
+    } else if (event.event_type === "email_discord_linked_failed") {
+      await sendCommunityDiscordLinkedEmail({ env: process.env, request: req, membership, user: recipient });
+    } else if (event.event_type === "email_cancellation_failed") {
+      await sendCommunityCanceledEmail({ env: process.env, request: req, membership, user: recipient });
+    } else {
+      return res.status(400).json({ error: "event type is not retryable" });
+    }
+
+    await recordCommunityEvent(process.env, {
+      user_id: membership.user_id,
+      event_type: `${String(event.event_type).replace(/_failed$/, "")}_retried`,
+      membership_status: membership.status,
+      discord_role_status: membership.discord_role_status,
+      details: {
+        source_event_id: eventId,
+        admin_email: req.adminUser?.email || null,
+        email: recipient.email || null,
+      },
+    }).catch(() => null);
+
+    return res.json({ ok: true, retried: "email", membership });
+  } catch (error) {
+    await recordCommunityEvent(process.env, {
+      user_id: membership.user_id,
+      event_type: "community_retry_failed",
+      membership_status: membership.status,
+      discord_role_status: membership.discord_role_status,
+      details: {
+        source_event_id: eventId,
+        source_event_type: event.event_type,
+        admin_email: req.adminUser?.email || null,
+        error: error instanceof Error ? error.message : "Retry failed",
+      },
+    }).catch(() => null);
+    return res.status(500).json({ error: error instanceof Error ? error.message : "Retry failed" });
+  }
 });
 
 app.post("/api/admin/night-rides", requireAdmin, async (_req, res) => {
@@ -1895,22 +2061,61 @@ app.get("/api/community-membership/discord-callback", async (req, res) => {
         { onConflict: "user_id" }
       )
     );
-
-    const recipient = await getCommunityRecipient(membership.user_id);
-    await sendCommunityDiscordLinkedEmail({
-      env: process.env,
-      request: req,
-      membership: {
-        ...membership,
+    await recordCommunityEvent(process.env, {
+      user_id: membership.user_id,
+      event_type: "discord_linked",
+      membership_status: membership.status,
+      discord_role_status: "granted",
+      details: {
         discord_user_id: discordUser.id,
         discord_username: formatDiscordUsername(discordUser),
-        discord_role_status: "granted",
       },
-      user: recipient,
     }).catch(() => null);
+
+    const recipient = await getCommunityRecipient(membership.user_id);
+    try {
+      await sendCommunityDiscordLinkedEmail({
+        env: process.env,
+        request: req,
+        membership: {
+          ...membership,
+          discord_user_id: discordUser.id,
+          discord_username: formatDiscordUsername(discordUser),
+          discord_role_status: "granted",
+        },
+        user: recipient,
+      });
+      await recordCommunityEvent(process.env, {
+        user_id: membership.user_id,
+        event_type: "email_discord_linked_sent",
+        membership_status: membership.status,
+        discord_role_status: "granted",
+        details: { email: recipient.email || null },
+      }).catch(() => null);
+    } catch (error) {
+      await recordCommunityEvent(process.env, {
+        user_id: membership.user_id,
+        event_type: "email_discord_linked_failed",
+        membership_status: membership.status,
+        discord_role_status: "granted",
+        details: {
+          email: recipient.email || null,
+          error: error instanceof Error ? error.message : "Discord linked email failed",
+        },
+      }).catch(() => null);
+    }
 
     return redirect("discord-linked");
   } catch (error) {
+    await recordCommunityEvent(process.env, {
+      user_id: membership.user_id,
+      event_type: "discord_link_failed",
+      membership_status: membership.status,
+      discord_role_status: "link_required",
+      details: {
+        error: error instanceof Error ? error.message : "Discord link failed",
+      },
+    }).catch(() => null);
     await safeNoThrow(
       supabase.from("community_memberships").upsert(
         {
