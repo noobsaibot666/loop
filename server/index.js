@@ -3325,10 +3325,11 @@ app.post("/api/messenger/proof", async (req, res) => {
 
 app.get("/api/wall", async (req, res) => {
   const city = req.query.city || "";
+  const checkpointCount = Number(req.query.checkpoints || req.query.checkpoint_count || 0) || null;
   try {
     const { data: posts, error } = await supabase
       .from("messenger_proof_posts")
-      .select("id, run_id, user_id, rider_name, city_name, city_slug, checkpoint_name, location_label, is_public, created_at, public_url, storage_path, bike_name, bike_ratio")
+      .select("id, run_id, manifest_id, user_id, rider_name, city_name, city_slug, checkpoint_name, location_label, is_public, created_at, public_url, storage_path, bike_name, bike_ratio")
       .eq("is_public", true)
       .ilike("city_name", `%${city}%`)
       .order("created_at", { ascending: false })
@@ -3345,7 +3346,24 @@ app.get("/api/wall", async (req, res) => {
       .map((group) => group[Math.floor(Math.random() * group.length)] || group[0])
       .sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime())
       .slice(0, 40);
-    return res.json({ posts: picked });
+    const manifestIds = [...new Set(picked.map((post) => post.manifest_id).filter(Boolean))];
+    const { data: manifests, error: manifestsError } = manifestIds.length
+      ? await supabase.from("messenger_manifests").select("id, manifest_title, checkpoint_count").in("id", manifestIds)
+      : { data: [], error: null };
+    if (manifestsError) return res.status(500).json({ error: manifestsError.message });
+    const manifestMap = new Map((manifests || []).map((manifest) => [manifest.id, manifest]));
+    const enriched = picked
+      .map((post) => {
+        const manifest = manifestMap.get(post.manifest_id);
+        return {
+          ...post,
+          manifest_title: manifest?.manifest_title || "",
+          checkpoint_count: manifest?.checkpoint_count || null,
+        };
+      })
+      .filter((post) => !checkpointCount || Number(post.checkpoint_count || 0) === checkpointCount)
+      .map(({ manifest_id, ...post }) => post);
+    return res.json({ posts: enriched });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
@@ -3353,10 +3371,11 @@ app.get("/api/wall", async (req, res) => {
 
 app.post("/api/messenger/wall", async (req, res) => {
   const city = req.body.city || "";
+  const checkpointCount = Number(req.body.checkpoint_count || 0) || null;
   try {
     const { data: posts, error } = await supabase
       .from("messenger_proof_posts")
-      .select("id, run_id, user_id, rider_name, city_name, city_slug, checkpoint_name, location_label, is_public, created_at, public_url, storage_path, bike_name, bike_ratio")
+      .select("id, run_id, manifest_id, user_id, rider_name, city_name, city_slug, checkpoint_name, location_label, is_public, created_at, public_url, storage_path, bike_name, bike_ratio")
       .eq("is_public", true)
       .ilike("city_name", `%${city}%`)
       .order("created_at", { ascending: false })
@@ -3373,7 +3392,24 @@ app.post("/api/messenger/wall", async (req, res) => {
       .map((group) => group[Math.floor(Math.random() * group.length)] || group[0])
       .sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime())
       .slice(0, 40);
-    return res.json({ posts: picked });
+    const manifestIds = [...new Set(picked.map((post) => post.manifest_id).filter(Boolean))];
+    const { data: manifests, error: manifestsError } = manifestIds.length
+      ? await supabase.from("messenger_manifests").select("id, manifest_title, checkpoint_count").in("id", manifestIds)
+      : { data: [], error: null };
+    if (manifestsError) return res.status(500).json({ error: manifestsError.message });
+    const manifestMap = new Map((manifests || []).map((manifest) => [manifest.id, manifest]));
+    const enriched = picked
+      .map((post) => {
+        const manifest = manifestMap.get(post.manifest_id);
+        return {
+          ...post,
+          manifest_title: manifest?.manifest_title || "",
+          checkpoint_count: manifest?.checkpoint_count || null,
+        };
+      })
+      .filter((post) => !checkpointCount || Number(post.checkpoint_count || 0) === checkpointCount)
+      .map(({ manifest_id, ...post }) => post);
+    return res.json({ posts: enriched });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
@@ -3651,6 +3687,7 @@ app.post("/api/admin/proof-archive-month", requireAdmin, async (req, res) => {
 async function handlePublicLeaderboard(req, res, input = {}) {
   const city = String(input.city ?? req.query.city ?? "").trim().toLowerCase();
   const country = String(input.country ?? req.query.country ?? "").trim().toLowerCase();
+  const checkpointCount = Number(input.checkpoint_count ?? req.body?.checkpoint_count ?? req.query.checkpoints ?? req.query.checkpoint_count ?? 0) || null;
   const cityCountryMap = {
     amsterdam: "netherlands",
     bangkok: "thailand",
@@ -3685,21 +3722,21 @@ async function handlePublicLeaderboard(req, res, input = {}) {
   const quarter = getQuarterWindow();
   const proofsQuery = supabase
     .from("messenger_proof_posts")
-    .select("user_id,rider_name,city_name,created_at")
+    .select("user_id,rider_name,city_name,created_at,manifest_id")
     .eq("is_public", true)
     .gte("created_at", quarter.start.toISOString())
     .lt("created_at", quarter.end.toISOString());
   if (city) proofsQuery.eq("city_slug", city);
   if (!city && country && cityScope.length) proofsQuery.in("city_slug", cityScope);
-  const proofsRes = await proofsQuery;
-  let runsRes;
-  if (city || (country && cityScope.length)) {
+  let manifestIds = [];
+  if (city || (country && cityScope.length) || checkpointCount) {
     const manifestsQuery = supabase.from("messenger_manifests").select("id");
     if (city) manifestsQuery.eq("city_slug", city);
-    else manifestsQuery.in("city_slug", cityScope);
+    else if (country && cityScope.length) manifestsQuery.in("city_slug", cityScope);
+    if (checkpointCount) manifestsQuery.eq("checkpoint_count", checkpointCount);
     const manifestsRes = await manifestsQuery;
     if (manifestsRes.error) return res.status(500).json({ error: manifestsRes.error.message });
-    const manifestIds = (manifestsRes.data || []).map((item) => item.id).filter(Boolean);
+    manifestIds = (manifestsRes.data || []).map((item) => item.id).filter(Boolean);
     if (!manifestIds.length) {
       return res.json({
         quarter: {
@@ -3710,21 +3747,17 @@ async function handlePublicLeaderboard(req, res, input = {}) {
         },
       });
     }
-    runsRes = await supabase
-      .from("messenger_runs")
-      .select("user_id,finished_at")
-      .eq("status", "finished")
-      .in("manifest_id", manifestIds)
-      .gte("finished_at", quarter.start.toISOString())
-      .lt("finished_at", quarter.end.toISOString());
-  } else {
-    runsRes = await supabase
-      .from("messenger_runs")
-      .select("user_id,finished_at")
-      .eq("status", "finished")
-      .gte("finished_at", quarter.start.toISOString())
-      .lt("finished_at", quarter.end.toISOString());
+    proofsQuery.in("manifest_id", manifestIds);
   }
+  const proofsRes = await proofsQuery;
+  const runsQuery = supabase
+    .from("messenger_runs")
+    .select("user_id,finished_at")
+    .eq("status", "finished")
+    .gte("finished_at", quarter.start.toISOString())
+    .lt("finished_at", quarter.end.toISOString());
+  if (manifestIds.length) runsQuery.in("manifest_id", manifestIds);
+  const runsRes = await runsQuery;
   if (proofsRes.error) return res.status(500).json({ error: proofsRes.error.message });
   if (runsRes.error) return res.status(500).json({ error: runsRes.error.message });
 
@@ -3762,10 +3795,11 @@ app.post("/api/messenger/public-leaderboard", async (req, res) => {
   return handlePublicLeaderboard(req, res, {
     city: req.body?.city,
     country: req.body?.country,
+    checkpoint_count: req.body?.checkpoint_count,
   });
 });
 
-app.post("/api/city-request", async (req, res) => {
+async function handleCreateCityRequest(req, res) {
   const requested_city = String(req.body?.city || "").trim();
   const requested_location = String(req.body?.location || "").trim();
   const note = String(req.body?.note || "").trim();
@@ -3786,7 +3820,10 @@ app.post("/api/city-request", async (req, res) => {
     .limit(1);
   if (error) return res.status(500).json({ error: error.message });
   return res.json({ ok: true, request: data?.[0] || null });
-});
+}
+
+app.post("/api/city-request", handleCreateCityRequest);
+app.post("/api/cities/request", handleCreateCityRequest);
 
 app.get("/api/city-demand", async (_req, res) => {
   const { data, error } = await supabase
@@ -3870,14 +3907,21 @@ async function handleGetCityLanes(_req, res) {
     return "draft";
   };
 
-  const [packsRes, checkpointsRes, requestsRes] = await Promise.all([
+  const [packsRes, checkpointsRes, requestsRes, proofsRes] = await Promise.all([
     supabase.from("city_packs").select("id,slug,name,route_note,finish_label,safety_note,is_active,created_at").order("name", { ascending: true }),
     supabase.from("city_checkpoints").select("pack_id,id,is_active,district"),
     supabase.from("city_requests").select("requested_city,requested_location,status,created_at").order("created_at", { ascending: false }).limit(300),
+    supabase
+      .from("messenger_proof_posts")
+      .select("id,city_name,public_url,created_at")
+      .eq("is_public", true)
+      .order("created_at", { ascending: false })
+      .limit(400),
   ]);
   if (packsRes.error) return res.status(500).json({ error: packsRes.error.message });
   if (checkpointsRes.error) return res.status(500).json({ error: checkpointsRes.error.message });
   if (requestsRes.error) return res.status(500).json({ error: requestsRes.error.message });
+  if (proofsRes.error) return res.status(500).json({ error: proofsRes.error.message });
 
   const checkpointCounts = new Map();
   const districtsByPack = new Map();
@@ -3911,6 +3955,20 @@ async function handleGetCityLanes(_req, res) {
     requestCounts.set(normalized, current);
   }
 
+  const recentProofsByCity = new Map();
+  for (const proof of proofsRes.data || []) {
+    const normalized = normalizeCityKey(proof.city_name || "");
+    if (!normalized) continue;
+    const current = recentProofsByCity.get(normalized) || [];
+    if (current.length >= 8) continue;
+    current.push({
+      id: proof.id,
+      public_url: proof.public_url,
+      created_at: proof.created_at || null,
+    });
+    recentProofsByCity.set(normalized, current);
+  }
+
   const packedCityKeys = new Set();
   const lanes = (packsRes.data || []).map((pack) => {
     const countData = checkpointCounts.get(pack.id);
@@ -3929,6 +3987,7 @@ async function handleGetCityLanes(_req, res) {
       route_note: pack.route_note || "",
       finish_label: pack.finish_label || "",
       last_requested_at: demand?.last_requested_at || null,
+      recent_proofs: recentProofsByCity.get(normalizeCityKey(pack.name)) || [],
     };
   });
 
@@ -3946,6 +4005,7 @@ async function handleGetCityLanes(_req, res) {
       route_note: "",
       finish_label: "",
       last_requested_at: demand.last_requested_at,
+      recent_proofs: recentProofsByCity.get(cityKey) || [],
     });
   }
 
