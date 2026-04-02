@@ -128,6 +128,45 @@ const safeNoThrow = async (promise) => {
   }
 };
 
+const sanitizeRedirectUrl = (value, fallback) => {
+  const raw = String(value || "").trim();
+  if (!raw) return fallback;
+  if (/^https?:\/\//i.test(raw) || /^[a-z][a-z0-9+.-]*:\/\//i.test(raw)) return raw;
+  return fallback;
+};
+
+const appendRedirectParams = (url, params) => {
+  try {
+    const nextUrl = new URL(url);
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value === null || value === undefined || value === "") return;
+      nextUrl.searchParams.set(key, String(value));
+    });
+    return nextUrl.toString();
+  } catch {
+    return url;
+  }
+};
+
+const encodeRedirectState = (state, redirectTo) => {
+  const target = String(redirectTo || "").trim();
+  if (!target) return state;
+  return `${state}::${Buffer.from(target, "utf8").toString("base64url")}`;
+};
+
+const decodeRedirectState = (state) => {
+  const raw = String(state || "");
+  const dividerIndex = raw.indexOf("::");
+  if (dividerIndex === -1) return "";
+  const encoded = raw.slice(dividerIndex + 2);
+  if (!encoded) return "";
+  try {
+    return Buffer.from(encoded, "base64url").toString("utf8");
+  } catch {
+    return "";
+  }
+};
+
 const getCommunityRecipient = async (userId) => {
   if (!userId) return { email: "", riderName: "" };
   const authResult = await supabase.auth.admin.getUserById(userId).catch(() => ({ data: { user: null } }));
@@ -1781,13 +1820,21 @@ app.post("/api/create-checkout-session", async (req, res) => {
   const user_id = authUser?.id || "";
   if (!user_id) return res.status(401).json({ error: "auth required" });
 
+  const successRedirectTo = sanitizeRedirectUrl(req.body?.success_redirect_to, `${APP_URL}/account`);
+  const cancelRedirectTo = sanitizeRedirectUrl(req.body?.cancel_redirect_to, `${APP_URL}/account`);
+
   const amountInCents = Math.max(500, Number(amount || 500));
   const creditsToGrant = creditsFromAmount(amountInCents);
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
-    success_url: `${APP_URL}/?donation=success&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${APP_URL}/?donation=cancel`,
+    success_url: appendRedirectParams(successRedirectTo, {
+      donation: "success",
+      session_id: "{CHECKOUT_SESSION_ID}",
+    }),
+    cancel_url: appendRedirectParams(cancelRedirectTo, {
+      donation: "cancel",
+    }),
     line_items: [
       {
         price_data: {
@@ -1820,10 +1867,18 @@ app.post("/api/create-membership-session", async (req, res) => {
     supabase.from("community_memberships").select("*").eq("user_id", user_id)
   );
 
+  const successRedirectTo = sanitizeRedirectUrl(req.body?.success_redirect_to, `${APP_URL}/account`);
+  const cancelRedirectTo = sanitizeRedirectUrl(req.body?.cancel_redirect_to, `${APP_URL}/account`);
+
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
-    success_url: `${APP_URL}/?membership=success&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${APP_URL}/?membership=cancel`,
+    success_url: appendRedirectParams(successRedirectTo, {
+      membership: "success",
+      session_id: "{CHECKOUT_SESSION_ID}",
+    }),
+    cancel_url: appendRedirectParams(cancelRedirectTo, {
+      membership: "cancel",
+    }),
     line_items: [
       {
         price_data: {
@@ -1985,13 +2040,15 @@ app.post("/api/community-membership/discord-start", async (req, res) => {
     return res.status(403).json({ error: "membership inactive", access_state: "inactive" });
   }
 
+  const redirectTo = sanitizeRedirectUrl(req.body?.redirect_to, `${APP_URL}/account`);
   const { state, expiresAt } = createDiscordLinkState();
+  const linkState = encodeRedirectState(state, redirectTo);
   const config = getDiscordConfig(process.env, { url: `${APP_URL}/api/community-membership/discord-start` });
   await safeNoThrow(
     supabase.from("community_memberships").upsert(
       {
         ...membership,
-        discord_link_state: state,
+        discord_link_state: linkState,
         discord_link_state_expires_at: expiresAt,
         discord_last_error: null,
       },
@@ -2001,15 +2058,16 @@ app.post("/api/community-membership/discord-start", async (req, res) => {
 
   res.json({
     ok: true,
-    url: buildDiscordAuthorizeUrl(config, state),
+    url: buildDiscordAuthorizeUrl(config, linkState),
   });
 });
 
 app.get("/api/community-membership/discord-callback", async (req, res) => {
-  const redirect = (outcome) => res.redirect(`${APP_URL}/account?community=${encodeURIComponent(outcome)}`);
   const errorCode = String(req.query?.error || "").trim();
   const code = String(req.query?.code || "").trim();
   const state = String(req.query?.state || "").trim();
+  const redirectBase = sanitizeRedirectUrl(decodeRedirectState(state), `${APP_URL}/account`);
+  const redirect = (outcome) => res.redirect(appendRedirectParams(redirectBase, { community: outcome }));
 
   if (errorCode) return redirect("discord-denied");
   if (!code || !state) return redirect("discord-error");
@@ -2194,6 +2252,7 @@ app.post("/api/stripe/portal", async (req, res) => {
   const user_id = authUser?.id || "";
   if (!user_id) return res.status(401).json({ error: "auth required" });
 
+  const returnUrl = sanitizeRedirectUrl(req.body?.return_url, `${APP_URL}/account`);
   const { data: membership, error } = await supabase
     .from("community_memberships")
     .select("*")
@@ -2224,7 +2283,7 @@ app.post("/api/stripe/portal", async (req, res) => {
 
   const session = await stripe.billingPortal.sessions.create({
     customer: customerId,
-    return_url: `${APP_URL}/account`,
+    return_url: returnUrl,
   });
 
   return res.json({ ok: true, url: session.url });
