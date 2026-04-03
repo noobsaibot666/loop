@@ -128,6 +128,12 @@ const safeNoThrow = async (promise) => {
   }
 };
 
+const sanitizeBikePayload = (input = {}) => ({
+  bike_id: String(input?.bike_id || "").trim() || null,
+  bike_name: String(input?.bike_name || "").trim().slice(0, 60) || null,
+  bike_ratio: String(input?.bike_ratio || "").trim().slice(0, 40) || null,
+});
+
 const sanitizeRedirectUrl = (value, fallback) => {
   const raw = String(value || "").trim();
   if (!raw) return fallback;
@@ -2506,6 +2512,7 @@ app.post(["/api/night-rides/create", "/api/night-rides/generate"], async (req, r
   const crew_name = String(req.body?.crew_name || "").trim().slice(0, 80);
   const ride_city = String(req.body?.ride_city || "").trim().slice(0, 80);
   const crew_members = sanitizeCrewMembers(req.body?.crew_members);
+  const requestedBike = sanitizeBikePayload(req.body);
   const origin = { lat: Number(req.body?.origin_lat), lng: Number(req.body?.origin_lng) };
   const destination =
     mode === "roulette"
@@ -2596,9 +2603,15 @@ app.post(["/api/night-rides/create", "/api/night-rides/generate"], async (req, r
   const { data: profile } = await safeMaybeSingle(
     supabase
       .from("user_profiles")
-      .select("rider_name")
+      .select("rider_name, bike_name, bike_ratio")
       .eq("user_id", user_id)
   );
+
+  const bikePayload = {
+    bike_id: requestedBike.bike_id,
+    bike_name: requestedBike.bike_name || profile?.bike_name || null,
+    bike_ratio: requestedBike.bike_ratio || profile?.bike_ratio || null,
+  };
 
   const { data: sessions, error } = await supabase
     .from("night_ride_sessions")
@@ -2615,6 +2628,9 @@ app.post(["/api/night-rides/create", "/api/night-rides/generate"], async (req, r
       ride_city: ride_city || null,
       crew_name: session_type === "crew" ? crew_name : null,
       crew_members,
+      bike_id: bikePayload.bike_id,
+      bike_name: bikePayload.bike_name,
+      bike_ratio: bikePayload.bike_ratio,
       origin_label,
       origin_lat: origin.lat,
       origin_lng: origin.lng,
@@ -2784,7 +2800,7 @@ app.get("/api/night-rides/mine", async (req, res) => {
   if (!user_id) return res.status(401).json({ error: "login required" });
   const { data: owned, error } = await supabase
     .from("night_ride_sessions")
-    .select("id, title, session_type, mode, difficulty, distance_km, ride_city, crew_name, crew_members, created_at")
+    .select("id, title, session_type, mode, difficulty, distance_km, ride_city, crew_name, crew_members, bike_id, bike_name, bike_ratio, created_at")
     .eq("creator_user_id", user_id)
     .order("created_at", { ascending: false })
     .limit(8);
@@ -2800,7 +2816,7 @@ app.get("/api/night-rides/mine", async (req, res) => {
   if (joinedIds.length) {
     const { data } = await supabase
       .from("night_ride_sessions")
-      .select("id, title, session_type, mode, difficulty, distance_km, ride_city, crew_name, crew_members, created_at")
+      .select("id, title, session_type, mode, difficulty, distance_km, ride_city, crew_name, crew_members, bike_id, bike_name, bike_ratio, created_at")
       .in("id", joinedIds);
     joinedSessions = data || [];
   }
@@ -2921,6 +2937,19 @@ app.post("/api/messenger/start", async (req, res) => {
   if (manifestError) return res.status(500).json({ error: manifestError.message });
   if (!manifest) return res.status(404).json({ error: "manifest not found" });
 
+  const requestedBike = sanitizeBikePayload(req.body);
+  const { data: profile } = await safeMaybeSingle(
+    supabase
+      .from("user_profiles")
+      .select("bike_name, bike_ratio")
+      .eq("user_id", user_id)
+  );
+  const bikePayload = {
+    bike_id: requestedBike.bike_id,
+    bike_name: requestedBike.bike_name || profile?.bike_name || null,
+    bike_ratio: requestedBike.bike_ratio || profile?.bike_ratio || null,
+  };
+
   try {
     const activeRun = await getActiveMessengerRun(manifestId, user_id);
     if (activeRun) {
@@ -2929,6 +2958,9 @@ app.post("/api/messenger/start", async (req, res) => {
         manifest_id: manifestId,
         started_at: activeRun.started_at,
         status: activeRun.status,
+        bike_id: activeRun.bike_id || null,
+        bike_name: activeRun.bike_name || null,
+        bike_ratio: activeRun.bike_ratio || null,
         reused: true,
       });
     }
@@ -2943,6 +2975,9 @@ app.post("/api/messenger/start", async (req, res) => {
       user_id,
       manifest_id: manifestId,
       status: "active",
+      bike_id: bikePayload.bike_id,
+      bike_name: bikePayload.bike_name,
+      bike_ratio: bikePayload.bike_ratio,
     })
     .select()
     .single();
@@ -2953,6 +2988,9 @@ app.post("/api/messenger/start", async (req, res) => {
     manifest_id: manifestId,
     started_at: run.started_at,
     status: run.status,
+    bike_id: run.bike_id || null,
+    bike_name: run.bike_name || null,
+    bike_ratio: run.bike_ratio || null,
   });
 });
 
@@ -2994,13 +3032,15 @@ app.post("/api/messenger/restart", async (req, res) => {
   if (!manifestIdInput && !runId) return res.status(400).json({ error: "manifest_id or run_id required" });
 
   let effectiveManifestId = manifestIdInput;
+  let sourceRun = null;
   if (runId) {
-    const { data: sourceRun } = await supabase
+    const { data } = await supabase
       .from("messenger_runs")
       .select("*")
       .eq("id", runId)
       .eq("user_id", user_id)
       .maybeSingle();
+    sourceRun = data || null;
     if (!sourceRun) return res.status(404).json({ error: "run not found" });
     effectiveManifestId = sourceRun.manifest_id;
   }
@@ -3021,9 +3061,23 @@ app.post("/api/messenger/restart", async (req, res) => {
     .eq("user_id", user_id)
     .eq("status", "active");
 
+  const requestedBike = sanitizeBikePayload(req.body);
+  const nextBike = {
+    bike_id: requestedBike.bike_id || sourceRun?.bike_id || null,
+    bike_name: requestedBike.bike_name || sourceRun?.bike_name || null,
+    bike_ratio: requestedBike.bike_ratio || sourceRun?.bike_ratio || null,
+  };
+
   const { data: run, error: createError } = await supabase
     .from("messenger_runs")
-    .insert({ manifest_id: effectiveManifestId, user_id, status: "active" })
+    .insert({
+      manifest_id: effectiveManifestId,
+      user_id,
+      status: "active",
+      bike_id: nextBike.bike_id,
+      bike_name: nextBike.bike_name,
+      bike_ratio: nextBike.bike_ratio,
+    })
     .select()
     .single();
   if (createError) return res.status(500).json({ error: createError.message });
@@ -3110,7 +3164,7 @@ app.post("/api/messenger/check-in", async (req, res) => {
 
   const { data: checkins, error: checkinsError } = await supabase
     .from("messenger_run_checkins")
-    .select("checkpoint_id")
+    .select("checkpoint_id, checked_in_at")
     .eq("run_id", runId);
 
   if (checkinsError) return res.status(500).json({ error: checkinsError.message });
@@ -3258,6 +3312,10 @@ app.all("/api/messenger/run-state", async (req, res) => {
       finished_at: run.finished_at,
       finish_seconds: run.finish_seconds,
       completed_ids: (checkins || []).map((row) => row.checkpoint_id),
+      checkins: checkins || [],
+      bike_id: run.bike_id || null,
+      bike_name: run.bike_name || null,
+      bike_ratio: run.bike_ratio || null,
     },
     manifest_id: manifest?.id || run.manifest_id,
     manifest: manifest?.manifest || null,
@@ -3474,8 +3532,8 @@ app.post("/api/messenger/wall", async (req, res) => {
   }
 });
 
-app.post("/api/night-ride/feed", async (req, res) => {
-  const city = String(req.body?.city || "").trim();
+const handleNightRideFeed = async (req, res, input = {}) => {
+  const city = String(input.city ?? req.body?.city ?? req.query?.city ?? "").trim();
   try {
     const query = supabase
       .from("night_ride_posts")
@@ -3492,6 +3550,18 @@ app.post("/api/night-ride/feed", async (req, res) => {
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
+};
+
+app.post("/api/night-ride/feed", async (req, res) => {
+  return handleNightRideFeed(req, res);
+});
+
+app.post("/api/night-rides/feed", async (req, res) => {
+  return handleNightRideFeed(req, res);
+});
+
+app.get("/api/night-rides/feed", async (req, res) => {
+  return handleNightRideFeed(req, res);
 });
 
 app.get("/api/rider-profile", async (req, res) => {
