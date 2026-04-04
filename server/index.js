@@ -1388,6 +1388,7 @@ app.post("/api/account/summary", async (req, res) => {
 
   const [
     { data: profile, error: profileError },
+    { data: bikes, error: bikesError },
     { data: purchases, error: purchasesError },
     { data: loopHistory, error: loopHistoryError },
     { data: manifests, error: manifestsError },
@@ -1403,13 +1404,18 @@ app.post("/api/account/summary", async (req, res) => {
         try {
           return await supabase
             .from("user_profiles")
-            .select("user_id, rider_name, home_location, bike_name, bike_ratio, collaboration_note, collaboration_status, collaboration_requested_at")
+            .select("user_id, rider_name, home_location, bike_name, bike_ratio, primary_bike_id, collaboration_note, collaboration_status, collaboration_requested_at")
             .eq("user_id", user_id)
             .maybeSingle();
         } catch {
           return { data: null, error: null };
         }
       })(),
+      supabase
+        .from("user_bikes")
+        .select("id, bike_name, bike_ratio, is_default, sort_order")
+        .eq("user_id", user_id)
+        .order("sort_order", { ascending: true }),
       supabase
         .from("stripe_sessions")
         .select("session_id, amount_cents, credits_to_grant, status, created_at")
@@ -1586,6 +1592,7 @@ app.post("/api/account/summary", async (req, res) => {
       collaboration_status: "",
       collaboration_requested_at: null,
     },
+    bikes: bikes || [],
     purchases: purchases || [],
     community_membership: sanitizeMembershipForClient(communityMembership || null),
     alleycat: {
@@ -1635,12 +1642,55 @@ app.post("/api/account/profile", async (req, res) => {
   if (!user_id) return res.status(401).json({ error: "login required" });
   const submitCollaboration = Boolean(req.body?.collaboration_submit);
 
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const inputBikes = Array.isArray(req.body?.bikes) ? req.body.bikes : [];
+  let bikesToUpsert = inputBikes
+    .slice(0, 10)
+    .map((b, i) => ({
+      id: uuidRegex.test(b.id) ? b.id : undefined,
+      user_id,
+      bike_name: String(b.bike_name || "").trim().slice(0, 60),
+      bike_ratio: String(b.bike_ratio || "").trim().slice(0, 40),
+      is_default: Boolean(b.is_default),
+      sort_order: i,
+    }))
+    .filter((b) => b.bike_name || b.bike_ratio);
+
+  // Default to legacy fallback if no bikes are provided
+  if (!bikesToUpsert.length && (req.body?.bike_name || req.body?.bike_ratio)) {
+    bikesToUpsert = [{
+      user_id,
+      bike_name: String(req.body?.bike_name || "").trim().slice(0, 60),
+      bike_ratio: String(req.body?.bike_ratio || "").trim().slice(0, 40),
+      is_default: true,
+      sort_order: 0,
+    }];
+  }
+
+  const incomingIds = bikesToUpsert.map((b) => b.id).filter(Boolean);
+  if (incomingIds.length) {
+    await supabase.from("user_bikes").delete().eq("user_id", user_id).not("id", "in", `(${incomingIds.join(",")})`);
+  } else {
+    await supabase.from("user_bikes").delete().eq("user_id", user_id);
+  }
+
+  let finalBikes = [];
+  if (bikesToUpsert.length) {
+    const { data: upsertedBikes } = await supabase.from("user_bikes").upsert(bikesToUpsert, { onConflict: "id", returning: "representation" }).select();
+    if (upsertedBikes) {
+      finalBikes = upsertedBikes;
+    }
+  }
+
+  const primaryBike = finalBikes.find((b) => b.is_default) || finalBikes[0] || null;
+
   const payload = {
     user_id,
     rider_name: String(req.body?.rider_name || "").trim().slice(0, 40),
     home_location: String(req.body?.home_location || "").trim().slice(0, 120),
-    bike_name: String(req.body?.bike_name || "").trim().slice(0, 60),
-    bike_ratio: String(req.body?.bike_ratio || "").trim().slice(0, 40),
+    bike_name: primaryBike?.bike_name || null,
+    bike_ratio: primaryBike?.bike_ratio || null,
+    primary_bike_id: primaryBike?.id || null,
     collaboration_note: String(req.body?.collaboration_note || "").trim().slice(0, 600),
     collaboration_status: submitCollaboration ? "pending" : String(req.body?.collaboration_status || "").trim().slice(0, 20) || null,
     collaboration_requested_at: submitCollaboration ? new Date().toISOString() : req.body?.collaboration_requested_at || null,
@@ -1665,7 +1715,7 @@ app.post("/api/account/profile", async (req, res) => {
   if (proofsError) {
     return res.status(500).json({ error: proofsError.message });
   }
-  return res.json({ ok: true, profile: data?.[0] || null });
+  return res.json({ ok: true, profile: data?.[0] || null, bikes: finalBikes });
 });
 
 app.post("/api/account-feedback", async (req, res) => {
@@ -2422,10 +2472,33 @@ app.post("/api/loop", async (req, res) => {
   }
 
   if (!candidates.length) {
-    const failed = [...firstPass].find((candidate) => !candidate.ok);
-    return res.status(failed?.status || 502).json({
-      error: failed?.error || "ORS error",
-      detail: failed?.detail || null,
+    const fallbackWaypoints = buildFallbackLoopWaypoints(origin, distance_km, seed);
+    return res.json({
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          geometry: {
+            type: "LineString",
+            coordinates: fallbackWaypoints.map((point) => [point.lng, point.lat]),
+          },
+          properties: {
+            fallback: true,
+          },
+        },
+      ],
+      route_url: buildGoogleMapsLoopUrl(origin, fallbackWaypoints),
+      quality_score: 0,
+      overlap_ratio: 0,
+      candidate_seed: seed,
+      candidate_index: -1,
+      candidate_profile: "fallback-loop",
+      route_debug: {
+        fallback_applied: true,
+        fallback_reason: "no_candidates",
+        sampled_waypoint_count: fallbackWaypoints.length,
+      },
+      sampled_waypoints: fallbackWaypoints,
     });
   }
 
@@ -2433,6 +2506,11 @@ app.post("/api/loop", async (req, res) => {
   if (!bestCandidate) {
     return res.status(502).json({ error: "loop generation failed" });
   }
+  let sampledWaypoints = bestCandidate.evaluation.sampledWaypoints;
+  let routeDebug = {
+    ...bestCandidate.evaluation.metrics,
+    fallback_applied: false,
+  };
   if (
     !bestCandidate.evaluation.valid &&
     (
@@ -2442,21 +2520,26 @@ app.post("/api/loop", async (req, res) => {
       bestCandidate.evaluation.metrics.dominantLegRatio >= 0.76
     )
   ) {
-    return res.status(502).json({
-      error: "Could not shape a reliable loop from this start. Try a slightly larger distance or a different start point.",
-      detail: bestCandidate.evaluation.metrics,
-    });
+    sampledWaypoints = bestCandidate.evaluation.sampledWaypoints.length >= 5
+      ? bestCandidate.evaluation.sampledWaypoints
+      : buildFallbackLoopWaypoints(origin, distance_km, seed);
+    routeDebug = {
+      ...routeDebug,
+      fallback_applied: true,
+      fallback_reason: "loop_quality_guard",
+      sampled_waypoint_count: sampledWaypoints.length,
+    };
   }
   return res.json({
     ...bestCandidate.data,
-    route_url: buildGoogleMapsLoopUrl(origin, bestCandidate.evaluation.sampledWaypoints),
+    route_url: buildGoogleMapsLoopUrl(origin, sampledWaypoints),
     quality_score: bestCandidate.evaluation.score,
     overlap_ratio: bestCandidate.evaluation.metrics.overlapRatio,
     candidate_seed: bestCandidate.candidateSeed,
     candidate_index: bestCandidate.candidateIndex,
     candidate_profile: bestCandidate.profile.label,
-    route_debug: bestCandidate.evaluation.metrics,
-    sampled_waypoints: bestCandidate.evaluation.sampledWaypoints,
+    route_debug: routeDebug,
+    sampled_waypoints: sampledWaypoints,
   });
 });
 
@@ -4422,6 +4505,6 @@ app.all("/api/messenger/leaderboard", async (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server listening on port ${PORT}`);
 });
