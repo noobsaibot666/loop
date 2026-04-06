@@ -678,6 +678,11 @@ app.post("/api/admin/rider-list", requireAdmin, async (req, res) => {
       .from("user_profiles")
       .select("user_id, rider_name");
 
+    const { data: allBikes, error: bikesError } = await supabase
+      .from("user_bikes")
+      .select("user_id, id, bike_name, bike_ratio, is_default, sort_order")
+      .order("sort_order", { ascending: true });
+
     const { data: authData, error: authError } = await supabase.auth.admin.listUsers({
       perPage: 1000,
     });
@@ -685,6 +690,11 @@ app.post("/api/admin/rider-list", requireAdmin, async (req, res) => {
 
     const emailMap = new Map((authData?.users || []).map((u) => [u.id, u.email]));
     const nameMap = new Map((profiles || []).map((p) => [p.user_id, p.rider_name]));
+    const bikesGrouped = new Map();
+    (allBikes || []).forEach((b) => {
+      if (!bikesGrouped.has(b.user_id)) bikesGrouped.set(b.user_id, []);
+      bikesGrouped.get(b.user_id).push(b);
+    });
 
     const riders = (credits || []).map((c) => ({
       user_id: c.user_id,
@@ -693,6 +703,7 @@ app.post("/api/admin/rider-list", requireAdmin, async (req, res) => {
       credits: c.credits || 0,
       free_used: c.free_used || 0,
       updated_at: c.updated_at,
+      bikes: bikesGrouped.get(c.user_id) || [],
     }));
 
     return res.json({ ok: true, riders });
@@ -1646,14 +1657,19 @@ app.post("/api/account/profile", async (req, res) => {
   const inputBikes = Array.isArray(req.body?.bikes) ? req.body.bikes : [];
   let bikesToUpsert = inputBikes
     .slice(0, 10)
-    .map((b, i) => ({
-      id: uuidRegex.test(b.id) ? b.id : undefined,
-      user_id,
-      bike_name: String(b.bike_name || "").trim().slice(0, 60),
-      bike_ratio: String(b.bike_ratio || "").trim().slice(0, 40),
-      is_default: Boolean(b.is_default),
-      sort_order: i,
-    }))
+    .map((b, i) => {
+      const bikeObj = {
+        user_id,
+        bike_name: String(b.bike_name || "").trim().slice(0, 60),
+        bike_ratio: String(b.bike_ratio || "").trim().slice(0, 40),
+        is_default: Boolean(b.is_default),
+        sort_order: i,
+      };
+      if (b.id && uuidRegex.test(String(b.id))) {
+        bikeObj.id = String(b.id);
+      }
+      return bikeObj;
+    })
     .filter((b) => b.bike_name || b.bike_ratio);
 
   // Default to legacy fallback if no bikes are provided
@@ -1668,15 +1684,29 @@ app.post("/api/account/profile", async (req, res) => {
   }
 
   const incomingIds = bikesToUpsert.map((b) => b.id).filter(Boolean);
-  if (incomingIds.length) {
-    await supabase.from("user_bikes").delete().eq("user_id", user_id).not("id", "in", `(${incomingIds.join(",")})`);
+  
+  if (incomingIds.length > 0) {
+    // Keep only the bikes that were sent with existing IDs
+    const { error: delErr } = await supabase.from("user_bikes").delete().eq("user_id", user_id).not("id", "in", incomingIds);
+    if (delErr) console.error("Bike cleanup error:", delErr);
   } else {
-    await supabase.from("user_bikes").delete().eq("user_id", user_id);
+    // If we have bikes but none have IDs, or if we have no bikes at all,
+    // we should delete all existing bikes because the client provided a complete (new) state.
+    const { error: delAllErr } = await supabase.from("user_bikes").delete().eq("user_id", user_id);
+    if (delAllErr) console.error("Bike full delete error:", delAllErr);
   }
 
   let finalBikes = [];
   if (bikesToUpsert.length) {
-    const { data: upsertedBikes } = await supabase.from("user_bikes").upsert(bikesToUpsert, { onConflict: "id", returning: "representation" }).select();
+    const { data: upsertedBikes, error: upsertError } = await supabase
+      .from("user_bikes")
+      .upsert(bikesToUpsert) 
+      .select();
+    
+    if (upsertError) {
+      console.error("Bike upsert error:", upsertError);
+      return res.status(500).json({ error: "Failed to save bikes: " + upsertError.message });
+    }
     if (upsertedBikes) {
       finalBikes = upsertedBikes;
     }
@@ -1697,14 +1727,14 @@ app.post("/api/account/profile", async (req, res) => {
     updated_at: new Date().toISOString(),
   };
 
-  const { data, error } = await supabase.from("user_profiles").upsert(payload, { onConflict: "user_id" }).select().limit(1);
-  if (error) {
-    if (String(error.message || "").toLowerCase().includes("user_profiles")) {
-      return res.status(500).json({ error: "Profile fields are not ready in Supabase yet. Apply user_profiles.sql first." });
-    }
-    return res.status(500).json({ error: error.message });
+  const { data: profileResult, error: profileErr } = await supabase.from("user_profiles").upsert(payload, { onConflict: "user_id" }).select().limit(1);
+  if (profileErr) {
+    console.error("Profile upsert error:", profileErr);
+    return res.status(500).json({ error: profileErr.message });
   }
-  const { error: proofsError } = await supabase
+
+  // Update proofs as well
+  await supabase
     .from("messenger_proof_posts")
     .update({
       rider_name: payload.rider_name || null,
@@ -1712,10 +1742,9 @@ app.post("/api/account/profile", async (req, res) => {
       bike_ratio: payload.bike_ratio || null,
     })
     .eq("user_id", user_id);
-  if (proofsError) {
-    return res.status(500).json({ error: proofsError.message });
-  }
-  return res.json({ ok: true, profile: data?.[0] || null, bikes: finalBikes });
+
+  return res.json({ ok: true, profile: profileResult?.[0] || null, bikes: finalBikes });
+
 });
 
 app.post("/api/account-feedback", async (req, res) => {

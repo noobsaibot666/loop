@@ -445,17 +445,44 @@ const applyPreferenceBias = ({
   return bonus;
 };
 
+const mapV3ToLegacy = (difficulty, style) => {
+  let terrain = "mix";
+  let surface = "paved";
+  let vibe = "Energy";
+
+  if (difficulty === "easy") {
+    terrain = "road";
+    vibe = "Elegant";
+  } else if (difficulty === "hard") {
+    terrain = "climb";
+    vibe = "Energy";
+  }
+
+  if (style === "local") {
+    vibe = "Scenic";
+  } else if (style === "chaotic") {
+    surface = "mixed";
+  }
+
+  return { terrain, surface, vibe };
+};
+
 export const evaluateLoopCandidate = ({
   routeData,
   origin,
   targetDistanceKm,
-  terrain,
-  surface,
-  vibe,
+  difficulty,
+  style,
+  terrain: rawTerrain,
+  surface: rawSurface,
+  vibe: rawVibe,
   recentRoutes = [],
 }) => {
+  const { terrain, surface, vibe } = (difficulty || style) 
+    ? mapV3ToLegacy(difficulty, style) 
+    : { terrain: rawTerrain, surface: rawSurface, vibe: rawVibe };
+
   const routeCoords = routeData?.features?.[0]?.geometry?.coordinates || [];
-  const points = normalizeRoutePoints(routeCoords);
   if (points.length < 8) {
     return {
       valid: false,
@@ -589,7 +616,19 @@ const uniqueProfiles = (profiles = []) => {
   });
 };
 
-export const buildLoopCandidateProfiles = ({ terrain, surface, vibe, reroll = false, strict = false }) => {
+export const buildLoopCandidateProfiles = ({ 
+  difficulty, 
+  style, 
+  terrain: rawTerrain, 
+  surface: rawSurface, 
+  vibe: rawVibe, 
+  reroll = false, 
+  strict = false 
+}) => {
+  const { terrain, surface, vibe } = (difficulty || style) 
+    ? mapV3ToLegacy(difficulty, style) 
+    : { terrain: rawTerrain, surface: rawSurface, vibe: rawVibe };
+
   const terrainKey = String(terrain || "").trim().toLowerCase();
   const surfaceKey = String(surface || "").trim().toLowerCase();
   const vibeKey = String(vibe || "").trim().toLowerCase();
@@ -670,12 +709,19 @@ export const buildLoopCandidateProfiles = ({ terrain, surface, vibe, reroll = fa
 export const buildLoopCandidateRequest = ({
   origin,
   targetDistanceKm,
-  terrain,
-  surface,
-  vibe,
+  difficulty,
+  style,
+  count,
+  terrain: rawTerrain,
+  surface: rawSurface,
+  vibe: rawVibe,
   seed,
   profile,
 }) => {
+  const { terrain, surface, vibe } = (difficulty || style) 
+    ? mapV3ToLegacy(difficulty, style) 
+    : { terrain: rawTerrain, surface: rawSurface, vibe: rawVibe };
+
   const terrainKey = String(terrain || "").trim().toLowerCase();
   const surfaceKey = String(surface || "").trim().toLowerCase();
   const vibeKey = String(vibe || "").trim().toLowerCase();
@@ -706,9 +752,9 @@ export const buildLoopCandidateRequest = ({
 
     return {
       coordinates: [
-        [origin.lng, origin.lat],
-        ...points.map((point) => [point.lng, point.lat]),
-        [origin.lng, origin.lat],
+        [[origin.lng, origin.lat]],
+        ...points.map((point) => [[point.lng, point.lat]]),
+        [[origin.lng, origin.lat]],
       ],
     };
   }
@@ -718,7 +764,7 @@ export const buildLoopCandidateRequest = ({
     options: {
       round_trip: {
         length: Math.max(1000, targetDistanceKm * 1000),
-        points: profile.points,
+        points: count || profile.points,
         seed: Number(seed || 1) + profile.seedOffset,
       },
     },

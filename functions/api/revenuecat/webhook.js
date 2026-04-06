@@ -116,20 +116,14 @@ export async function onRequest({ request, env }) {
     return json({ received: true, status });
   }
 
-  const creditRows = await supabaseRequest(
-    env,
-    `user_credits?user_id=eq.${encodeURIComponent(appUserId)}&select=user_id,credits`,
-    { method: "GET" },
-  ).catch(() => []);
-  const currentCredits = Number(creditRows?.[0]?.credits || 0);
   const creditsToGrant = Number(productRow.credits_to_grant || 0);
 
-  await supabaseRequest(env, "user_credits", {
+  // Use the atomic increment RPC to avoid race conditions.
+  await supabaseRequest(env, "rpc/increment_user_credits", {
     method: "POST",
-    headers: { Prefer: "resolution=merge-duplicates" },
     body: JSON.stringify({
-      user_id: appUserId,
-      credits: currentCredits + creditsToGrant,
+      p_user_id: appUserId,
+      p_increment: creditsToGrant,
     }),
   });
 

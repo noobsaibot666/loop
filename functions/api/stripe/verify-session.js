@@ -46,18 +46,17 @@ export async function onRequest({ request, env }) {
   const amount = Number(session?.amount_total || 0);
   const creditAdd = existingSession?.credits_to_grant || creditsFromAmount(amount);
 
-  // Apply credits idempotently.
-  const rows = await supabaseRequest(
-    env,
-    `user_credits?user_id=eq.${encodeURIComponent(user_id)}&select=user_id,credits`,
-    { method: "GET" }
-  );
-  const currentCredits = rows?.[0]?.credits || 0;
-  await supabaseRequest(env, "user_credits", {
-    method: "POST",
-    headers: { Prefer: "resolution=merge-duplicates" },
-    body: JSON.stringify({ user_id, credits: currentCredits + creditAdd }),
-  });
+  // Apply credits atomically via RPC function.
+  try {
+    await supabaseRequest(env, "rpc/increment_user_credits", {
+      method: "POST",
+      body: JSON.stringify({ p_user_id: user_id, p_amount: creditAdd }),
+    });
+  } catch (error) {
+    console.error("Failed to increment credits atomically:", error.message);
+    // Silent fallthrough is NOT allowed here for billing integrity.
+    return json({ error: "Credit application failed. Contact support with session ID." }, { status: 500 });
+  }
 
   try {
     await supabaseRequest(env, "stripe_sessions", {
