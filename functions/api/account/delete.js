@@ -1,4 +1,4 @@
-import { json, getAuthUser, supabaseAdminAuthRequest, supabaseRequest } from "../_utils.js";
+import { json, getAuthUser, supabaseAdminAuthRequest, supabaseRequest } from "../../_utils.js";
 
 /**
  * PURGE USER DATA

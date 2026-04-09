@@ -1,7 +1,10 @@
 {
-  "name": "give-me-the-loop",
+  "name": "loop-production",
+  "description": "Professional bike-messenger and night-ride coordination suite.",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
+  "author": "[LEGAL_ENTITY_NAME]",
+  "license": "Proprietary",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -9,6 +9,10 @@ import {
   ShoppingBag,
   Trophy,
   Users,
+  Trash2,
+  Download,
+  AlertTriangle,
+  Activity,
 } from "lucide-react";
 import accountHero from "../images/hero_8.png";
 import Hero from "../components/Hero";
@@ -58,6 +62,9 @@ const RiderAccount: React.FC = () => {
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [isSendingFeedback, setIsSendingFeedback] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [membershipBusy, setMembershipBusy] = useState<"checkout" | "invite" | "portal" | "connect" | null>(null);
   const [creditCheckoutAmount, setCreditCheckoutAmount] = useState<number | null>(null);
   const [statusMessage, setStatusMessage] = useState<{ tone: StatusTone; text: string } | null>(null);
@@ -398,6 +405,63 @@ const RiderAccount: React.FC = () => {
       pushStatus("error", error.message || t("account.messages.feedbackFailed"));
     } finally {
       setIsSendingFeedback(false);
+    }
+  };
+
+  const handleExportData = async () => {
+    if (!accountSummary) return;
+    setIsExporting(true);
+    try {
+      const dataStr = JSON.stringify(accountSummary, null, 2);
+      const dataUri = "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
+      const exportFileDefaultName = `loop-rider-data-${user?.id || "export"}.json`;
+
+      const linkElement = document.createElement("a");
+      linkElement.setAttribute("href", dataUri);
+      linkElement.setAttribute("download", exportFileDefaultName);
+      linkElement.click();
+      pushStatus("success", t("account.dangerZone.exporting"));
+    } catch (err) {
+      console.error("Export failed:", err);
+      pushStatus("error", "Export failed.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!showDeleteConfirm) {
+      setShowDeleteConfirm(true);
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase.from("user_profiles").delete().eq("user_id", user?.id);
+      
+      // We also call the edge function/api to purge auth and other tables
+      const response = await fetch("/api/account/delete", {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+          "Content-Type": "application/json"
+        }
+      });
+      
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || "Purge failed");
+      }
+
+      pushStatus("success", t("account.dangerZone.status"));
+      setTimeout(() => {
+        handleLogout();
+        navigate("/");
+      }, 2000);
+    } catch (err) {
+      console.error("Delete failed:", err);
+      pushStatus("error", "Delete failed. Contact support.");
+      setIsDeleting(false);
     }
   };
 
@@ -1171,6 +1235,68 @@ const RiderAccount: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+
+          <div className="glass-card form-card account-danger-card">
+            <div className="form-header">
+              <div>
+                <div className="form-title">{t("account.dangerZone.title")}</div>
+              </div>
+              <AlertTriangle size={18} className="text-muted" />
+            </div>
+            
+            <div className="danger-item">
+              <div className="danger-item-info">
+                <div className="danger-item-title">{t("account.dangerZone.exportTitle")}</div>
+                <div className="danger-item-body">{t("account.dangerZone.exportBody")}</div>
+              </div>
+              <div className="danger-actions">
+                <button 
+                  className="danger-button outline" 
+                  onClick={handleExportData}
+                  disabled={isExporting}
+                >
+                  <Download size={16} />
+                  {isExporting ? t("account.dangerZone.exporting") : t("account.dangerZone.exportAction")}
+                </button>
+              </div>
+            </div>
+
+            <div className="danger-item">
+              <div className="danger-item-info">
+                <div className="danger-item-title">{t("account.dangerZone.deleteTitle")}</div>
+                <div className="danger-item-body">{t("account.dangerZone.deleteBody")}</div>
+              </div>
+              <div className="danger-actions">
+                {showDeleteConfirm ? (
+                  <>
+                    <button 
+                      className="danger-button" 
+                      onClick={handleDeleteAccount}
+                      disabled={isDeleting}
+                    >
+                      <Trash2 size={16} />
+                      {isDeleting ? t("account.dangerZone.deleting") : t("account.dangerZone.confirmDelete")}
+                    </button>
+                    <button 
+                      className="ghost-button small" 
+                      onClick={() => setShowDeleteConfirm(false)}
+                      disabled={isDeleting}
+                    >
+                      {t("account.dangerZone.cancel")}
+                    </button>
+                  </>
+                ) : (
+                  <button 
+                    className="danger-button outline" 
+                    onClick={() => setShowDeleteConfirm(true)}
+                  >
+                    <Trash2 size={16} />
+                    {t("account.dangerZone.deleteAction")}
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 

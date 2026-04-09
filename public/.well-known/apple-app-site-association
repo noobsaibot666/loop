@@ -1,0 +1,14 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "7U9W6T5B9Z.com.loop.mobile",
+        "paths": ["*"]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["7U9W6T5B9Z.com.loop.mobile"]
+  }
+}
