@@ -2,7 +2,7 @@
 
 **Last Updated: April 9, 2026**
 
-Please read these Terms of Service ("Terms") carefully before using the Loop mobile application (the "Service") operated by [LEGAL_ENTITY_NAME] ("us", "we", or "our").
+Please read these Terms of Service ("Terms") carefully before using the Loop mobile application (the "Service") operated by Alan Alves ("us", "we", or "our").
 
 ## 1. Acceptance of Terms
 By accessing or using the Service, you agree to be bound by these Terms. If you disagree with any part of the terms, then you may not access the Service.
@@ -26,14 +26,14 @@ You agree not to:
 We may terminate or suspend access to our Service immediately, without prior notice or liability, for any reason whatsoever, including without limitation if you breach the Terms.
 
 ## 6. Limitation of Liability
-In no event shall [LEGAL_ENTITY_NAME], nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses.
+In no event shall Alan Alves, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses.
 
 ## 7. Governing Law
-These Terms shall be governed and construed in accordance with the laws of [GOVERNING_LAW_COUNTRY/STATE], without regard to its conflict of law provisions.
+These Terms shall be governed and construed in accordance with the laws of Germany, without regard to its conflict of law provisions.
 
 ## 8. Changes
 We reserve the right, at our sole discretion, to modify or replace these Terms at any time.
 
 ## 9. Contact Us
 If you have any questions about these Terms, please contact us at:
-[SUPPORT_EMAIL]
+hello@expose-u.com

@@ -435,9 +435,14 @@ const RiderAccount: React.FC = () => {
       return;
     }
 
+    if (!supabase || !user) {
+      pushStatus("error", t("common.authUnavailable"));
+      return;
+    }
+
     setIsDeleting(true);
     try {
-      const { error } = await supabase.from("user_profiles").delete().eq("user_id", user?.id);
+      const { error } = await supabase.from("user_profiles").delete().eq("user_id", user.id);
       
       // We also call the edge function/api to purge auth and other tables
       const response = await fetch("/api/account/delete", {

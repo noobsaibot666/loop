@@ -9,6 +9,10 @@ const PrivacyPage: React.FC = () => {
     t("legal.privacy.item2"),
     t("legal.privacy.item3"),
     t("legal.privacy.item4"),
+    t("legal.privacy.item5"),
+    t("legal.privacy.item6"),
+    t("legal.privacy.item7"),
+    t("legal.privacy.item8"),
   ];
   const rulesBullets = [
     t("legal.terms.item1"),
@@ -24,6 +28,7 @@ const PrivacyPage: React.FC = () => {
           <div className="how-section-head">
             <p className="info-page-eyebrow">{t("legal.privacy.eyebrow")}</p>
             <h1 className="how-section-title privacy-page-title">{t("legal.privacy.title")}</h1>
+            <p className="how-section-copy privacy-page-copy" style={{ opacity: 0.5, fontSize: "0.8rem", marginBottom: "8px" }}>{t("legal.privacy.effectiveDate")}</p>
             <p className="how-section-copy privacy-page-copy">{t("legal.privacy.intro")}</p>
           </div>
 

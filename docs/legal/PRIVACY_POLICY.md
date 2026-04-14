@@ -2,7 +2,7 @@
 
 **Effective Date: April 9, 2026**
 
-This Privacy Policy describes how [LEGAL_ENTITY_NAME] ("we", "us", or "our") collects, uses, and shares your personal information when you use the Loop mobile application and associated services (the "Service").
+This Privacy Policy describes how Alan Alves ("we", "us", or "our") collects, uses, and shares your personal information when you use the Loop mobile application and associated services (the "Service").
 
 ## 1. Information We Collect
 
@@ -28,7 +28,7 @@ We may share your information as follows:
 - In response to a request for information if we believe disclosure is in accordance with, or required by, any applicable law or legal process.
 
 ## 4. Account Deletion and Data Retention
-**Account Deletion**: You can delete your account and all associated data at any time through the Settings menu in the app or by contacting us at [SUPPORT_EMAIL]. Upon deletion, your data will be purged from our active databases in accordance with our deletion policy.
+**Account Deletion**: You can delete your account and all associated data at any time through the Settings menu in the app or by contacting us at hello@expose-u.com. Upon deletion, your data will be purged from our active databases in accordance with our deletion policy.
 
 ## 5. Security
 We take reasonable measures to help protect information about you from loss, theft, misuse, and unauthorized access.
@@ -38,4 +38,4 @@ We may change this Privacy Policy from time to time. If we make changes, we will
 
 ## 7. Contact Us
 If you have any questions about this Privacy Policy, please contact us at:
-[SUPPORT_EMAIL]
+hello@expose-u.com
