@@ -1,4 +1,4 @@
-import { getAuthUser, json, supabaseRequest } from "../../_utils.js";
+import { getAuthUser, isAdminEmail, json, supabaseRequest } from "../../_utils.js";
 import { buildAlleycatHistory, buildChallengeHistory, buildSharedRiders } from "../../../shared/account.js";
 import { buildQuarterLeaderboard, deriveBadges, getQuarterWindow, isInWindow } from "../../../shared/quarterly.js";
 import { sanitizeMembershipForClient } from "../../../shared/community-membership.js";
@@ -8,7 +8,7 @@ export async function onRequest({ request, env }) {
   if (!user?.id) return json({ error: "login required" }, { status: 401 });
 
   const quarter = getQuarterWindow();
-  const [profileRows, bikeRows, stripePurchases, mobilePurchases, loopHistory, manifests, runs, challengeEntries, proofs, quarterProofs, quarterRuns, communityMembershipRows] = await Promise.all([
+  const [profileRows, bikeRows, stripePurchases, mobilePurchases, loopHistory, manifests, runs, challengeEntries, proofs, quarterProofs, quarterRuns, communityMembershipRows, creditRows] = await Promise.all([
     supabaseRequest(
       env,
       `user_profiles?user_id=eq.${encodeURIComponent(user.id)}&select=user_id,rider_name,home_location,primary_bike_id,bike_name,bike_ratio,collaboration_note,collaboration_status,collaboration_requested_at`,
@@ -67,6 +67,11 @@ export async function onRequest({ request, env }) {
     supabaseRequest(
       env,
       `community_memberships?user_id=eq.${encodeURIComponent(user.id)}&select=user_id,plan_code,status,price_cents,currency,interval,current_period_end,cancel_at_period_end,discord_invite_url,discord_user_id,discord_username,discord_role_status,discord_access_granted_at,discord_access_revoked_at&limit=1`,
+      { method: "GET" }
+    ).catch(() => []),
+    supabaseRequest(
+      env,
+      `user_credits?user_id=eq.${encodeURIComponent(user.id)}&select=credits,free_used`,
       { method: "GET" }
     ).catch(() => []),
   ]);
@@ -198,7 +203,14 @@ export async function onRequest({ request, env }) {
   }));
   const defaultBike = bikes.find((bike) => bike.is_default) || bikes[0] || null;
 
+  const isAdmin = isAdminEmail(env, user.email || "");
+  const userCredits = creditRows?.[0] || { credits: 0, free_used: 0 };
+  const credits_remaining = isAdmin ? 9999 : userCredits.credits || 0;
+  const unlimited_credits = isAdmin;
+
   return json({
+    unlimited_credits,
+    credits_remaining,
     profile: profileRows?.[0]
       ? {
           ...profileRows[0],

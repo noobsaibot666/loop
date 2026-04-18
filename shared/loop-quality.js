@@ -752,9 +752,9 @@ export const buildLoopCandidateRequest = ({
 
     return {
       coordinates: [
-        [[origin.lng, origin.lat]],
-        ...points.map((point) => [[point.lng, point.lat]]),
-        [[origin.lng, origin.lat]],
+        [origin.lng, origin.lat],
+        ...points.map((point) => [point.lng, point.lat]),
+        [origin.lng, origin.lat],
       ],
     };
   }
