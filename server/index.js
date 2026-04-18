@@ -688,23 +688,29 @@ app.post("/api/admin/rider-list", requireAdmin, async (req, res) => {
     });
     if (authError) console.error("Admin rider-list auth error:", authError);
 
-    const emailMap = new Map((authData?.users || []).map((u) => [u.id, u.email]));
+    const authUsers = authData?.users || [];
     const nameMap = new Map((profiles || []).map((p) => [p.user_id, p.rider_name]));
+    const creditMap = new Map((credits || []).map((row) => [row.user_id, row]));
     const bikesGrouped = new Map();
     (allBikes || []).forEach((b) => {
       if (!bikesGrouped.has(b.user_id)) bikesGrouped.set(b.user_id, []);
       bikesGrouped.get(b.user_id).push(b);
     });
 
-    const riders = (credits || []).map((c) => ({
-      user_id: c.user_id,
-      email: emailMap.get(c.user_id) || "unknown",
-      rider_name: nameMap.get(c.user_id) || "",
-      credits: c.credits || 0,
-      free_used: c.free_used || 0,
-      updated_at: c.updated_at,
-      bikes: bikesGrouped.get(c.user_id) || [],
-    }));
+    const riders = authUsers
+      .map((authUser) => {
+        const creditRow = creditMap.get(authUser.id);
+        return {
+          user_id: authUser.id,
+          email: authUser.email || "unknown",
+          rider_name: nameMap.get(authUser.id) || "",
+          credits: creditRow?.credits || 0,
+          free_used: creditRow?.free_used || 0,
+          updated_at: creditRow?.updated_at || authUser.created_at || authUser.last_sign_in_at || null,
+          bikes: bikesGrouped.get(authUser.id) || [],
+        };
+      })
+      .sort((left, right) => String(right.updated_at || "").localeCompare(String(left.updated_at || "")));
 
     return res.json({ ok: true, riders });
   } catch (error) {
