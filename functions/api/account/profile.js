@@ -1,12 +1,16 @@
 import { getAuthUser, json, parseJSON, supabaseRequest } from "../../_utils.js";
 
 const clean = (value, max = 80) => String(value || "").trim().slice(0, max);
-const toBikeId = (value) => String(value || "").trim().slice(0, 80);
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const toValidBikeId = (value) => {
+  const id = String(value || "").trim();
+  return UUID_RE.test(id) ? id : crypto.randomUUID();
+};
 const sanitizeBikes = (input) => {
   const raw = Array.isArray(input) ? input : [];
   const bikes = raw
     .map((bike, index) => ({
-      id: toBikeId(bike?.id) || crypto.randomUUID(),
+      id: toValidBikeId(bike?.id),
       bike_name: clean(bike?.bike_name, 60),
       bike_ratio: clean(bike?.bike_ratio, 40),
       is_default: Boolean(bike?.is_default),

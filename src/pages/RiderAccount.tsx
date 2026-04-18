@@ -698,40 +698,6 @@ const RiderAccount: React.FC = () => {
                 </button>
               </div>
             </div>
-            <div className="account-divider" />
-            <div className="account-stack" id="account-collaboration">
-              <div>
-                <div className="section-title small-title">{t("account.profile.collaborationTitle")}</div>
-                <div className="form-subtitle">{t("account.profile.collaborationSubtitle")}</div>
-              </div>
-              {accountSummary?.profile?.collaboration_status === "pending" && accountSummary?.profile?.collaboration_requested_at ? (
-                <div className="account-note">
-                  {t("account.profile.collaborationPending", {
-                    date: formatDate(accountSummary.profile.collaboration_requested_at),
-                  })}
-                </div>
-              ) : null}
-              <div className="account-note">{t("account.profile.collaborationNote")}</div>
-              <label className="field">
-                <span>{t("account.profile.collaborationLabel")}</span>
-                <textarea
-                  rows={4}
-                  value={profileForm.collaboration_note}
-                  placeholder={t("account.profile.collaborationPlaceholder")}
-                  onChange={(event) => setProfileForm((current) => ({ ...current, collaboration_note: event.target.value }))}
-                />
-              </label>
-              <div className="form-actions">
-                <button
-                  type="button"
-                  className="primary-button"
-                  disabled={isSubmittingCollaboration}
-                  onClick={handleCollaborationRequest}
-                >
-                  {isSubmittingCollaboration ? t("common.working") : t("account.profile.collaborationAction")}
-                </button>
-              </div>
-            </div>
           </div>
 
           <div className="glass-card form-card account-credits-card" id="account-credits">
