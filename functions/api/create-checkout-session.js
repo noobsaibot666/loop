@@ -14,6 +14,7 @@ const getCreditProducts = (env) => [
 ];
 
 export async function onRequest({ request, env }) {
+  try {
   const body = await parseJSON(request);
   const { price_id, amount, success_redirect_to, cancel_redirect_to } = body;
   const authUser = await getAuthUser(env, request);
@@ -90,4 +91,7 @@ export async function onRequest({ request, env }) {
   } catch {}
 
   return json({ url: data.url });
+  } catch (err) {
+    return json({ error: err instanceof Error ? err.message : "Checkout session failed" }, { status: 500 });
+  }
 }

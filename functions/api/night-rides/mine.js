@@ -1,6 +1,7 @@
 import { json, getAuthUser, supabaseRequest } from "../../_utils.js";
 
 export async function onRequest({ request, env }) {
+  try {
   if (request.method !== "GET") return json({ error: "method not allowed" }, { status: 405 });
   const user = await getAuthUser(env, request);
   if (!user?.id) return json({ error: "login required" }, { status: 401 });
@@ -31,4 +32,7 @@ export async function onRequest({ request, env }) {
     .slice(0, 12);
 
   return json({ sessions: deduped });
+  } catch (err) {
+    return json({ error: err instanceof Error ? err.message : "Failed to load rides" }, { status: 500 });
+  }
 }
