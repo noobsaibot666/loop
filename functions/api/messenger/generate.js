@@ -3,6 +3,7 @@ import { buildMessengerManifest, buildMessengerManifestFromPack, MESSENGER_CREDI
 import { consumeMessengerCredits, getPackCheckpoints, getPublishedCityPackByCity, persistManifest } from "./_helpers.js";
 
 export async function onRequest({ request, env }) {
+  try {
   const body = await parseJSON(request);
   const authUser = await getAuthUser(env, request);
   const userId = authUser?.id || "";
@@ -98,4 +99,7 @@ export async function onRequest({ request, env }) {
     unlimited_credits: creditResult.unlimited_credits || false,
     premium_cost: MESSENGER_CREDIT_COST,
   });
+  } catch (err) {
+    return json({ error: err instanceof Error ? err.message : "Manifest generation failed" }, { status: 500 });
+  }
 }

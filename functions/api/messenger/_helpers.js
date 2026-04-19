@@ -24,7 +24,7 @@ export const consumeMessengerCredits = async (env, userId, cost, userEmail = "")
     env,
     `user_credits?user_id=eq.${encodeURIComponent(userId)}&select=user_id,credits,free_used`,
     { method: "GET" }
-  );
+  ).catch(() => []);
   const usage = creditRows?.[0] || { user_id: userId, credits: 0, free_used: 0 };
   const creditsRemaining = usage.credits || 0;
 

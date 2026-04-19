@@ -59,6 +59,7 @@ const findProfile = async (env, userId) => {
 
 export async function onRequest({ request, env }) {
   if (request.method !== "POST") return json({ error: "method not allowed" }, { status: 405 });
+  try {
   const user = await getAuthUser(env, request);
   if (!user?.id) return json({ error: "login required" }, { status: 401 });
 
@@ -293,4 +294,7 @@ export async function onRequest({ request, env }) {
     is_admin: creditResult.is_admin,
     unlimited_credits: creditResult.unlimited_credits,
   });
+  } catch (err) {
+    return json({ error: err instanceof Error ? err.message : "Night Ride generation failed" }, { status: 500 });
+  }
 }
