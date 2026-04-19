@@ -50,7 +50,7 @@ export async function onRequest({ request, env }) {
   try {
     await supabaseRequest(env, "rpc/increment_user_credits", {
       method: "POST",
-      body: JSON.stringify({ p_user_id: user_id, p_amount: creditAdd }),
+      body: JSON.stringify({ p_user_id: user_id, p_increment: creditAdd }),
     });
   } catch (error) {
     console.error("Failed to increment credits atomically:", error.message);

@@ -236,14 +236,9 @@ export async function onRequest({ request, env }) {
         }
       } catch {}
 
-      const rows = await supabaseRequest(env, `user_credits?user_id=eq.${encodeURIComponent(user_id)}&select=user_id,credits`, {
-        method: "GET",
-      });
-      const currentCredits = rows?.[0]?.credits || 0;
-      await supabaseRequest(env, "user_credits", {
+      await supabaseRequest(env, "rpc/increment_user_credits", {
         method: "POST",
-        headers: { Prefer: "resolution=merge-duplicates" },
-        body: JSON.stringify({ user_id, credits: currentCredits + creditAdd }),
+        body: JSON.stringify({ p_user_id: user_id, p_increment: creditAdd }),
       });
 
       // Best-effort session audit. Safe if table is not migrated yet.
