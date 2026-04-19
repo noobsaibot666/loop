@@ -9,14 +9,23 @@ export async function onRequest({ request, env }) {
   const routeUrl = String(body.route_url || "").trim();
   const distanceKm = Number(body.distance_km || 0);
   const unit = String(body.unit || "").trim();
-  const terrain = String(body.terrain || "").trim();
-  const surface = String(body.surface || "").trim();
-  const vibe = String(body.vibe || "").trim();
   const bikeId = String(body.bike_id || "").trim() || null;
   const bikeName = String(body.bike_name || "").trim() || null;
   const bikeRatio = String(body.bike_ratio || "").trim() || null;
 
-  if (!loopPoint || !routeUrl || !distanceKm || !unit || !terrain || !surface || !vibe) {
+  // Accept difficulty/style (mobile) or terrain/surface/vibe (legacy web)
+  const difficulty = String(body.difficulty || "").trim().toLowerCase();
+  const style = String(body.style || "").trim().toLowerCase();
+  let terrain = String(body.terrain || "").trim();
+  let surface = String(body.surface || "").trim();
+  let vibe = String(body.vibe || "").trim();
+  if (!terrain && !surface && !vibe) {
+    terrain = difficulty === "hard" ? "climb" : difficulty === "easy" ? "road" : "mix";
+    surface = style === "fast" ? "mixed" : "paved";
+    vibe = style === "chaotic" ? "Scenic" : difficulty === "hard" ? "Energy" : "Elegant";
+  }
+
+  if (!loopPoint || !routeUrl || !distanceKm || !unit) {
     return json({ error: "missing loop history fields" }, { status: 400 });
   }
 

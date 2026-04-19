@@ -10,8 +10,9 @@ import {
 } from "../../shared/loop-quality.js";
 
 export async function onRequest({ request, env }) {
+  try {
   const body = await parseJSON(request);
-  const { coords, distance_km, seed, terrain, surface, vibe } = body;
+  const { coords, distance_km, seed, terrain, surface, vibe, difficulty, style } = body;
   if (!coords || coords.length !== 2) return json({ error: "coords required" }, { status: 400 });
 
   const key = requireEnv(env, "ORS_API_KEY");
@@ -42,6 +43,8 @@ export async function onRequest({ request, env }) {
       terrain,
       surface,
       vibe,
+      difficulty,
+      style,
       seed: candidateSeed,
       profile,
     });
@@ -108,7 +111,7 @@ export async function onRequest({ request, env }) {
   };
 
   const runCandidateBatch = async (reroll = false, strict = false) => {
-    const profiles = buildLoopCandidateProfiles({ terrain, surface, vibe, reroll, strict });
+    const profiles = buildLoopCandidateProfiles({ terrain, surface, vibe, difficulty, style, reroll, strict });
     return Promise.all(profiles.map((profile, candidateIndex) => requestCandidate(profile, candidateIndex)));
   };
 
@@ -192,4 +195,7 @@ export async function onRequest({ request, env }) {
     route_debug: bestCandidate.evaluation.metrics,
     sampled_waypoints: resolvedWaypoints,
   });
+  } catch (err) {
+    return json({ error: err instanceof Error ? err.message : "Loop generation failed" }, { status: 500 });
+  }
 }

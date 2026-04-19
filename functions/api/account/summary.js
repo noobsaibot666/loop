@@ -7,6 +7,7 @@ export async function onRequest({ request, env }) {
   const user = await getAuthUser(env, request);
   if (!user?.id) return json({ error: "login required" }, { status: 401 });
 
+  try {
   const quarter = getQuarterWindow();
   const [profileRows, bikeRows, stripePurchases, mobilePurchases, loopHistory, manifests, runs, challengeEntries, proofs, quarterProofs, quarterRuns, communityMembershipRows, creditRows] = await Promise.all([
     supabaseRequest(
@@ -23,7 +24,7 @@ export async function onRequest({ request, env }) {
       env,
       `stripe_sessions?user_id=eq.${encodeURIComponent(user.id)}&select=session_id,amount_cents,credits_to_grant,status,created_at&order=created_at.desc&limit=5`,
       { method: "GET" }
-    ),
+    ).catch(() => []),
     supabaseRequest(
       env,
       `mobile_purchase_events?user_id=eq.${encodeURIComponent(user.id)}&status=eq.credited&select=event_id,amount_cents,credits_to_grant,status,purchased_at,created_at&order=created_at.desc&limit=5`,
@@ -33,37 +34,37 @@ export async function onRequest({ request, env }) {
       env,
       `loop_history?user_id=eq.${encodeURIComponent(user.id)}&select=id,loop_point,distance_km,unit,terrain,surface,vibe,route_url,bike_id,bike_name,bike_ratio,created_at&order=created_at.desc&limit=8`,
       { method: "GET" }
-    ),
+    ).catch(() => []),
     supabaseRequest(
       env,
       `messenger_manifests?user_id=eq.${encodeURIComponent(user.id)}&select=id,city_name,manifest_title,difficulty,style,created_at,source_challenge_id,ghost_seconds`,
       { method: "GET" }
-    ),
+    ).catch(() => []),
     supabaseRequest(
       env,
       `messenger_runs?user_id=eq.${encodeURIComponent(user.id)}&select=id,user_id,manifest_id,status,finish_seconds,finished_at,started_at,bike_id,bike_name,bike_ratio`,
       { method: "GET" }
-    ),
+    ).catch(() => []),
     supabaseRequest(
       env,
       `messenger_challenge_entries?user_id=eq.${encodeURIComponent(user.id)}&select=id,challenge_id,user_id,manifest_id,joined_at`,
       { method: "GET" }
-    ),
+    ).catch(() => []),
     supabaseRequest(
       env,
       `messenger_proof_posts?user_id=eq.${encodeURIComponent(user.id)}&select=id,user_id,run_id,manifest_id,checkpoint_id,checkpoint_name,location_label,public_url,is_public,city_name,created_at`,
       { method: "GET" }
-    ),
+    ).catch(() => []),
     supabaseRequest(
       env,
       `messenger_proof_posts?is_public=eq.true&created_at=gte.${encodeURIComponent(quarter.start.toISOString())}&created_at=lt.${encodeURIComponent(quarter.end.toISOString())}&select=user_id,rider_name,city_name,created_at`,
       { method: "GET" }
-    ),
+    ).catch(() => []),
     supabaseRequest(
       env,
       `messenger_runs?status=eq.finished&finished_at=gte.${encodeURIComponent(quarter.start.toISOString())}&finished_at=lt.${encodeURIComponent(quarter.end.toISOString())}&select=user_id,finished_at`,
       { method: "GET" }
-    ),
+    ).catch(() => []),
     supabaseRequest(
       env,
       `community_memberships?user_id=eq.${encodeURIComponent(user.id)}&select=user_id,plan_code,status,price_cents,currency,interval,current_period_end,cancel_at_period_end,discord_invite_url,discord_user_id,discord_username,discord_role_status,discord_access_granted_at,discord_access_revoked_at&limit=1`,
@@ -271,4 +272,7 @@ export async function onRequest({ request, env }) {
       proofs: challengeProofNames,
     }),
   });
+  } catch (err) {
+    return json({ error: err instanceof Error ? err.message : "Summary unavailable" }, { status: 500 });
+  }
 }
