@@ -133,7 +133,8 @@ const RiderAccount: React.FC = () => {
       }
       setIsNightLoading(true);
       try {
-        const sessions = await getJSON<NightRideAccountSession[]>("/api/night-rides/mine");
+        const res = await getJSON<{ sessions: NightRideAccountSession[] } | NightRideAccountSession[]>("/api/night-rides/mine");
+        const sessions = Array.isArray(res) ? res : (res as any)?.sessions || [];
         if (!ignore) setNightRides(Array.isArray(sessions) ? sessions : []);
       } catch {
         if (!ignore) setNightRides([]);
