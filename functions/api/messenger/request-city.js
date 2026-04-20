@@ -12,7 +12,11 @@ export async function onRequest({ request, env }) {
       "city_requests",
       {
         method: "POST",
-        body: JSON.stringify({ city_name: cityName, requested_by: authUser?.id || null }),
+        body: JSON.stringify({
+          requested_city: cityName,
+          requester_email: authUser?.email || null,
+          status: "new",
+        }),
       },
     ).catch(() => null);
 
