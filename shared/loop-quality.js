@@ -333,9 +333,14 @@ export const buildGoogleMapsLoopUrl = (origin, sampledWaypoints = []) => {
     .map(normalizePoint)
     .filter((point) => Number.isFinite(point?.lat) && Number.isFinite(point?.lng));
   if (!points.length) return "";
-  const orderedPoints = [originPoint, ...points, originPoint];
-  const path = orderedPoints.map((point) => `${point.lat},${point.lng}`).join("/");
-  return `https://www.google.com/maps/dir/${path}/data=!4m2!4m1!3e1`;
+  const originStr = `${originPoint.lat},${originPoint.lng}`;
+  const params = new URLSearchParams();
+  params.set("api", "1");
+  params.set("origin", originStr);
+  params.set("destination", originStr);
+  params.set("travelmode", "bicycling");
+  params.set("waypoints", points.map((p) => `${p.lat},${p.lng}`).join("|"));
+  return `https://www.google.com/maps/dir/?${params.toString()}`;
 };
 
 export const parseGoogleMapsLoopUrl = (routeUrl = "") => {
