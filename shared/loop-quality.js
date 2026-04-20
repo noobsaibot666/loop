@@ -483,6 +483,7 @@ export const evaluateLoopCandidate = ({
     : { terrain: rawTerrain, surface: rawSurface, vibe: rawVibe };
 
   const routeCoords = routeData?.features?.[0]?.geometry?.coordinates || [];
+  const points = routeCoords.map(([lng, lat]) => ({ lat, lng }));
   if (points.length < 8) {
     return {
       valid: false,
