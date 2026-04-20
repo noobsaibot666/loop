@@ -261,21 +261,8 @@ export const useLoopStore = create<LoopState>()(
       generateLoop: async (userId, deviceId, currentUsage, updateUsage, selectedBike) => {
         const { loopPoint, distance, unit, terrain, surface, vibe, selectedCoords } = get() as any;
         set({ isGenerating: true, statusMessage: "" });
-        
+
         try {
-          const consumed = await postJSON<any>("/api/usage/consume", { device_id: deviceId, user_id: userId });
-          if (!consumed.allowed) {
-            set({ statusMessage: "loop.status.spent", isGenerating: false });
-            return;
-          }
-
-          updateUsage({
-            free_used: consumed.free_used,
-            donation_credits: consumed.donation_credits,
-            free_remaining: Math.max(0, 10 - consumed.free_used), 
-            credits_remaining: consumed.credits_remaining || 0,
-          });
-
           let origin = selectedCoords;
           if (!origin) {
             const geo = await postJSON<any>("/api/geocode", { text: loopPoint });
@@ -348,6 +335,10 @@ export const useLoopStore = create<LoopState>()(
 
           if (!routeUrl) {
             throw new Error("loop.status.failed");
+          }
+
+          if (typeof loop?.credits_remaining === "number") {
+            updateUsage({ credits_remaining: loop.credits_remaining });
           }
 
           set({ lastRouteUrl: routeUrl, statusMessage: "loop.status.ready" });

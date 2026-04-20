@@ -1,4 +1,4 @@
-import { getAuthUser, json, parseJSON, requireEnv, supabaseRequest } from "../_utils.js";
+import { getAuthUser, isAdminEmail, json, parseJSON, requireEnv, supabaseRequest } from "../_utils.js";
 import {
   buildFallbackLoopWaypoints,
   buildGoogleMapsLoopUrl,
@@ -9,6 +9,36 @@ import {
   selectBestLoopCandidate,
 } from "../../shared/loop-quality.js";
 
+const checkLoopCredit = async (env, authUser) => {
+  if (!authUser?.id) return { allowed: false, error: "login required" };
+  if (isAdminEmail(env, authUser.email || "")) return { allowed: true };
+  const rows = await supabaseRequest(
+    env,
+    `user_credits?user_id=eq.${encodeURIComponent(authUser.id)}&select=credits,free_used`,
+    { method: "GET" },
+  ).catch(() => []);
+  const usage = rows?.[0] || { credits: 0, free_used: 0 };
+  if (Math.max(0, 3 - (usage.free_used || 0)) > 0 || (usage.credits || 0) >= 1) return { allowed: true };
+  return { allowed: false, error: "Free loops are spent. Add credits and keep moving." };
+};
+
+const consumeLoopCredit = async (env, authUser) => {
+  if (isAdminEmail(env, authUser.email || "")) {
+    return { ok: true, credits_remaining: 9999, unlimited_credits: true };
+  }
+  try {
+    const result = await supabaseRequest(env, "rpc/consume_user_credit", {
+      method: "POST",
+      body: JSON.stringify({ p_user_id: authUser.id, p_free_limit: 3 }),
+    });
+    const row = Array.isArray(result) ? result[0] : result;
+    if (row?.allowed === false) return { ok: false, error: "Free loops are spent. Add credits and keep moving." };
+    return { ok: true, credits_remaining: row?.credits_remaining ?? 0 };
+  } catch {
+    return { ok: false, error: "Credit consumption failed." };
+  }
+};
+
 export async function onRequest({ request, env }) {
   try {
   const body = await parseJSON(request);
@@ -17,6 +47,9 @@ export async function onRequest({ request, env }) {
 
   const key = requireEnv(env, "ORS_API_KEY");
   const authUser = await getAuthUser(env, request);
+  if (!authUser?.id) return json({ error: "login required" }, { status: 401 });
+  const preCheck = await checkLoopCredit(env, authUser);
+  if (!preCheck.allowed) return json({ error: preCheck.error }, { status: 402 });
   const requestedDistanceKm = Math.max(1, Number(distance_km || 0));
   const origin = { lng: Number(coords[0]), lat: Number(coords[1]) };
   if (!Number.isFinite(origin.lng) || !Number.isFinite(origin.lat)) {
@@ -138,6 +171,10 @@ export async function onRequest({ request, env }) {
     );
   }
 
+  // ORS succeeded — consume the credit now, before returning any result.
+  const creditResult = await consumeLoopCredit(env, authUser);
+  if (!creditResult.ok) return json({ error: creditResult.error }, { status: 402 });
+
   const bestCandidate = selectBestLoopCandidate(candidates);
   if (!bestCandidate) {
     const fallbackWaypoints = buildFallbackLoopWaypoints(origin, requestedDistanceKm, seed);
@@ -149,6 +186,7 @@ export async function onRequest({ request, env }) {
       candidate_seed: Number(seed || 1),
       candidate_index: -1,
       candidate_profile: "synthetic-fallback",
+      credits_remaining: creditResult.credits_remaining,
       route_debug: {
         synthetic: true,
         reason: "no_candidate",
@@ -176,6 +214,7 @@ export async function onRequest({ request, env }) {
       candidate_seed: bestCandidate.candidateSeed,
       candidate_index: bestCandidate.candidateIndex,
       candidate_profile: "synthetic-fallback",
+      credits_remaining: creditResult.credits_remaining,
       route_debug: {
         ...bestCandidate.evaluation.metrics,
         synthetic: true,
@@ -192,6 +231,7 @@ export async function onRequest({ request, env }) {
     candidate_seed: bestCandidate.candidateSeed,
     candidate_index: bestCandidate.candidateIndex,
     candidate_profile: bestCandidate.profile.label,
+    credits_remaining: creditResult.credits_remaining,
     route_debug: bestCandidate.evaluation.metrics,
     sampled_waypoints: resolvedWaypoints,
   });
