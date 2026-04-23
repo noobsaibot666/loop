@@ -12,7 +12,7 @@ export async function onRequest({ request, env }) {
   const [profileRows, bikeRows, stripePurchases, mobilePurchases, loopHistory, manifests, runs, challengeEntries, proofs, quarterProofs, quarterRuns, communityMembershipRows, creditRows] = await Promise.all([
     supabaseRequest(
       env,
-      `user_profiles?user_id=eq.${encodeURIComponent(user.id)}&select=user_id,rider_name,home_location,primary_bike_id,bike_name,bike_ratio,collaboration_note,collaboration_status,collaboration_requested_at`,
+      `user_profiles?user_id=eq.${encodeURIComponent(user.id)}&select=user_id,rider_name,home_location,primary_bike_id,bike_name,bike_ratio,avatar_url,country,age,collaboration_note,collaboration_status,collaboration_requested_at`,
       { method: "GET" }
     ).catch(() => []),
     supabaseRequest(
