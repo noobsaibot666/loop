@@ -59,3 +59,9 @@ Central place for Supabase client, `API_BASE` resolution, credit costs, storage 
 ## Deployment
 
 Production deploys automatically via Cloudflare Pages CI on push. Secrets (Stripe, OpenAI, Supabase service role) are set in the Cloudflare dashboard — **never commit them**. The `SUPABASE_ANON_KEY` in `wrangler.toml` is the public anon key, not a secret.
+
+## City Expansion
+
+New cities use a **code-driven workflow**. Manual city requests are decommissioned.
+1. **Database**: Update `city_packs` and `city_checkpoints` in Supabase.
+2. **Ref**: Detailed guide in `../APPS/LOOP/app/docs/Guide/13_city_expansion.md`.
