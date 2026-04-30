@@ -25,7 +25,7 @@ interface CitiesState {
   isLoading: boolean;
   
   fetchCityLanes: () => Promise<void>;
-  requestCity: (cityName: string) => Promise<void>;
+  fetchCityLanes: () => Promise<void>;
 }
 
 export const useCitiesStore = create<CitiesState>((set, get) => ({
@@ -41,15 +41,6 @@ export const useCitiesStore = create<CitiesState>((set, get) => ({
       set({ cityLanes: [] });
     } finally {
       set({ isLoading: false });
-    }
-  },
-
-  requestCity: async (name) => {
-    try {
-      await postJSON("/api/cities/request", { city: name });
-    } catch (e) {
-      console.error(e);
-      throw e;
     }
   }
 }));

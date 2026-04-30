@@ -28,8 +28,6 @@ type CitiesPageProps = {
   onOpenMessengerCity: (cityName?: string) => void;
   onOpenWallCity: (cityName?: string) => void;
   onOpenLeaderboardCity: (cityName?: string) => void;
-  onOpenCityRequest: (cityName?: string) => void;
-  requestStatus?: string;
   heroImage?: string;
 };
 
@@ -38,8 +36,6 @@ export default function CitiesPage({
   isLoadingCityLanes,
   onOpenWallCity,
   onOpenLeaderboardCity,
-  onOpenCityRequest,
-  requestStatus,
   heroImage,
 }: CitiesPageProps) {
   const { t } = useI18n();
@@ -50,13 +46,11 @@ export default function CitiesPage({
     return (right.active_checkpoint_count + right.district_count) - (left.active_checkpoint_count + left.district_count);
   })[0];
   const getStatusLabel = (status: CityLane["status"]) =>
-    status === "requested"
-      ? t("cities.requested")
-      : status === "ready"
-        ? t("cities.ready")
-        : status === "review"
-          ? t("cities.review")
-          : t("cities.draft");
+    status === "ready"
+      ? t("cities.ready")
+      : status === "review"
+        ? t("cities.review")
+        : t("cities.draft");
   const growthItems = useMemo(
     () =>
       [
@@ -70,7 +64,7 @@ export default function CitiesPage({
           })),
         ...nextCities.slice(0, 2).map((lane) => ({
           city: lane.city_name,
-          tag: lane.status === "requested" ? t("cities.newCity") : getStatusLabel(lane.status),
+          tag: getStatusLabel(lane.status),
           active: false,
         })),
       ].slice(0, 6),
@@ -228,7 +222,6 @@ export default function CitiesPage({
                 <div className="form-title">{t("cities.nextTitle")}</div>
                 <div className="form-subtitle">{t("cities.nextSubtitle")}</div>
               </section>
-              {requestStatus && <div className="status-message success">{requestStatus}</div>}
               {nextCities.length === 0 && <div className="empty-state" />}
               {nextCities.length > 0 && (
                 <div className="city-lane-grid compact-grid">
@@ -253,14 +246,9 @@ export default function CitiesPage({
                           </div>
                         </div>
                         <div className="city-lane-actions">
-                          <button className="primary-button small city-action-accent" type="button" onClick={() => onOpenCityRequest(lane.city_name)}>
-                            {t("cities.pushCity", { city: lane.city_name })}
+                          <button className="ghost-button small city-action-secondary" type="button" onClick={() => onOpenLeaderboardCity(lane.city_name)}>
+                            {t("cities.openBoard")}
                           </button>
-                          {lane.status !== "requested" && (
-                            <button className="ghost-button small city-action-secondary" type="button" onClick={() => onOpenLeaderboardCity(lane.city_name)}>
-                              {t("cities.openBoard")}
-                            </button>
-                          )}
                         </div>
                       </div>
                     </div>

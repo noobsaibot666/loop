@@ -6,10 +6,8 @@ import CitiesPage from "../components/pages/CitiesPage";
 import { useI18n } from "../i18n";
 
 const CitiesHub: React.FC = () => {
-  const { t } = useI18n();
   const navigate = useNavigate();
-  const { cityLanes, isLoading, fetchCityLanes, requestCity } = useCitiesStore();
-  const [requestStatus, setRequestStatus] = useState("");
+  const { cityLanes, isLoading, fetchCityLanes } = useCitiesStore();
 
   useEffect(() => {
     fetchCityLanes();
@@ -27,18 +25,6 @@ const CitiesHub: React.FC = () => {
     navigate(`/leaderboard${cityName ? `?city=${cityName}` : ''}`);
   };
 
-  const onOpenCityRequest = async (cityName?: string) => {
-    const targetCity = cityName?.trim();
-    if (!targetCity) return;
-    try {
-      await requestCity(targetCity);
-      setRequestStatus(t("cities.requestSent", { city: targetCity }));
-      fetchCityLanes();
-    } catch {
-      setRequestStatus(t("cities.requestFailed"));
-    }
-  };
-
   return (
     <CitiesPage
       cityLanes={cityLanes}
@@ -46,8 +32,6 @@ const CitiesHub: React.FC = () => {
       onOpenMessengerCity={onOpenMessengerCity}
       onOpenWallCity={onOpenWallCity}
       onOpenLeaderboardCity={onOpenLeaderboardCity}
-      onOpenCityRequest={onOpenCityRequest}
-      requestStatus={requestStatus}
       heroImage={citiesHero}
     />
   );

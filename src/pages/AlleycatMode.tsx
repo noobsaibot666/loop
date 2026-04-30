@@ -486,11 +486,6 @@ const AlleycatMode: React.FC = () => {
                     )}
                   </div>
                 </label>
-                <div className="field-inline-actions messenger-inline-link">
-                  <Link className="text-link-button" to="/cities">
-                    {t("alleycat.requestCity")}
-                  </Link>
-                </div>
                 <label className="field">
                   <span>{t("alleycat.startArea")}</span>
                   <div className="search-input-wrapper" ref={suggestionShellRef}>
