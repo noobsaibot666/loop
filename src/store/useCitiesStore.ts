@@ -25,7 +25,6 @@ interface CitiesState {
   isLoading: boolean;
   
   fetchCityLanes: () => Promise<void>;
-  fetchCityLanes: () => Promise<void>;
 }
 
 export const useCitiesStore = create<CitiesState>((set, get) => ({

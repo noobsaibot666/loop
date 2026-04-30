@@ -28,9 +28,9 @@ export const PROOF_BUCKET = "alleycat-proofs";
 export const NIGHT_RIDE_BUCKET = "night-ride-posts";
 
 export const ALLEYCAT_CITY_GROUPS = [
-  { label: "Americas", cities: ["Bogota", "Buenos Aires", "Chicago", "Curitiba", "Guarulhos", "Los Angeles", "Mexico City", "New York", "Philadelphia", "San Francisco", "Santos", "Sao Paulo", "Seattle"] },
-  { label: "Europe", cities: ["Amsterdam", "Barcelona", "Berlin", "Krakow", "London", "Milan", "Munich", "Paris", "Vienna", "Warsaw"] },
-  { label: "Asia", cities: ["Bangkok", "Seoul", "Taipei", "Tokyo"] },
+  { label: "Americas", cities: ["Austin", "Bogota", "Buenos Aires", "Chicago", "Curitiba", "Guarulhos", "Los Angeles", "Mexico City", "New York", "Philadelphia", "Portland", "San Francisco", "Santos", "Sao Paulo", "Seattle", "Toronto"] },
+  { label: "Europe", cities: ["Amsterdam", "Barcelona", "Berlin", "Copenhagen", "Krakow", "Lisbon", "London", "Madrid", "Milan", "Munich", "Paris", "Rotterdam", "Vienna", "Warsaw"] },
+  { label: "Asia", cities: ["Bangkok", "Osaka", "Seoul", "Shanghai", "Taipei", "Tokyo"] },
 ];
 
 export const ALLEYCAT_CITY_PRESETS = ALLEYCAT_CITY_GROUPS.flatMap((group) => group.cities);

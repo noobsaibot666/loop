@@ -1357,7 +1357,6 @@ const dictionaries: Record<Language, TranslationMap> = {
     "cities.rideCity": "Rodar {city}",
     "cities.nextTitle": "Na sequência",
     "cities.nextSubtitle": "Demanda e rascunhos.",
-    "cities.nextSubtitle": "Demanda e rascunhos.",
     "cities.ready": "Pronta",
     "cities.review": "Revisão",
     "cities.draft": "Rascunho",
