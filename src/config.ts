@@ -28,8 +28,8 @@ export const PROOF_BUCKET = "alleycat-proofs";
 export const NIGHT_RIDE_BUCKET = "night-ride-posts";
 
 export const ALLEYCAT_CITY_GROUPS = [
-  { label: "Americas", cities: ["Austin", "Bogota", "Buenos Aires", "Chicago", "Curitiba", "Guarulhos", "Los Angeles", "Mexico City", "New York", "Philadelphia", "Portland", "San Francisco", "Santos", "Sao Paulo", "Seattle", "Toronto"] },
-  { label: "Europe", cities: ["Amsterdam", "Barcelona", "Berlin", "Copenhagen", "Krakow", "Lisbon", "London", "Madrid", "Milan", "Munich", "Paris", "Rotterdam", "Vienna", "Warsaw"] },
+  { label: "Americas", cities: ["Austin", "Belo Horizonte", "Bogota", "Buenos Aires", "Chicago", "Curitiba", "Guarulhos", "Los Angeles", "Mexico City", "New York", "Philadelphia", "Portland", "Rio de Janeiro", "San Francisco", "Santos", "Sao Paulo", "Seattle", "Toronto"] },
+  { label: "Europe", cities: ["Amsterdam", "Barcelona", "Berlin", "Budapest", "Cologne", "Copenhagen", "Hamburg", "Krakow", "Lisbon", "London", "Madrid", "Marseille", "Milan", "Munich", "Paris", "Prague", "Rotterdam", "Vienna", "Warsaw", "Wroclaw"] },
   { label: "Asia", cities: ["Bangkok", "Osaka", "Seoul", "Shanghai", "Taipei", "Tokyo"] },
 ];
 

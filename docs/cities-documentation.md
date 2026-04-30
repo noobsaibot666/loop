@@ -38,6 +38,15 @@ Use this file to track:
 - Curitiba
 - Guarulhos
 - Munich
+- Portland
+- Austin
+- Madrid
+- Lisbon
+- Copenhagen
+- Rotterdam
+- Toronto
+- Osaka
+- Shanghai
 
 ## Current smoke read
 - Smoke report:
@@ -54,8 +63,9 @@ Use this file to track:
     - Milan
     - Seoul
   - the 2026-04 batch also passes the fallback tester smoke matrix
-  - the Tier 1 batch is prepared for manual Supabase application
-  - after Tier 1 is applied, the live-code tester set covers 36 cities
+  - the Tier 1 batch is live after manual Supabase application
+  - the Tier 2 batch is prepared for manual Supabase application
+  - after Tier 2 is applied, the live-code tester set covers 44 cities
 
 ## Batch seed ready
 - SQL batch prepared:
@@ -98,6 +108,24 @@ Use this file to track:
   - Toronto
   - Osaka
   - Shanghai
+- Batch standard:
+  - 20 active checkpoints per city
+  - real place names and source-checked coordinates
+  - practical task copy without fictional reference points
+  - checkpoint spread from central-adjacent districts to outer metro coverage
+
+## Tier 2 expansion batch
+- SQL batch prepared:
+  - [city_batch_tier2_2026_04_seed.sql](/Users/alan/_localDEV/Loop/db/sql/city_batch_tier2_2026_04_seed.sql)
+- This batch covers:
+  - Hamburg
+  - Cologne
+  - Marseille
+  - Wroclaw
+  - Prague
+  - Budapest
+  - Rio de Janeiro
+  - Belo Horizonte
 - Batch standard:
   - 20 active checkpoints per city
   - real place names and source-checked coordinates
