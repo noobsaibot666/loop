@@ -1,4 +1,5 @@
 const QUARTER_NAMES = ["Q1", "Q2", "Q3", "Q4"];
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const getQuarterWindow = (date = new Date()) => {
   const year = date.getUTCFullYear();
@@ -11,6 +12,14 @@ const getQuarterWindow = (date = new Date()) => {
     end,
     label: `${QUARTER_NAMES[quarterIndex]} ${year}`,
   };
+};
+
+const getMonthWindow = (date = new Date()) => {
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth();
+  const start = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
+  const end = new Date(Date.UTC(year, month + 1, 1, 0, 0, 0, 0));
+  return { start, end, label: `${MONTH_NAMES[month]} ${year}` };
 };
 
 const isInWindow = (value, start, end) => {
@@ -129,4 +138,4 @@ const buildQuarterLeaderboard = ({ proofs, finishedRuns, userLookup }) => {
   }));
 };
 
-export { buildQuarterLeaderboard, deriveBadges, getQuarterWindow, isInWindow };
+export { buildQuarterLeaderboard, deriveBadges, getMonthWindow, getQuarterWindow, isInWindow };

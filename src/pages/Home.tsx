@@ -39,10 +39,21 @@ const Home: React.FC = () => {
     role: "link" as const,
     tabIndex: 0,
   });
-  const badgeCities = React.useMemo(() => ["Curitiba/BR", "Munich/DE", "Guarulhos/BR"], []);
+  const [badgeCities, setBadgeCities] = React.useState<string[]>(["Curitiba/BR", "Munich/DE", "Guarulhos/BR"]);
   const [currentBadgeIndex, setCurrentBadgeIndex] = React.useState(0);
   const [leavingBadgeIndex, setLeavingBadgeIndex] = React.useState<number | null>(null);
   const [badgeVisible, setBadgeVisible] = React.useState(true);
+
+  React.useEffect(() => {
+    fetch("/api/notifications/announcements")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { cities?: Array<{ label: string; slug: string }> } | null) => {
+        if (Array.isArray(data?.cities) && data.cities.length > 0) {
+          setBadgeCities(data.cities.map((c) => c.label));
+        }
+      })
+      .catch(() => null);
+  }, []);
   const badgeSlideDurationMs = 420;
   const badgeHoldDurationMs = 1600;
   const badgeExitDelayMs = 180;

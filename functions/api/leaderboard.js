@@ -1,5 +1,5 @@
 import { json, supabaseRequest } from "../_utils.js";
-import { buildQuarterLeaderboard, getQuarterWindow } from "../../shared/quarterly.js";
+import { buildQuarterLeaderboard, getMonthWindow } from "../../shared/quarterly.js";
 
 const normalizeCitySlug = (value = "") => String(value).trim().toLowerCase().replace(/\s+/g, "");
 
@@ -80,7 +80,7 @@ export async function onRequest({ request, env }) {
   const checkpointCount = normalizeCheckpointCount(url.searchParams.get("checkpoint_count") || "");
   const limitParam = Number(url.searchParams.get("limit") || "");
   const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 100) : 25;
-  const quarter = getQuarterWindow();
+  const quarter = getMonthWindow();
   const cityScope = country
     ? Object.entries(CITY_COUNTRY_MAP)
         .filter(([, mappedCountry]) => mappedCountry === country)
@@ -141,16 +141,23 @@ export async function onRequest({ request, env }) {
   const leaders = buildQuarterLeaderboard({ proofs: deduped, finishedRuns: runs || [] }).slice(0, limit);
   const userIds = leaders.map((l) => l.user_id).filter(Boolean);
 
-  let memberships = [];
-  if (userIds.length) {
-    memberships = await supabaseRequest(
-      env,
-      `community_memberships?user_id=in.(${userIds.map((id) => encodeURIComponent(id)).join(",")})&status=eq.active&select=user_id`,
-      { method: "GET" }
-    ).catch(() => []);
-  }
+  const [memberships, avatarProfiles] = userIds.length
+    ? await Promise.all([
+        supabaseRequest(
+          env,
+          `community_memberships?user_id=in.(${userIds.map((id) => encodeURIComponent(id)).join(",")})&status=eq.active&select=user_id`,
+          { method: "GET" }
+        ).catch(() => []),
+        supabaseRequest(
+          env,
+          `user_profiles?user_id=in.(${userIds.map((id) => encodeURIComponent(id)).join(",")})&select=user_id,avatar_url`,
+          { method: "GET" }
+        ).catch(() => []),
+      ])
+    : [[], []];
 
   const memberSet = new Set((memberships || []).map((m) => m.user_id));
+  const avatarMap = new Map((avatarProfiles || []).map((p) => [p.user_id, p.avatar_url || null]));
 
   return json({
     quarter: {
@@ -161,6 +168,7 @@ export async function onRequest({ request, env }) {
       leaders: leaders.map((l) => ({
         ...l,
         is_community_member: memberSet.has(l.user_id),
+        avatar_url: avatarMap.get(l.user_id) ?? null,
       })),
     },
   });
