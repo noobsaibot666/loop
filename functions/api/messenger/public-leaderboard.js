@@ -10,6 +10,7 @@ export async function onRequest(context) {
   if (body?.city) nextUrl.searchParams.set("city", String(body.city));
   if (body?.country) nextUrl.searchParams.set("country", String(body.country));
   if (body?.checkpoint_count) nextUrl.searchParams.set("checkpoint_count", String(body.checkpoint_count));
+  if (body?.limit) nextUrl.searchParams.set("limit", String(body.limit));
 
   const nextRequest = new Request(nextUrl.toString(), {
     method: "GET",

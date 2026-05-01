@@ -2,6 +2,18 @@ import { json, supabaseRequest } from "../_utils.js";
 import { buildQuarterLeaderboard, getQuarterWindow } from "../../shared/quarterly.js";
 
 const normalizeCitySlug = (value = "") => String(value).trim().toLowerCase().replace(/\s+/g, "");
+
+// One proof per user per manifest — prevents inflated scores from duplicate posts
+const deduplicateProofs = (proofs) => {
+  const seen = new Set();
+  return proofs.filter((p) => {
+    if (!p.user_id || !p.manifest_id) return false;
+    const key = `${p.user_id}:${p.manifest_id}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
 const normalizeCountry = (value = "") => String(value).trim().toLowerCase();
 const normalizeCheckpointCount = (value = "") => {
   const parsed = Number(String(value).trim());
@@ -9,36 +21,65 @@ const normalizeCheckpointCount = (value = "") => {
 };
 const CITY_COUNTRY_MAP = {
   amsterdam: "netherlands",
+  austin: "united states",
   bangkok: "thailand",
   barcelona: "spain",
+  belohorizonte: "brazil",
   berlin: "germany",
   bogota: "colombia",
+  budapest: "hungary",
   buenosaires: "argentina",
   chicago: "united states",
+  cologne: "germany",
+  copenhagen: "denmark",
+  curitiba: "brazil",
+  guadalajara: "mexico",
+  guarulhos: "brazil",
+  hamburg: "germany",
+  hongkong: "hong kong",
+  jakarta: "indonesia",
   krakow: "poland",
+  lima: "peru",
+  lisbon: "portugal",
   london: "united kingdom",
   losangeles: "united states",
+  madrid: "spain",
+  manila: "philippines",
+  marseille: "france",
+  medellin: "colombia",
   mexicocity: "mexico",
   milan: "italy",
+  munich: "germany",
   newyork: "united states",
+  osaka: "japan",
   paris: "france",
   philadelphia: "united states",
+  portland: "united states",
+  prague: "czech republic",
+  riodejaneiro: "brazil",
+  rotterdam: "netherlands",
   sanfrancisco: "united states",
+  santiago: "chile",
   santos: "brazil",
   saopaulo: "brazil",
   seattle: "united states",
   seoul: "south korea",
+  shanghai: "china",
   taipei: "taiwan",
   tokyo: "japan",
+  toronto: "canada",
   vienna: "austria",
   warsaw: "poland",
- };
+  wroclaw: "poland",
+};
 
 export async function onRequest({ request, env }) {
   const url = new URL(request.url);
   const city = normalizeCitySlug(url.searchParams.get("city") || "");
   const country = normalizeCountry(url.searchParams.get("country") || "");
   const checkpointCount = normalizeCheckpointCount(url.searchParams.get("checkpoint_count") || "");
+  const limitParam = Number(url.searchParams.get("limit") || "");
+  const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 100) : 25;
   const quarter = getQuarterWindow();
   const cityScope = country
     ? Object.entries(CITY_COUNTRY_MAP)
@@ -96,7 +137,8 @@ export async function onRequest({ request, env }) {
         { method: "GET" }
       ).catch(() => []);
 
-  const leaders = buildQuarterLeaderboard({ proofs: proofs || [], finishedRuns: runs || [] }).slice(0, 25);
+  const deduped = deduplicateProofs(proofs || []);
+  const leaders = buildQuarterLeaderboard({ proofs: deduped, finishedRuns: runs || [] }).slice(0, limit);
   const userIds = leaders.map((l) => l.user_id).filter(Boolean);
 
   let memberships = [];
