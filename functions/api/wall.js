@@ -6,24 +6,19 @@ const normalizeCheckpointCount = (value = "") => {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 };
 
+// One post per run — deterministically take the most recent proof in the group.
+// Rows arrive already sorted created_at desc so group[0] is always the newest.
 const pickWallPosts = (rows = []) => {
-  const groups = new Map();
+  const seen = new Set();
+  const out = [];
   for (const row of rows) {
     const key = row.run_id || row.id;
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(row);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(row);
+    if (out.length === 40) break;
   }
-
-  return [...groups.values()]
-    .map((group) => {
-      const choice = group[Math.floor(Math.random() * group.length)] || group[0];
-      return {
-        ...choice,
-        proof_count: group.length,
-      };
-    })
-    .sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime())
-    .slice(0, 40);
+  return out;
 };
 
 export async function onRequest({ request, env }) {
@@ -44,22 +39,12 @@ export async function onRequest({ request, env }) {
     return filters.join("&");
   };
 
-  let rows = [];
-  try {
-    rows =
-      (await supabaseRequest(
-        env,
-        `messenger_proof_posts?${buildFilters("id,run_id,manifest_id,user_id,rider_name,city_name,city_slug,checkpoint_name,location_label,public_url,created_at,bike_name,bike_ratio")}`,
-        { method: "GET" }
-      )) || [];
-  } catch {
-    rows =
-      (await supabaseRequest(
-        env,
-        `messenger_proof_posts?is_public=eq.true&order=created_at.desc&limit=120${city ? `&city_slug=eq.${encodeURIComponent(city)}` : ""}&select=id,run_id,manifest_id,user_id,rider_name,city_name,city_slug,checkpoint_name,location_label,public_url,created_at`,
-        { method: "GET" }
-      )) || [];
-  }
+  const SELECT = "id,run_id,manifest_id,user_id,rider_name,city_name,city_slug,checkpoint_name,location_label,public_url,created_at";
+  const rows = await supabaseRequest(
+    env,
+    `messenger_proof_posts?${buildFilters(SELECT)}`,
+    { method: "GET" }
+  ).catch(() => []);
 
   const manifestIds = [...new Set((rows || []).map((row) => row.manifest_id).filter(Boolean))];
   let manifests = [];

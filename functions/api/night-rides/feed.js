@@ -1,17 +1,20 @@
 import { json, supabaseRequest } from "../../_utils.js";
 
+const normalizeCityName = (value = "") => String(value).trim();
+
 export async function onRequest({ request, env }) {
   if (request.method !== "GET") return json({ error: "method not allowed" }, { status: 405 });
   const url = new URL(request.url);
-  const city = String(url.searchParams.get("city") || "").trim();
+  const city = normalizeCityName(url.searchParams.get("city") || "");
   const filters = [
     "is_public=eq.true",
-    "moderation_status=in.(live,pending)",
+    "moderation_status=eq.live",
     "select=id,user_id,moderation_status,session_id,rider_name,crew_name,city_name,route_title,distance_km,aspect_ratio,caption,image_url,created_at",
     "order=created_at.desc",
     "limit=32",
   ];
   if (city) {
+    // city param is the display name (e.g. "Sao Paulo"), match substring in city_name
     filters.unshift(`city_name=ilike.*${encodeURIComponent(city)}*`);
   }
   const rows = await supabaseRequest(
