@@ -14,8 +14,20 @@ export async function onRequest({ request, env }) {
   const userId = authUser?.id || "";
   if (!userId) return json({ error: "login required" }, { status: 401 });
 
-  const { run_id: runId, checkpoint_id: checkpointId, storage_path: storagePath, public_url: publicUrl, is_public: isPublic } = body || {};
-  if (!runId || !checkpointId || !storagePath || !publicUrl) {
+  const {
+    run_id: runId,
+    checkpoint_id: checkpointId,
+    storage_path: storagePath,
+    public_url: publicUrl,
+    is_public: isPublic,
+    proof_type: proofType = "photo",
+    answer_text: answerText = null,
+  } = body || {};
+
+  if (proofType === "answer" && (!runId || !checkpointId)) {
+    return json({ error: "run_id and checkpoint_id required" }, { status: 400 });
+  }
+  if (proofType !== "answer" && (!runId || !checkpointId || !storagePath || !publicUrl)) {
     return json({ error: "run_id, checkpoint_id, storage_path, and public_url required" }, { status: 400 });
   }
 
@@ -53,6 +65,7 @@ export async function onRequest({ request, env }) {
   const bikeName = run?.bike_name || profile?.bike_name || null;
   const bikeRatio = run?.bike_ratio || profile?.bike_ratio || null;
 
+  const isAnswerProof = proofType === "answer";
   const basePayload = {
     user_id: userId,
     run_id: runId,
@@ -62,11 +75,13 @@ export async function onRequest({ request, env }) {
     city_slug: manifest?.city_slug || manifest?.manifest?.city_slug || "",
     city_name: manifest?.city_name || manifest?.manifest?.city || "",
     rider_name: riderName,
-    media_type: "image",
-    storage_path: storagePath,
-    public_url: publicUrl,
+    media_type: isAnswerProof ? "answer" : "image",
+    storage_path: storagePath || "",
+    public_url: publicUrl || "",
     location_label: checkpoint.name,
-    is_public: isPublic !== false,
+    is_public: isAnswerProof ? false : isPublic !== false,
+    proof_type: isAnswerProof ? "answer" : "photo",
+    answer_text: isAnswerProof ? (answerText || null) : null,
   };
 
   let rows;

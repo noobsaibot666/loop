@@ -9,7 +9,7 @@ export async function onRequest({ request, env }) {
   const userId = authUser?.id || "";
   if (!userId) return json({ error: "login required" }, { status: 401 });
 
-  const { city, difficulty, style, start_lat, start_lng, start_label, range_km, checkpoint_count } = body;
+  const { city, difficulty, style, start_lat, start_lng, start_label, range_km, checkpoint_count, locale = "en" } = body;
   const ghostEnabled = body?.ghost_enabled !== false && body?.ghost_enabled !== "false" && body?.ghost_enabled !== 0;
   if (!String(start_label || "").trim() || !Number.isFinite(Number(start_lat)) || !Number.isFinite(Number(start_lng))) {
     return json({ error: "start area required" }, { status: 400 });
@@ -52,6 +52,7 @@ export async function onRequest({ request, env }) {
           startLabel: String(start_label || ""),
           rangeKm: Number(range_km || 0) || null,
           checkpointCount: Number(checkpoint_count || 0) || null,
+          locale: String(locale || "en").split("-")[0],
         })
       : null;
 
@@ -65,6 +66,7 @@ export async function onRequest({ request, env }) {
     startLabel: String(start_label || ""),
     rangeKm: Number(range_km || 0) || null,
     checkpointCount: Number(checkpoint_count || 0) || null,
+    locale: String(locale || "en").split("-")[0],
   });
 
   const built = dbBuilt?.error ? fallbackBuilt : dbBuilt || fallbackBuilt;

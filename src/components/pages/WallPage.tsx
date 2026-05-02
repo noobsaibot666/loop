@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useI18n } from "../../i18n";
 import Hero from "../Hero";
-import { 
-  Filter, Image as ImageIcon, MapPin, User, Bike, 
-  Calendar, Zap, History, LayoutGrid, Trophy, X, ArrowRight
+import { GroupChallengeWallEntry } from "../../types";
+import { formatDuration } from "../../utils/routeUtils";
+import {
+  Filter, Image as ImageIcon, MapPin, User, Bike,
+  Calendar, Zap, LayoutGrid, Trophy, X, ArrowRight, Users
 } from "lucide-react";
 
 type WallPost = {
@@ -43,8 +45,11 @@ type WallPageProps = {
   toCitySlug: (value?: string) => string;
   getCityLabel: (value?: string) => string;
   isLoadingWall: boolean;
+  isLoadingGroups: boolean;
   wallPosts: WallPost[];
   nightRidePosts: NightRidePost[];
+  groupChallenges: GroupChallengeWallEntry[];
+  onFetchGroupChallenges: () => void;
   onOpenRiderProfile: (userId?: string) => void;
   onOpenWallCity: (cityName?: string) => void;
   onOpenLeaderboardCity: (cityName?: string) => void;
@@ -61,8 +66,11 @@ export default function WallPage({
   toCitySlug,
   getCityLabel,
   isLoadingWall,
+  isLoadingGroups,
   wallPosts,
   nightRidePosts,
+  groupChallenges,
+  onFetchGroupChallenges,
   onOpenRiderProfile,
   onOpenWallCity,
   onOpenLeaderboardCity,
@@ -70,8 +78,9 @@ export default function WallPage({
 }: WallPageProps) {
   const { t, formatDate } = useI18n();
   const [showCityPicker, setShowCityPicker] = useState(false);
-  const [activeFeed, setActiveFeed] = useState<"wall" | "night">("wall");
+  const [activeFeed, setActiveFeed] = useState<"wall" | "night" | "hunt">("wall");
   const [expandedWallCards, setExpandedWallCards] = useState<Record<string, boolean>>({});
+  const groupsFetchedRef = useRef(false);
   const cityGroups = useMemo(() => [
     {
       label: t("continent.americas"),
@@ -111,6 +120,13 @@ export default function WallPage({
     };
   }, [showCityPicker]);
 
+  useEffect(() => {
+    if (activeFeed === "hunt" && !groupsFetchedRef.current) {
+      groupsFetchedRef.current = true;
+      onFetchGroupChallenges();
+    }
+  }, [activeFeed, onFetchGroupChallenges]);
+
   const toggleWallCard = (postId: string) => {
     setExpandedWallCards((current) => ({
       ...current,
@@ -141,6 +157,13 @@ export default function WallPage({
             onClick={() => setActiveFeed("night")}
           >
             {t("wall.nightTitle")}
+          </button>
+          <button
+            type="button"
+            className={`ghost-button small ${activeFeed === "hunt" ? "active-filter-button" : ""}`}
+            onClick={() => setActiveFeed("hunt")}
+          >
+            {t("wall.huntTitle")}
           </button>
         </div>
         <div className="filter-strip wall-filter-strip" id="wall-filter">
@@ -269,6 +292,72 @@ export default function WallPage({
           <div className="empty-state">
             <div className="empty-state-icon"><Zap size={32} className="text-muted" /></div>
             <div className="empty-state-text">{t("wall.nightEmpty")}</div>
+          </div>
+        )}
+        {activeFeed === "hunt" && (
+          <div className="filter-strip wall-subsection-head">
+            <div className="wall-subsection-title">{t("wall.huntTitle")}</div>
+            <div className="wall-subsection-copy">{t("wall.huntSubtitle")}</div>
+          </div>
+        )}
+        {activeFeed === "hunt" && isLoadingGroups && (
+          <div className="status-message">{t("wall.loading")}</div>
+        )}
+        {activeFeed === "hunt" && !isLoadingGroups && groupChallenges.length > 0 && (
+          <div className="hunt-groups">
+            {groupChallenges.map((group) => (
+              <div key={group.challenge_id} className="glass-card hunt-group-card">
+                <div className="hunt-group-header">
+                  <div className="hunt-group-title">{group.manifest_title}</div>
+                  <div className="hunt-group-meta">
+                    <span><MapPin size={12} /> {group.city_name}</span>
+                    <span><Users size={12} /> {t("wall.huntRiders", { count: group.rider_count })}</span>
+                    <span><Calendar size={12} /> {formatDate(group.created_at)}</span>
+                    {group.checkpoint_count && (
+                      <span><ArrowRight size={12} /> {t("alleycat.stops", { count: group.checkpoint_count })}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="hunt-riders">
+                  {group.riders.map((rider) => (
+                    <div key={rider.user_id} className="hunt-rider-row">
+                      <div className="hunt-rider-info">
+                        <span className="hunt-rider-name">
+                          <User size={12} />
+                          {rider.rider_name}
+                        </span>
+                        <span className="hunt-rider-time">
+                          {rider.finish_seconds !== null
+                            ? formatDuration(rider.finish_seconds)
+                            : t("wall.huntDnf")}
+                        </span>
+                      </div>
+                      {rider.proofs.length > 0 && (
+                        <div className="hunt-proof-strip">
+                          {rider.proofs.map((proof) => (
+                            <div key={proof.id} className="hunt-proof-thumb">
+                              <img
+                                src={proof.public_url}
+                                alt={proof.checkpoint_name}
+                                loading="lazy"
+                                decoding="async"
+                              />
+                              <span className="hunt-proof-label">{proof.checkpoint_name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {activeFeed === "hunt" && !isLoadingGroups && groupChallenges.length === 0 && (
+          <div className="empty-state">
+            <div className="empty-state-icon"><Users size={32} className="text-muted" /></div>
+            <div className="empty-state-text">{t("wall.huntEmpty")}</div>
           </div>
         )}
       </section>

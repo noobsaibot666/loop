@@ -44,6 +44,9 @@ const AlleycatMode: React.FC = () => {
   const [comparisonNow, setComparisonNow] = useState(() => Date.now());
   const [checkpointOrder, setCheckpointOrder] = useState<string[]>([]);
   const [proofFiles, setProofFiles] = useState<Record<string, File | null>>({});
+  const [answerInputs, setAnswerInputs] = useState<Record<string, string>>({});
+  const [answerWrongCount, setAnswerWrongCount] = useState<Record<string, number>>({});
+  const [answerCorrect, setAnswerCorrect] = useState<Record<string, boolean>>({});
   const [hintUnlocked, setHintUnlocked] = useState<Record<string, boolean>>({});
   const [nearCheckpointId, setNearCheckpointId] = useState<string | null>(null);
   const cityMenuRef = useRef<HTMLDivElement | null>(null);
@@ -74,6 +77,7 @@ const AlleycatMode: React.FC = () => {
     abandonRun,
     restartRun,
     uploadProof,
+    submitAnswer,
     isUploading,
     setShareCodeInput,
     resetState,
@@ -190,6 +194,9 @@ const AlleycatMode: React.FC = () => {
       setHintUnlocked({});
       setNearCheckpointId(null);
       setShowGhostPanel(false);
+      setAnswerInputs({});
+      setAnswerWrongCount({});
+      setAnswerCorrect({});
       return;
     }
     setCheckpointOrder(manifest.checkpoints.map((checkpoint) => checkpoint.id));
@@ -197,6 +204,9 @@ const AlleycatMode: React.FC = () => {
     setHintUnlocked({});
     setNearCheckpointId(null);
     setShowGhostPanel(false);
+    setAnswerInputs({});
+    setAnswerWrongCount({});
+    setAnswerCorrect({});
   }, [manifest?.id, manifest?.checkpoints]);
 
   useEffect(() => {
@@ -846,42 +856,99 @@ const AlleycatMode: React.FC = () => {
                               </div>
                             </div>
                             {isDone ? (
-                              <div className="proof-panel checkpoint-proof-panel">
-                                <div className="proof-callout">
-                                  <strong>{proof ? t("alleycat.result.proofReady") : t("alleycat.result.proofNeeded")}</strong>
-                                  <span>{proof ? t("alleycat.result.proofReadyBody") : t("alleycat.result.proofNeededBody")}</span>
+                              checkpoint.challenge && checkpoint.challenge.type !== "photo" ? (
+                                <div className="proof-panel checkpoint-proof-panel">
+                                  <div className="proof-callout">
+                                    <strong>{proof ? t("alleycat.result.proofReady") : t(`alleycat.challenge.${checkpoint.challenge.type}`)}</strong>
+                                    <span>{proof ? t("alleycat.result.proofReadyBody") : checkpoint.challenge.question}</span>
+                                  </div>
+                                  {!proof && (
+                                    <div className="checkpoint-actions checkpoint-proof-actions">
+                                      <input
+                                        className="challenge-answer-input"
+                                        type="text"
+                                        value={answerInputs[checkpoint.id] || ""}
+                                        onChange={(e) => setAnswerInputs((prev) => ({ ...prev, [checkpoint.id]: e.target.value }))}
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter" && (answerInputs[checkpoint.id] || "").trim()) {
+                                            void submitAnswer(checkpoint, answerInputs[checkpoint.id] || "").then((result) => {
+                                              if (result === "correct") {
+                                                setAnswerCorrect((prev) => ({ ...prev, [checkpoint.id]: true }));
+                                                setAnswerInputs((prev) => ({ ...prev, [checkpoint.id]: "" }));
+                                              } else {
+                                                setAnswerWrongCount((prev) => ({ ...prev, [checkpoint.id]: (prev[checkpoint.id] || 0) + 1 }));
+                                              }
+                                            });
+                                          }
+                                        }}
+                                        placeholder={t("alleycat.challenge.answerPlaceholder")}
+                                        disabled={Boolean(isUploading?.[checkpoint.id])}
+                                        autoComplete="off"
+                                      />
+                                      <button
+                                        key={`submit-${checkpoint.id}-${answerWrongCount[checkpoint.id] || 0}`}
+                                        className={`primary-button small${(answerWrongCount[checkpoint.id] || 0) > 0 ? " shake" : ""}`}
+                                        type="button"
+                                        disabled={Boolean(isUploading?.[checkpoint.id]) || !(answerInputs[checkpoint.id] || "").trim()}
+                                        onClick={() => {
+                                          void submitAnswer(checkpoint, answerInputs[checkpoint.id] || "").then((result) => {
+                                            if (result === "correct") {
+                                              setAnswerCorrect((prev) => ({ ...prev, [checkpoint.id]: true }));
+                                              setAnswerInputs((prev) => ({ ...prev, [checkpoint.id]: "" }));
+                                            } else {
+                                              setAnswerWrongCount((prev) => ({ ...prev, [checkpoint.id]: (prev[checkpoint.id] || 0) + 1 }));
+                                            }
+                                          });
+                                        }}
+                                      >
+                                        {isUploading?.[checkpoint.id] ? t("alleycat.result.proofSending") : t("alleycat.challenge.submit")}
+                                      </button>
+                                    </div>
+                                  )}
+                                  {(answerWrongCount[checkpoint.id] || 0) > 0 && !proof && (
+                                    <div className="proof-callout error">
+                                      <span>{t("alleycat.challenge.wrong")}</span>
+                                    </div>
+                                  )}
                                 </div>
-                                <div className="checkpoint-actions checkpoint-proof-actions">
-                                  <label className="ghost-button small checkpoint-proof-picker">
-                                    <ImagePlus size={14} />
-                                    <span>{proofFiles[checkpoint.id]?.name || t("alleycat.result.pickProof")}</span>
-                                    <input
-                                      type="file"
-                                      accept="image/*"
-                                      onChange={(event) =>
-                                        setProofFiles((current) => ({
-                                          ...current,
-                                          [checkpoint.id]: event.target.files?.[0] || null,
-                                        }))
-                                      }
-                                    />
-                                  </label>
-                                  <button
-                                    className="primary-button small"
-                                    type="button"
-                                    disabled={Boolean(isUploading?.[checkpoint.id]) || (!proofFiles[checkpoint.id] && !proof)}
-                                    onClick={() => {
-                                      if (!proof && proofFiles[checkpoint.id]) {
-                                        void uploadProof(checkpoint, proofFiles[checkpoint.id]).then(() =>
-                                          setProofFiles((current) => ({ ...current, [checkpoint.id]: null }))
-                                        );
-                                      }
-                                    }}
-                                  >
-                                    {proof ? t("alleycat.result.proofSent") : isUploading?.[checkpoint.id] ? t("alleycat.result.proofSending") : t("alleycat.result.sendProof")}
-                                  </button>
+                              ) : (
+                                <div className="proof-panel checkpoint-proof-panel">
+                                  <div className="proof-callout">
+                                    <strong>{proof ? t("alleycat.result.proofReady") : t("alleycat.result.proofNeeded")}</strong>
+                                    <span>{proof ? t("alleycat.result.proofReadyBody") : t("alleycat.result.proofNeededBody")}</span>
+                                  </div>
+                                  <div className="checkpoint-actions checkpoint-proof-actions">
+                                    <label className="ghost-button small checkpoint-proof-picker">
+                                      <ImagePlus size={14} />
+                                      <span>{proofFiles[checkpoint.id]?.name || t("alleycat.result.pickProof")}</span>
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(event) =>
+                                          setProofFiles((current) => ({
+                                            ...current,
+                                            [checkpoint.id]: event.target.files?.[0] || null,
+                                          }))
+                                        }
+                                      />
+                                    </label>
+                                    <button
+                                      className="primary-button small"
+                                      type="button"
+                                      disabled={Boolean(isUploading?.[checkpoint.id]) || (!proofFiles[checkpoint.id] && !proof)}
+                                      onClick={() => {
+                                        if (!proof && proofFiles[checkpoint.id]) {
+                                          void uploadProof(checkpoint, proofFiles[checkpoint.id]).then(() =>
+                                            setProofFiles((current) => ({ ...current, [checkpoint.id]: null }))
+                                          );
+                                        }
+                                      }}
+                                    >
+                                      {proof ? t("alleycat.result.proofSent") : isUploading?.[checkpoint.id] ? t("alleycat.result.proofSending") : t("alleycat.result.sendProof")}
+                                    </button>
+                                  </div>
                                 </div>
-                              </div>
+                              )
                             ) : null}
                           </div>
                         );

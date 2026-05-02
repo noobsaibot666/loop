@@ -1,9 +1,19 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { 
-  MessengerManifest, MessengerRun, AlleycatChallenge, AlleycatChallengeSummary, 
-  AlleycatLeaderboardEntry, ProofDraft, MessengerCheckpoint, MessengerProof 
+import {
+  MessengerManifest, MessengerRun, AlleycatChallenge, AlleycatChallengeSummary,
+  AlleycatLeaderboardEntry, ProofDraft, MessengerCheckpoint, MessengerProof,
+  CheckpointChallenge,
 } from "../types";
+
+const validateChallengeAnswer = (challenge: CheckpointChallenge | undefined, input: string): boolean => {
+  if (!challenge || challenge.type === "photo") return true;
+  if (!input) return false;
+  const norm = (s: string) => String(s).trim().toLowerCase().replace(/[^a-z0-9 ]/g, "");
+  const given = norm(input);
+  if (given === norm(challenge.answer)) return true;
+  return ((challenge as any).alt_answers || []).some((alt: string) => norm(alt) === given);
+};
 import { ALLEYCAT_STORAGE_KEY, ALLEYCAT_PROOF_DRAFTS_KEY, API_BASE, PROOF_BUCKET } from "../config";
 import { postJSON } from "../utils/routeUtils";
 import { supabase } from "../config";
@@ -57,6 +67,7 @@ interface AlleycatState {
   abandonRun: () => Promise<void>;
   restartRun: () => Promise<void>;
   uploadProof: (checkpoint: MessengerCheckpoint, file: File | null) => Promise<void>;
+  submitAnswer: (checkpoint: MessengerCheckpoint, answer: string) => Promise<"correct" | "wrong">;
   retryProofUploads: () => Promise<void>;
   createShareCode: () => Promise<void>;
   loadShareCode: () => Promise<boolean>;
@@ -156,6 +167,9 @@ export const useAlleycatStore = create<AlleycatState>()(
             }));
           }
           const rangeKm = config.unit === "km" ? config.range : config.range * 1.60934;
+          const storedLocale = typeof window !== "undefined"
+            ? (window.localStorage.getItem("loop_language") || "en")
+            : "en";
           const data = await postJSON<any>("/api/messenger/generate", {
             city: config.city,
             ghost_enabled: config.useGhost,
@@ -166,6 +180,7 @@ export const useAlleycatStore = create<AlleycatState>()(
             start_label: config.location,
             start_lat: origin.lat,
             start_lng: origin.lng,
+            locale: storedLocale,
           });
           set({
             manifest: data.manifest,
@@ -337,6 +352,35 @@ export const useAlleycatStore = create<AlleycatState>()(
           }
         } catch (e) {
           set({ status: "alleycat.status.proofFailed" });
+        } finally {
+          set((s) => ({ isUploading: { ...s.isUploading, [checkpointId]: false } }));
+        }
+      },
+
+      submitAnswer: async (checkpoint, answer) => {
+        const { run } = get();
+        if (!run) return "wrong";
+        if (!validateChallengeAnswer(checkpoint.challenge, answer)) return "wrong";
+
+        const checkpointId = checkpoint.id;
+        set((s) => ({ isUploading: { ...s.isUploading, [checkpointId]: true } }));
+        try {
+          const data = await postJSON<any>("/api/messenger/proof", {
+            run_id: run.runId,
+            checkpoint_id: checkpointId,
+            proof_type: "answer",
+            answer_text: answer.trim(),
+            storage_path: "",
+            public_url: "",
+            is_public: false,
+          });
+          set((s) => ({
+            run: s.run ? { ...s.run, proofs: data.proofs } : null,
+          }));
+          return "correct";
+        } catch {
+          set({ status: "alleycat.status.proofFailed" });
+          return "wrong";
         } finally {
           set((s) => ({ isUploading: { ...s.isUploading, [checkpointId]: false } }));
         }

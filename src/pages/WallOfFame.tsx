@@ -10,8 +10,10 @@ const WallOfFame: React.FC = () => {
   const { t } = useI18n();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { 
-    wallPosts, nightRidePosts, isLoadingWall, fetchWall, fetchNightRide,
+  const {
+    wallPosts, nightRidePosts, groupChallenges,
+    isLoadingWall, isLoadingGroups,
+    fetchWall, fetchNightRide, fetchGroupChallenges,
     selectedCity, setSelectedCity
   } = useFeedStore();
   const selectedCheckpointCount = searchParams.get("checkpoints")?.trim() || "";
@@ -53,8 +55,11 @@ const WallOfFame: React.FC = () => {
       toCitySlug={toCitySlug}
       getCityLabel={getCityLabel}
       isLoadingWall={isLoadingWall}
+      isLoadingGroups={isLoadingGroups}
       wallPosts={wallPosts as any}
       nightRidePosts={nightRidePosts as any}
+      groupChallenges={groupChallenges}
+      onFetchGroupChallenges={fetchGroupChallenges}
       onOpenRiderProfile={(userId) => navigate(`/rider/${userId}`)}
       onOpenWallCity={(cityName) => navigate(`/wall${cityName ? `?city=${toCitySlug(cityName)}` : ''}`)}
       onOpenLeaderboardCity={(cityName) => {

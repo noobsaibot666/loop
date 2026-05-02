@@ -1,6 +1,212 @@
 export const MESSENGER_CREDIT_COST = 3;
 export const ALLEYCAT_CHECKIN_RADIUS_METERS = 250;
 
+// ── Challenge question banks ──────────────────────────────────────────────────
+
+const RIDDLE_BANK_EN = [
+  { question: "I have hands but cannot clap. What am I?", answer: "a clock", alt_answers: ["clock"] },
+  { question: "I get wetter the more I dry. What am I?", answer: "a towel", alt_answers: ["towel"] },
+  { question: "I speak without a mouth and hear without ears. What am I?", answer: "an echo", alt_answers: ["echo"] },
+  { question: "The more you take, the more you leave behind. What am I?", answer: "footsteps", alt_answers: ["steps", "footprints"] },
+  { question: "I have cities but no houses, forests but no trees, water but no fish. What am I?", answer: "a map", alt_answers: ["map"] },
+  { question: "What can run but never walks, has a mouth but never talks?", answer: "a river", alt_answers: ["river"] },
+  { question: "I'm light as a feather but the strongest can't hold me five minutes. What am I?", answer: "breath", alt_answers: ["your breath"] },
+  { question: "I have keys but no locks, space but no room. What am I?", answer: "a keyboard", alt_answers: ["keyboard"] },
+  { question: "What has one eye but can't see?", answer: "a needle", alt_answers: ["needle"] },
+  { question: "What has a head and a tail but no body?", answer: "a coin", alt_answers: ["coin"] },
+  { question: "I am always in front of you but can never be seen. What am I?", answer: "the future", alt_answers: ["future"] },
+  { question: "What can you catch but not throw?", answer: "a cold", alt_answers: ["cold"] },
+  { question: "I am full of holes but I can hold water. What am I?", answer: "a sponge", alt_answers: ["sponge"] },
+  { question: "I shrink every time you use me. What am I?", answer: "soap", alt_answers: ["a bar of soap", "candle"] },
+  { question: "What is always coming but never arrives?", answer: "tomorrow", alt_answers: [] },
+  { question: "What goes up when the rain comes down?", answer: "an umbrella", alt_answers: ["umbrella"] },
+  { question: "What has a thumb and four fingers but is not alive?", answer: "a glove", alt_answers: ["glove"] },
+  { question: "The more you eat, the more I grow. What am I?", answer: "hunger", alt_answers: [] },
+  { question: "What starts with E, ends with E, but only has one letter?", answer: "an envelope", alt_answers: ["envelope"] },
+  { question: "I fly without wings, I see without eyes. What am I?", answer: "fire", alt_answers: [] },
+];
+
+const POP_CULTURE_BANK_EN = [
+  { question: "How many colors are in a rainbow?", answer: "7", alt_answers: ["seven"] },
+  { question: "How many strings does a standard guitar have?", answer: "6", alt_answers: ["six"] },
+  { question: "How many days are in a leap year?", answer: "366", alt_answers: [] },
+  { question: "How many planets are in our solar system?", answer: "8", alt_answers: ["eight"] },
+  { question: "What is the fastest land animal?", answer: "cheetah", alt_answers: [] },
+  { question: "How many sides does a hexagon have?", answer: "6", alt_answers: ["six"] },
+  { question: "What is the chemical symbol for water?", answer: "h2o", alt_answers: [] },
+  { question: "How many minutes are in an hour?", answer: "60", alt_answers: ["sixty"] },
+  { question: "What is the largest ocean on Earth?", answer: "pacific", alt_answers: ["pacific ocean"] },
+  { question: "How many keys does a standard piano have?", answer: "88", alt_answers: ["eighty-eight", "eighty eight"] },
+  { question: "What is the square root of 144?", answer: "12", alt_answers: ["twelve"] },
+  { question: "How many wheels does a bicycle have?", answer: "2", alt_answers: ["two"] },
+  { question: "What is the hardest natural substance on Earth?", answer: "diamond", alt_answers: [] },
+  { question: "How many continents are on Earth?", answer: "7", alt_answers: ["seven"] },
+  { question: "What gas do plants absorb from the air?", answer: "carbon dioxide", alt_answers: ["co2"] },
+  { question: "How many hours are in a day?", answer: "24", alt_answers: ["twenty-four", "twenty four"] },
+  { question: "How many seconds are in a minute?", answer: "60", alt_answers: ["sixty"] },
+  { question: "How many sides does a triangle have?", answer: "3", alt_answers: ["three"] },
+  { question: "How many days are in a week?", answer: "7", alt_answers: ["seven"] },
+  { question: "How many legs does a spider have?", answer: "8", alt_answers: ["eight"] },
+];
+
+const RIDDLE_BANK_PT = [
+  { question: "Tenho dentes mas não consigo morder. O que sou?", answer: "um pente", alt_answers: ["pente"] },
+  { question: "Quanto mais tiro, maior fico. O que sou?", answer: "um buraco", alt_answers: ["buraco"] },
+  { question: "Falo sem boca e ouço sem ouvidos. O que sou?", answer: "um eco", alt_answers: ["eco"] },
+  { question: "Tenho cidades mas não tenho casas, rios mas não tenho água. O que sou?", answer: "um mapa", alt_answers: ["mapa"] },
+  { question: "Quanto mais você come, mais eu cresço. O que sou?", answer: "fome", alt_answers: [] },
+  { question: "Sobe mas não desce, chora mas não tem olhos. O que é?", answer: "fumaça", alt_answers: ["fumaca"] },
+  { question: "Tenho folhas mas não sou árvore, tenho lombada mas não sou animal. O que sou?", answer: "um livro", alt_answers: ["livro"] },
+  { question: "Quanto mais velho, menos peso. O que sou?", answer: "cabelo", alt_answers: ["um cabelo"] },
+  { question: "Corre mas não tem pernas, tem boca mas não fala. O que é?", answer: "um rio", alt_answers: ["rio"] },
+  { question: "Tenho mãos mas não posso aplaudir. O que sou?", answer: "um relógio", alt_answers: ["relógio", "relogio"] },
+  { question: "Estou sempre na sua frente mas não consigo ser visto. O que sou?", answer: "o futuro", alt_answers: ["futuro"] },
+  { question: "Tenho olho mas não enxergo. O que sou?", answer: "uma agulha", alt_answers: ["agulha"] },
+  { question: "Tenho cabeça e cauda mas não tenho corpo. O que sou?", answer: "uma moeda", alt_answers: ["moeda"] },
+  { question: "Quanto mais você usa, menor fico. O que sou?", answer: "sabonete", alt_answers: ["sabão"] },
+  { question: "Tenho chave mas não tenho fechadura. O que sou?", answer: "um teclado", alt_answers: ["teclado"] },
+  { question: "Você pode me pegar mas não jogar. O que sou?", answer: "um resfriado", alt_answers: ["resfriado", "gripe"] },
+  { question: "Sou cheio de buracos mas guardo água. O que sou?", answer: "uma esponja", alt_answers: ["esponja"] },
+  { question: "O que sobe quando a chuva desce?", answer: "guarda-chuva", alt_answers: ["guarda chuva"] },
+  { question: "O que está sempre chegando mas nunca chega?", answer: "o amanhã", alt_answers: ["amanhã", "amanha"] },
+  { question: "Tenho dedo mas não tenho mão. O que sou?", answer: "uma luva", alt_answers: ["luva"] },
+];
+
+const POP_CULTURE_BANK_PT = [
+  { question: "Quantas cores tem o arco-íris?", answer: "7", alt_answers: ["sete"] },
+  { question: "Quantas cordas tem um violão padrão?", answer: "6", alt_answers: ["seis"] },
+  { question: "Quantos dias tem um ano bissexto?", answer: "366", alt_answers: [] },
+  { question: "Quantos planetas tem o sistema solar?", answer: "8", alt_answers: ["oito"] },
+  { question: "Qual é o animal terrestre mais rápido?", answer: "guepardo", alt_answers: ["chita"] },
+  { question: "Quantos lados tem um hexágono?", answer: "6", alt_answers: ["seis"] },
+  { question: "Qual é a fórmula química da água?", answer: "h2o", alt_answers: [] },
+  { question: "Quantos minutos tem uma hora?", answer: "60", alt_answers: ["sessenta"] },
+  { question: "Qual é o maior oceano do mundo?", answer: "pacífico", alt_answers: ["oceano pacífico", "pacifico"] },
+  { question: "Quantas teclas tem um piano padrão?", answer: "88", alt_answers: ["oitenta e oito"] },
+  { question: "Qual é a raiz quadrada de 144?", answer: "12", alt_answers: ["doze"] },
+  { question: "Quantas rodas tem uma bicicleta?", answer: "2", alt_answers: ["duas", "dois"] },
+  { question: "Qual é a substância natural mais dura da Terra?", answer: "diamante", alt_answers: [] },
+  { question: "Quantos continentes existem na Terra?", answer: "7", alt_answers: ["sete"] },
+  { question: "Que gás as plantas absorvem do ar?", answer: "dióxido de carbono", alt_answers: ["co2", "carbono"] },
+  { question: "Quantas horas tem um dia?", answer: "24", alt_answers: ["vinte e quatro"] },
+  { question: "Quantos segundos tem um minuto?", answer: "60", alt_answers: ["sessenta"] },
+  { question: "Quantos lados tem um triângulo?", answer: "3", alt_answers: ["três", "tres"] },
+  { question: "Quantos dias tem uma semana?", answer: "7", alt_answers: ["sete"] },
+  { question: "Quantas patas tem uma aranha?", answer: "8", alt_answers: ["oito"] },
+];
+
+const RIDDLE_BANK_ES = [
+  { question: "Tengo agujas pero no coso, tengo manos pero no puedo coger. ¿Qué soy?", answer: "un reloj", alt_answers: ["reloj"] },
+  { question: "Tengo hojas pero no soy árbol, tengo lomo pero no soy animal. ¿Qué soy?", answer: "un libro", alt_answers: ["libro"] },
+  { question: "Hablo sin boca y escucho sin oídos. ¿Qué soy?", answer: "un eco", alt_answers: ["eco"] },
+  { question: "Tengo ciudades pero no casas, ríos pero no agua. ¿Qué soy?", answer: "un mapa", alt_answers: ["mapa"] },
+  { question: "Cuanto más me comes, más creces. ¿Qué soy?", answer: "el hambre", alt_answers: ["hambre"] },
+  { question: "Corro sin piernas, tengo boca pero no hablo. ¿Qué soy?", answer: "un río", alt_answers: ["rio", "un rio"] },
+  { question: "Tengo dientes pero no como. ¿Qué soy?", answer: "un peine", alt_answers: ["peine"] },
+  { question: "Cuanto más me usas, más pequeño me vuelvo. ¿Qué soy?", answer: "jabón", alt_answers: ["jabon"] },
+  { question: "Siempre estoy delante de ti pero nunca me ves. ¿Qué soy?", answer: "el futuro", alt_answers: ["futuro"] },
+  { question: "Tengo ojo pero no veo. ¿Qué soy?", answer: "una aguja", alt_answers: ["aguja"] },
+  { question: "Tengo cabeza y cola pero no tengo cuerpo. ¿Qué soy?", answer: "una moneda", alt_answers: ["moneda"] },
+  { question: "Estoy lleno de agujeros pero puedo contener agua. ¿Qué soy?", answer: "una esponja", alt_answers: ["esponja"] },
+  { question: "¿Qué sube cuando cae la lluvia?", answer: "un paraguas", alt_answers: ["paraguas"] },
+  { question: "¿Qué siempre viene pero nunca llega?", answer: "el mañana", alt_answers: ["mañana", "manana"] },
+  { question: "Tengo llaves pero no tengo cerradura. ¿Qué soy?", answer: "un teclado", alt_answers: ["teclado"] },
+  { question: "¿Qué puedes atrapar pero no lanzar?", answer: "un resfriado", alt_answers: ["resfriado", "catarro"] },
+  { question: "Tengo pulgar y cuatro dedos pero no estoy vivo. ¿Qué soy?", answer: "un guante", alt_answers: ["guante"] },
+  { question: "Cuanto más sacas, más grande me hago. ¿Qué soy?", answer: "un hoyo", alt_answers: ["hoyo", "agujero"] },
+  { question: "Vuelo sin alas, veo sin ojos. ¿Qué soy?", answer: "el fuego", alt_answers: ["fuego"] },
+  { question: "Soy redondo y marco las horas sin ser reloj de pared. ¿Qué soy?", answer: "un reloj de bolsillo", alt_answers: ["reloj"] },
+];
+
+const POP_CULTURE_BANK_ES = [
+  { question: "¿Cuántos colores tiene el arcoíris?", answer: "7", alt_answers: ["siete"] },
+  { question: "¿Cuántas cuerdas tiene una guitarra estándar?", answer: "6", alt_answers: ["seis"] },
+  { question: "¿Cuántos días tiene un año bisiesto?", answer: "366", alt_answers: [] },
+  { question: "¿Cuántos planetas tiene el sistema solar?", answer: "8", alt_answers: ["ocho"] },
+  { question: "¿Cuál es el animal terrestre más rápido?", answer: "guepardo", alt_answers: ["cheetah"] },
+  { question: "¿Cuántos lados tiene un hexágono?", answer: "6", alt_answers: ["seis"] },
+  { question: "¿Cuál es la fórmula química del agua?", answer: "h2o", alt_answers: [] },
+  { question: "¿Cuántos minutos tiene una hora?", answer: "60", alt_answers: ["sesenta"] },
+  { question: "¿Cuál es el océano más grande del mundo?", answer: "pacífico", alt_answers: ["océano pacífico", "pacifico"] },
+  { question: "¿Cuántas teclas tiene un piano estándar?", answer: "88", alt_answers: ["ochenta y ocho"] },
+  { question: "¿Cuál es la raíz cuadrada de 144?", answer: "12", alt_answers: ["doce"] },
+  { question: "¿Cuántas ruedas tiene una bicicleta?", answer: "2", alt_answers: ["dos"] },
+  { question: "¿Cuál es la sustancia natural más dura de la Tierra?", answer: "diamante", alt_answers: [] },
+  { question: "¿Cuántos continentes hay en la Tierra?", answer: "7", alt_answers: ["siete"] },
+  { question: "¿Qué gas absorben las plantas del aire?", answer: "dióxido de carbono", alt_answers: ["co2"] },
+  { question: "¿Cuántas horas tiene un día?", answer: "24", alt_answers: ["veinticuatro"] },
+  { question: "¿Cuántos segundos tiene un minuto?", answer: "60", alt_answers: ["sesenta"] },
+  { question: "¿Cuántos lados tiene un triángulo?", answer: "3", alt_answers: ["tres"] },
+  { question: "¿Cuántos días tiene una semana?", answer: "7", alt_answers: ["siete"] },
+  { question: "¿Cuántas patas tiene una araña?", answer: "8", alt_answers: ["ocho"] },
+];
+
+const RIDDLE_BANKS = { en: RIDDLE_BANK_EN, pt: RIDDLE_BANK_PT, es: RIDDLE_BANK_ES };
+const POP_CULTURE_BANKS = { en: POP_CULTURE_BANK_EN, pt: POP_CULTURE_BANK_PT, es: POP_CULTURE_BANK_ES };
+
+const MATH_LABELS = { en: "What is", pt: "Quanto é", es: "¿Cuánto es" };
+const CHALLENGE_PATTERN = ["photo", "math", "photo", "riddle", "photo", "pop_culture"];
+
+const generateMathChallenge = (seed, locale) => {
+  const label = MATH_LABELS[locale] || MATH_LABELS.en;
+  const ops = ["+", "-", "×"];
+  const s1 = (Math.abs(seed) * 9301 + 49297) % 233280;
+  const s2 = (s1 * 9301 + 49297) % 233280;
+  const s3 = (s2 * 9301 + 49297) % 233280;
+  const op = ops[s1 % 3];
+  let a, b;
+  if (op === "+") {
+    a = (s2 % 20) + 3;
+    b = (s3 % 20) + 3;
+    return { type: "math", question: `${label} ${a} + ${b}?`, answer: String(a + b) };
+  } else if (op === "-") {
+    a = (s2 % 20) + 15;
+    b = (s3 % 10) + 3;
+    return { type: "math", question: `${label} ${a} - ${b}?`, answer: String(a - b) };
+  } else {
+    a = (s2 % 9) + 2;
+    b = (s3 % 9) + 2;
+    return { type: "math", question: `${label} ${a} × ${b}?`, answer: String(a * b) };
+  }
+};
+
+const assignChallenges = (checkpoints, seed, locale) => {
+  const lang = ["en", "pt", "es"].includes(locale) ? locale : "en";
+  const shuffledRiddles = seededOrder(RIDDLE_BANKS[lang], seed);
+  const shuffledPop = seededOrder(POP_CULTURE_BANKS[lang], (seed ^ 0xabcd1234) >>> 0);
+  let ri = 0;
+  let pi = 0;
+  return checkpoints.map((checkpoint, index) => {
+    const type = CHALLENGE_PATTERN[index % CHALLENGE_PATTERN.length];
+    let challenge;
+    if (type === "math") {
+      challenge = generateMathChallenge(seed + index * 17, lang);
+    } else if (type === "riddle") {
+      const q = shuffledRiddles[ri % shuffledRiddles.length];
+      challenge = { type: "riddle", question: q.question, answer: q.answer, alt_answers: q.alt_answers };
+      ri++;
+    } else if (type === "pop_culture") {
+      const q = shuffledPop[pi % shuffledPop.length];
+      challenge = { type: "pop_culture", question: q.question, answer: q.answer, alt_answers: q.alt_answers };
+      pi++;
+    } else {
+      challenge = { type: "photo" };
+    }
+    return { ...checkpoint, challenge };
+  });
+};
+
+export const validateChallengeAnswer = (challenge, input) => {
+  if (!challenge || challenge.type === "photo") return true;
+  if (!input) return false;
+  const norm = (s) => String(s).trim().toLowerCase().replace(/[^a-z0-9 ]/g, "");
+  const given = norm(input);
+  if (given === norm(challenge.answer)) return true;
+  return (challenge.alt_answers || []).some((alt) => norm(alt) === given);
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 const checkpointsByCity = {
   newyork: [
     {
@@ -5127,6 +5333,7 @@ export const buildMessengerManifestFromPack = ({
   startLabel = "",
   rangeKm = null,
   checkpointCount = null,
+  locale = "en",
 }) => {
   if (!pack || !Array.isArray(sourceCheckpoints) || !sourceCheckpoints.length) {
     return { error: "City pack is empty." };
@@ -5265,7 +5472,7 @@ export const buildMessengerManifestFromPack = ({
         pack.finish_label || "Final proof at your last checkpoint. When the list is clear, stop the clock.",
       safety_note:
         pack.safety_note || "Ride within local laws, stay aware in traffic, and treat this as a self-directed challenge.",
-      checkpoints,
+      checkpoints: assignChallenges(checkpoints, seed, locale),
     },
   };
 };
@@ -5280,6 +5487,7 @@ export const buildMessengerManifest = ({
   startLabel = "",
   rangeKm = null,
   checkpointCount = null,
+  locale = "en",
 }) => {
   const pack = getMessengerCityPack(city);
   if (!pack) {
@@ -5299,6 +5507,7 @@ export const buildMessengerManifest = ({
     startLabel,
     rangeKm,
     checkpointCount,
+    locale,
   });
 };
 

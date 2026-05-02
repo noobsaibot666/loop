@@ -1,25 +1,30 @@
 import { create } from "zustand";
-import { WallPost, NightRideFeedPost } from "../types";
+import { WallPost, NightRideFeedPost, GroupChallengeWallEntry } from "../types";
 import { postJSON } from "../utils/routeUtils";
 
 interface FeedState {
   wallPosts: WallPost[];
   nightRidePosts: NightRideFeedPost[];
+  groupChallenges: GroupChallengeWallEntry[];
   isLoadingWall: boolean;
   isLoadingNight: boolean;
+  isLoadingGroups: boolean;
   selectedCity: string;
-  
+
   setSelectedCity: (city: string) => void;
   fetchWall: (city: string, checkpointCount?: string) => Promise<void>;
   fetchNightRide: (city?: string) => Promise<void>;
+  fetchGroupChallenges: () => Promise<void>;
   addNightRidePost: (post: NightRideFeedPost) => void;
 }
 
-export const useFeedStore = create<FeedState>((set, get) => ({
+export const useFeedStore = create<FeedState>((set) => ({
   wallPosts: [],
   nightRidePosts: [],
+  groupChallenges: [],
   isLoadingWall: false,
   isLoadingNight: false,
+  isLoadingGroups: false,
   selectedCity: "",
 
   setSelectedCity: (city) => set({ selectedCity: city }),
@@ -48,7 +53,19 @@ export const useFeedStore = create<FeedState>((set, get) => ({
     }
   },
 
-  addNightRidePost: (post) => set((s) => ({ 
-    nightRidePosts: [post, ...s.nightRidePosts].slice(0, 24) 
+  fetchGroupChallenges: async () => {
+    set({ isLoadingGroups: true });
+    try {
+      const data = await postJSON<any>("/api/messenger/group-wall", {});
+      set({ groupChallenges: data.groups || [] });
+    } catch {
+      set({ groupChallenges: [] });
+    } finally {
+      set({ isLoadingGroups: false });
+    }
+  },
+
+  addNightRidePost: (post) => set((s) => ({
+    nightRidePosts: [post, ...s.nightRidePosts].slice(0, 24)
   }))
 }));

@@ -23,6 +23,12 @@ export type RiderBike = {
   sort_order?: number;
 };
 
+export type CheckpointChallenge =
+  | { type: "photo" }
+  | { type: "math"; question: string; answer: string }
+  | { type: "riddle"; question: string; answer: string; alt_answers?: string[] }
+  | { type: "pop_culture"; question: string; answer: string; alt_answers?: string[] };
+
 export type MessengerCheckpoint = {
   id: string;
   order: number;
@@ -36,6 +42,7 @@ export type MessengerCheckpoint = {
   task_pressure?: string;
   pressure_score?: number;
   score_points?: number;
+  challenge?: CheckpointChallenge;
 };
 
 export type MessengerManifest = {
@@ -87,6 +94,8 @@ export type MessengerProof = {
   location_label: string;
   is_public: boolean;
   created_at: string;
+  proof_type?: "photo" | "answer";
+  answer_text?: string | null;
 };
 
 export type ProofDraft = {
@@ -242,6 +251,31 @@ export type AccountSummary = {
     last_joined_at: string;
     cities: string[];
   }[];
+};
+
+export type GroupChallengeProof = {
+  id: string;
+  checkpoint_name: string;
+  public_url: string;
+  created_at: string;
+};
+
+export type GroupChallengeRider = {
+  user_id: string;
+  rider_name: string;
+  finish_seconds: number | null;
+  proofs: GroupChallengeProof[];
+};
+
+export type GroupChallengeWallEntry = {
+  challenge_id: string;
+  code: string;
+  manifest_title: string;
+  city_name: string;
+  checkpoint_count: number | null;
+  created_at: string;
+  rider_count: number;
+  riders: GroupChallengeRider[];
 };
 
 export type WallPost = {

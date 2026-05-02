@@ -115,7 +115,7 @@ export const getRunProofs = async (env, runId) => {
     env,
     `${MESSENGER_TABLES.proofs}?run_id=eq.${encodeURIComponent(
       runId
-    )}&order=created_at.asc&select=id,checkpoint_id,checkpoint_name,public_url,location_label,is_public,created_at`,
+    )}&order=created_at.asc&select=id,checkpoint_id,checkpoint_name,public_url,location_label,is_public,created_at,proof_type,answer_text`,
     { method: "GET" }
   );
 };
