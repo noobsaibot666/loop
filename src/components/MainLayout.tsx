@@ -113,7 +113,8 @@ const MainLayout: React.FC = () => {
     { code: "en", label: "EN" },
     { code: "pt", label: "PT" },
     { code: "es", label: "ES" },
-    { code: "de", label: "DE" }
+    { code: "de", label: "DE" },
+    { code: "ja", label: "JP" }
   ];
 
   return (
