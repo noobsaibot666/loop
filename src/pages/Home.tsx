@@ -48,8 +48,14 @@ const Home: React.FC = () => {
     fetch("/api/notifications/announcements")
       .then((r) => (r.ok ? r.json() : null))
       .then((data: { cities?: Array<{ label: string; slug: string }> } | null) => {
-        if (Array.isArray(data?.cities) && data.cities.length > 0) {
-          setBadgeCities(data.cities.map((c) => c.label));
+        const nextCities = Array.isArray(data?.cities)
+          ? data.cities.map((c) => c.label).filter(Boolean)
+          : [];
+        if (nextCities.length > 0) {
+          setBadgeCities(nextCities);
+          setCurrentBadgeIndex(0);
+          setLeavingBadgeIndex(null);
+          setBadgeVisible(true);
         }
       })
       .catch(() => null);
@@ -83,7 +89,7 @@ const Home: React.FC = () => {
   React.useEffect(() => {
     const hideTimer = window.setTimeout(() => setBadgeVisible(false), badgeHoldDurationMs * badgeCities.length + badgeExitDelayMs);
     return () => window.clearTimeout(hideTimer);
-  }, [badgeCities.length, badgeExitDelayMs, badgeHoldDurationMs]);
+  }, [badgeCities, badgeExitDelayMs, badgeHoldDurationMs]);
 
   React.useEffect(() => {
     if (leavingBadgeIndex === null) return;

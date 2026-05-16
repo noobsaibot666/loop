@@ -4072,6 +4072,24 @@ async function handleCreateCityRequest(req, res) {
 app.post("/api/city-request", handleCreateCityRequest);
 app.post("/api/cities/request", handleCreateCityRequest);
 
+app.get("/api/notifications/announcements", async (_req, res) => {
+  const { data, error } = await supabase
+    .from("city_packs")
+    .select("slug,name,created_at")
+    .eq("is_active", true)
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  return res.json({
+    cities: (data || []).map((city) => ({
+      label: city.name,
+      slug: city.slug,
+    })),
+  });
+});
+
 app.get("/api/city-demand", async (_req, res) => {
   const { data, error } = await supabase
     .from("city_requests")
