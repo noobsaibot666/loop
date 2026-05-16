@@ -1,5 +1,5 @@
 import React from "react";
-import homeHero from "../images/hero_2.png";
+import homeHero from "../images/dsktop_02.png";
 import alleycatCardHero from "../images/hero_21.png";
 import loopCardHero from "../images/hero_7.png";
 import nightRideCardHero from "../images/hero_24.png";
