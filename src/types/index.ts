@@ -1,4 +1,13 @@
-export type PageView = "home" | "loop" | "messenger" | "night" | "cities" | "account" | "wall" | "leaderboard" | "rider";
+export type PageView =
+  | 'home'
+  | 'loop'
+  | 'messenger'
+  | 'night'
+  | 'cities'
+  | 'account'
+  | 'wall'
+  | 'leaderboard'
+  | 'rider';
 
 export type Usage = {
   free_used: number;
@@ -24,10 +33,15 @@ export type RiderBike = {
 };
 
 export type CheckpointChallenge =
-  | { type: "photo" }
-  | { type: "math"; question: string; answer: string }
-  | { type: "riddle"; question: string; answer: string; alt_answers?: string[] }
-  | { type: "pop_culture"; question: string; answer: string; alt_answers?: string[] };
+  | {type: 'photo'}
+  | {type: 'math'; question: string; answer: string}
+  | {type: 'riddle'; question: string; answer: string; alt_answers?: string[]}
+  | {
+      type: 'pop_culture';
+      question: string;
+      answer: string;
+      alt_answers?: string[];
+    };
 
 export type MessengerCheckpoint = {
   id: string;
@@ -94,7 +108,7 @@ export type MessengerProof = {
   location_label: string;
   is_public: boolean;
   created_at: string;
-  proof_type?: "photo" | "answer";
+  proof_type?: 'photo' | 'answer';
   answer_text?: string | null;
 };
 
@@ -314,9 +328,9 @@ export type NightRideFeedPost = {
 export type NightRideAccountSession = {
   id: string;
   title: string;
-  session_type: "single" | "crew";
-  mode: "loop" | "roulette";
-  difficulty: "easy" | "medium" | "hard";
+  session_type: 'single' | 'crew';
+  mode: 'loop' | 'roulette';
+  difficulty: 'easy' | 'medium' | 'hard';
   distance_km: number;
   bike_id?: string | null;
   bike_name?: string | null;
@@ -420,7 +434,7 @@ export type CityDemand = {
 export type CityLane = {
   city_slug: string;
   city_name: string;
-  status: "live" | "ready" | "review" | "draft" | "requested";
+  status: 'live' | 'ready' | 'review' | 'draft' | 'requested';
   checkpoint_count: number;
   active_checkpoint_count: number;
   district_count: number;

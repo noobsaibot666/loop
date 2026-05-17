@@ -1,18 +1,22 @@
-import { json, parseJSON, getAuthUser, supabaseRequest } from "../../_utils.js";
-import { getActiveRunForManifest, getManifest, MESSENGER_TABLES } from "./_helpers.js";
+import {json, parseJSON, getAuthUser, supabaseRequest} from '../../_utils.js';
+import {
+  getActiveRunForManifest,
+  getManifest,
+  MESSENGER_TABLES,
+} from './_helpers.js';
 
-export async function onRequest({ request, env }) {
+export async function onRequest({request, env}) {
   const body = await parseJSON(request);
   const authUser = await getAuthUser(env, request);
-  const userId = authUser?.id || "";
-  if (!userId) return json({ error: "login required" }, { status: 401 });
+  const userId = authUser?.id || '';
+  if (!userId) return json({error: 'login required'}, {status: 401});
 
   const manifestId = body?.manifest_id;
-  if (!manifestId) return json({ error: "manifest_id required" }, { status: 400 });
+  if (!manifestId) return json({error: 'manifest_id required'}, {status: 400});
 
   const manifest = await getManifest(env, manifestId);
   if (!manifest || manifest.user_id !== userId) {
-    return json({ error: "manifest not found" }, { status: 404 });
+    return json({error: 'manifest not found'}, {status: 404});
   }
 
   const activeRun = await getActiveRunForManifest(env, manifestId, userId);
@@ -21,7 +25,7 @@ export async function onRequest({ request, env }) {
       run_id: activeRun.id,
       manifest_id: manifestId,
       started_at: activeRun.started_at,
-      status: activeRun.status || "active",
+      status: activeRun.status || 'active',
       bike_id: activeRun.bike_id || null,
       bike_name: activeRun.bike_name || null,
       bike_ratio: activeRun.bike_ratio || null,
@@ -29,13 +33,13 @@ export async function onRequest({ request, env }) {
     });
   }
 
-  const selectedBikeId = String(body?.bike_id || "").trim();
+  const selectedBikeId = String(body?.bike_id || '').trim();
   let selectedBike = null;
   if (selectedBikeId) {
     const bikeRows = await supabaseRequest(
       env,
       `user_bikes?user_id=eq.${encodeURIComponent(userId)}&id=eq.${encodeURIComponent(selectedBikeId)}&select=id,bike_name,bike_ratio&limit=1`,
-      { method: "GET" }
+      {method: 'GET'},
     ).catch(() => []);
     selectedBike = bikeRows?.[0] || null;
   }
@@ -43,7 +47,7 @@ export async function onRequest({ request, env }) {
     const profileRows = await supabaseRequest(
       env,
       `user_profiles?user_id=eq.${encodeURIComponent(userId)}&select=primary_bike_id,bike_name,bike_ratio&limit=1`,
-      { method: "GET" }
+      {method: 'GET'},
     ).catch(() => []);
     const profile = profileRows?.[0] || null;
     selectedBike = profile
@@ -58,25 +62,25 @@ export async function onRequest({ request, env }) {
   let rows;
   try {
     rows = await supabaseRequest(env, MESSENGER_TABLES.runs, {
-      method: "POST",
-      headers: { Prefer: "return=representation" },
+      method: 'POST',
+      headers: {Prefer: 'return=representation'},
       body: JSON.stringify({
         user_id: userId,
         manifest_id: manifestId,
         bike_id: selectedBike?.id || null,
         bike_name: selectedBike?.bike_name || null,
         bike_ratio: selectedBike?.bike_ratio || null,
-        status: "active",
+        status: 'active',
       }),
     });
   } catch {
     rows = await supabaseRequest(env, MESSENGER_TABLES.runs, {
-      method: "POST",
-      headers: { Prefer: "return=representation" },
+      method: 'POST',
+      headers: {Prefer: 'return=representation'},
       body: JSON.stringify({
         user_id: userId,
         manifest_id: manifestId,
-        status: "active",
+        status: 'active',
       }),
     });
   }
@@ -86,7 +90,7 @@ export async function onRequest({ request, env }) {
     run_id: run?.id,
     manifest_id: manifestId,
     started_at: run?.started_at,
-    status: run?.status || "active",
+    status: run?.status || 'active',
     bike_id: run?.bike_id || selectedBike?.id || null,
     bike_name: run?.bike_name || selectedBike?.bike_name || null,
     bike_ratio: run?.bike_ratio || selectedBike?.bike_ratio || null,

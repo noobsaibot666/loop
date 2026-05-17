@@ -1,13 +1,23 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { useI18n } from "../../i18n";
-import Hero from "../Hero";
-import { GroupChallengeWallEntry } from "../../types";
-import { formatDuration } from "../../utils/routeUtils";
+import {useEffect, useMemo, useRef, useState} from 'react';
+import {createPortal} from 'react-dom';
+import {useI18n} from '../../i18n';
+import Hero from '../Hero';
+import {GroupChallengeWallEntry} from '../../types';
+import {formatDuration} from '../../utils/routeUtils';
 import {
-  Filter, Image as ImageIcon, MapPin, User, Bike,
-  Calendar, Zap, LayoutGrid, Trophy, X, ArrowRight, Users
-} from "lucide-react";
+  Filter,
+  Image as ImageIcon,
+  MapPin,
+  User,
+  Bike,
+  Calendar,
+  Zap,
+  LayoutGrid,
+  Trophy,
+  X,
+  ArrowRight,
+  Users,
+} from 'lucide-react';
 
 type WallPost = {
   id: string;
@@ -76,59 +86,98 @@ export default function WallPage({
   onOpenLeaderboardCity,
   heroImage,
 }: WallPageProps) {
-  const { t, formatDate } = useI18n();
+  const {t, formatDate} = useI18n();
   const [showCityPicker, setShowCityPicker] = useState(false);
-  const [activeFeed, setActiveFeed] = useState<"wall" | "night" | "hunt">("wall");
-  const [expandedWallCards, setExpandedWallCards] = useState<Record<string, boolean>>({});
+  const [activeFeed, setActiveFeed] = useState<'wall' | 'night' | 'hunt'>(
+    'wall',
+  );
+  const [expandedWallCards, setExpandedWallCards] = useState<
+    Record<string, boolean>
+  >({});
   const groupsFetchedRef = useRef(false);
-  const cityGroups = useMemo(() => [
-    {
-      label: t("continent.americas"),
-      cities: cityPresets
-        .filter((city) => ["Bogota", "Buenos Aires", "Chicago", "Curitiba", "Guarulhos", "Los Angeles", "Mexico City", "New York", "Philadelphia", "San Francisco", "Santos", "Sao Paulo", "Seattle"].includes(city))
-        .sort((a, b) => a.localeCompare(b)),
-      anchor: "wall-city-group-americas",
-    },
-    {
-      label: t("continent.europe"),
-      cities: cityPresets
-        .filter((city) => ["Amsterdam", "Barcelona", "Berlin", "Krakow", "London", "Milan", "Munich", "Paris", "Vienna", "Warsaw"].includes(city))
-        .sort((a, b) => a.localeCompare(b)),
-      anchor: "wall-city-group-europe",
-    },
-    {
-      label: t("continent.asia"),
-      cities: cityPresets
-        .filter((city) => ["Bangkok", "Seoul", "Taipei", "Tokyo"].includes(city))
-        .sort((a, b) => a.localeCompare(b)),
-      anchor: "wall-city-group-asia",
-    },
-  ].filter((group) => group.cities.length > 0), [cityPresets]);
+  const cityGroups = useMemo(
+    () =>
+      [
+        {
+          label: t('continent.americas'),
+          cities: cityPresets
+            .filter(city =>
+              [
+                'Bogota',
+                'Buenos Aires',
+                'Chicago',
+                'Curitiba',
+                'Guarulhos',
+                'Los Angeles',
+                'Mexico City',
+                'New York',
+                'Philadelphia',
+                'San Francisco',
+                'Santos',
+                'Sao Paulo',
+                'Seattle',
+              ].includes(city),
+            )
+            .sort((a, b) => a.localeCompare(b)),
+          anchor: 'wall-city-group-americas',
+        },
+        {
+          label: t('continent.europe'),
+          cities: cityPresets
+            .filter(city =>
+              [
+                'Amsterdam',
+                'Barcelona',
+                'Berlin',
+                'Krakow',
+                'London',
+                'Milan',
+                'Munich',
+                'Paris',
+                'Vienna',
+                'Warsaw',
+              ].includes(city),
+            )
+            .sort((a, b) => a.localeCompare(b)),
+          anchor: 'wall-city-group-europe',
+        },
+        {
+          label: t('continent.asia'),
+          cities: cityPresets
+            .filter(city =>
+              ['Bangkok', 'Seoul', 'Taipei', 'Tokyo'].includes(city),
+            )
+            .sort((a, b) => a.localeCompare(b)),
+          anchor: 'wall-city-group-asia',
+        },
+      ].filter(group => group.cities.length > 0),
+    [cityPresets],
+  );
 
   useEffect(() => {
     if (!showCityPicker) return;
 
-    document.body.classList.add("menu-open-lock");
+    document.body.classList.add('menu-open-lock');
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setShowCityPicker(false);
+      if (event.key === 'Escape') setShowCityPicker(false);
     };
 
-    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener('keydown', onKeyDown);
     return () => {
-      document.body.classList.remove("menu-open-lock");
-      window.removeEventListener("keydown", onKeyDown);
+      document.body.classList.remove('menu-open-lock');
+      window.removeEventListener('keydown', onKeyDown);
     };
   }, [showCityPicker]);
 
   useEffect(() => {
-    if (activeFeed === "hunt" && !groupsFetchedRef.current) {
+    if (activeFeed === 'hunt' && !groupsFetchedRef.current) {
       groupsFetchedRef.current = true;
       onFetchGroupChallenges();
     }
   }, [activeFeed, onFetchGroupChallenges]);
 
   const toggleWallCard = (postId: string) => {
-    setExpandedWallCards((current) => ({
+    setExpandedWallCards(current => ({
       ...current,
       [postId]: !current[postId],
     }));
@@ -136,93 +185,121 @@ export default function WallPage({
 
   return (
     <div className="sequential-layout sub-page page-wall page-stage-enter">
-      <Hero 
-        title={t("wall.title")}
-        subtitle={selectedWallCity ? getCityLabel(selectedWallCity) : t("wall.allCities")}
-        image={heroImage || ""}
+      <Hero
+        title={t('wall.title')}
+        subtitle={
+          selectedWallCity
+            ? getCityLabel(selectedWallCity)
+            : t('wall.allCities')
+        }
+        image={heroImage || ''}
       />
 
       <section className="wall-section reveals" id="wall-feed">
         <div className="wall-feed-toggle">
           <button
             type="button"
-            className={`ghost-button small ${activeFeed === "wall" ? "active-filter-button" : ""}`}
-            onClick={() => setActiveFeed("wall")}
+            className={`ghost-button small ${activeFeed === 'wall' ? 'active-filter-button' : ''}`}
+            onClick={() => setActiveFeed('wall')}
           >
-            {t("wall.title")}
+            {t('wall.title')}
           </button>
           <button
             type="button"
-            className={`ghost-button small ${activeFeed === "night" ? "active-filter-button" : ""}`}
-            onClick={() => setActiveFeed("night")}
+            className={`ghost-button small ${activeFeed === 'night' ? 'active-filter-button' : ''}`}
+            onClick={() => setActiveFeed('night')}
           >
-            {t("wall.nightTitle")}
+            {t('wall.nightTitle')}
           </button>
           <button
             type="button"
-            className={`ghost-button small ${activeFeed === "hunt" ? "active-filter-button" : ""}`}
-            onClick={() => setActiveFeed("hunt")}
+            className={`ghost-button small ${activeFeed === 'hunt' ? 'active-filter-button' : ''}`}
+            onClick={() => setActiveFeed('hunt')}
           >
-            {t("wall.huntTitle")}
+            {t('wall.huntTitle')}
           </button>
         </div>
         <div className="filter-strip wall-filter-strip" id="wall-filter">
-          <button type="button" className="ghost-button small wall-filter-button" onClick={() => setShowCityPicker(true)}>
+          <button
+            type="button"
+            className="ghost-button small wall-filter-button"
+            onClick={() => setShowCityPicker(true)}
+          >
             <Filter size={14} />
-            <span>{selectedWallCity ? getCityLabel(selectedWallCity) : t("wall.allCities")}</span>
+            <span>
+              {selectedWallCity
+                ? getCityLabel(selectedWallCity)
+                : t('wall.allCities')}
+            </span>
           </button>
         </div>
-        {activeFeed === "wall" && (
+        {activeFeed === 'wall' && (
           <div className="leaderboard-country-strip wall-checkpoint-strip">
             <button
               type="button"
-              className={`mini-chip ${selectedCheckpointCount === "" ? "active" : ""}`}
-              onClick={() => setSelectedCheckpointCount("")}
+              className={`mini-chip ${selectedCheckpointCount === '' ? 'active' : ''}`}
+              onClick={() => setSelectedCheckpointCount('')}
             >
-              {t("common.all")}
+              {t('common.all')}
             </button>
-            {[4, 6, 8, 10, 12, 16].map((count) => (
+            {[4, 6, 8, 10, 12, 16].map(count => (
               <button
                 key={count}
                 type="button"
-                className={`mini-chip ${selectedCheckpointCount === String(count) ? "active" : ""}`}
+                className={`mini-chip ${selectedCheckpointCount === String(count) ? 'active' : ''}`}
                 onClick={() => setSelectedCheckpointCount(String(count))}
               >
-                {t("alleycat.stops", { count })}
+                {t('alleycat.stops', {count})}
               </button>
             ))}
           </div>
         )}
-        {isLoadingWall && <div className="status-message">{t("wall.loading")}</div>}
-        {activeFeed === "wall" && (
+        {isLoadingWall && (
+          <div className="status-message">{t('wall.loading')}</div>
+        )}
+        {activeFeed === 'wall' && (
           <div className="wall-subsection-head">
-            <div className="wall-subsection-title">{t("wall.title")}</div>
-            <div className="wall-subsection-copy">{t("wall.subtitle")}</div>
+            <div className="wall-subsection-title">{t('wall.title')}</div>
+            <div className="wall-subsection-copy">{t('wall.subtitle')}</div>
           </div>
         )}
-        {activeFeed === "wall" && wallPosts.length > 0 && (
+        {activeFeed === 'wall' && wallPosts.length > 0 && (
           <div className="wall-grid">
-            {wallPosts.map((post) => (
+            {wallPosts.map(post => (
               <div key={post.id} className="glass-card wall-card">
-                <img src={post.public_url} alt={`${post.checkpoint_name} by ${post.rider_name}`} className="wall-image" loading="lazy" decoding="async" />
+                <img
+                  src={post.public_url}
+                  alt={`${post.checkpoint_name} by ${post.rider_name}`}
+                  className="wall-image"
+                  loading="lazy"
+                  decoding="async"
+                />
                 <button
                   type="button"
                   className="wall-meta-toggle"
-                  aria-expanded={expandedWallCards[post.id] ? "true" : "false"}
+                  aria-expanded={expandedWallCards[post.id] ? 'true' : 'false'}
                   onClick={() => toggleWallCard(post.id)}
                 >
-                  {expandedWallCards[post.id] ? t("common.hide") : t("common.show")}
+                  {expandedWallCards[post.id]
+                    ? t('common.hide')
+                    : t('common.show')}
                 </button>
-                <div className={`wall-meta ${expandedWallCards[post.id] ? "is-expanded" : ""}`}>
+                <div
+                  className={`wall-meta ${expandedWallCards[post.id] ? 'is-expanded' : ''}`}
+                >
                   <div className="wall-detail-grid">
                     <div className="wall-detail-item">
                       <Zap size={14} className="text-accent" />
-                      <strong>{t("wall.typeAlleycat")}</strong>
+                      <strong>{t('wall.typeAlleycat')}</strong>
                     </div>
                     <div className="wall-detail-item">
                       <User size={14} />
                       <strong>
-                        <button className="inline-link-button checkpoint-name" type="button" onClick={() => onOpenRiderProfile(post.user_id)}>
+                        <button
+                          className="inline-link-button checkpoint-name"
+                          type="button"
+                          onClick={() => onOpenRiderProfile(post.user_id)}
+                        >
                           {post.rider_name}
                         </button>
                       </strong>
@@ -233,7 +310,11 @@ export default function WallPage({
                     </div>
                     <div className="wall-detail-item">
                       <ArrowRight size={14} />
-                      <strong>{post.checkpoint_count ? t("alleycat.stops", { count: post.checkpoint_count }) : t("common.all")}</strong>
+                      <strong>
+                        {post.checkpoint_count
+                          ? t('alleycat.stops', {count: post.checkpoint_count})
+                          : t('common.all')}
+                      </strong>
                     </div>
                     <div className="wall-detail-item">
                       <Calendar size={14} />
@@ -241,17 +322,28 @@ export default function WallPage({
                     </div>
                     <div className="wall-detail-item">
                       <Bike size={14} />
-                      <strong>{post.bike_name || t("wall.bikeFallback")} ({post.bike_ratio || "N/A"})</strong>
+                      <strong>
+                        {post.bike_name || t('wall.bikeFallback')} (
+                        {post.bike_ratio || 'N/A'})
+                      </strong>
                     </div>
                   </div>
                   <div className="wall-city-actions">
-                    <button className="ghost-button small" type="button" onClick={() => onOpenWallCity(post.city_name)}>
+                    <button
+                      className="ghost-button small"
+                      type="button"
+                      onClick={() => onOpenWallCity(post.city_name)}
+                    >
                       <LayoutGrid size={14} />
-                      <span>{t("wall.buttonWall")}</span>
+                      <span>{t('wall.buttonWall')}</span>
                     </button>
-                    <button className="ghost-button small" type="button" onClick={() => onOpenLeaderboardCity(post.city_name)}>
+                    <button
+                      className="ghost-button small"
+                      type="button"
+                      onClick={() => onOpenLeaderboardCity(post.city_name)}
+                    >
                       <Trophy size={14} />
-                      <span>{t("wall.buttonBoard")}</span>
+                      <span>{t('wall.buttonBoard')}</span>
                     </button>
                   </div>
                 </div>
@@ -259,164 +351,234 @@ export default function WallPage({
             ))}
           </div>
         )}
-        {activeFeed === "wall" && !isLoadingWall && wallPosts.length === 0 && (
+        {activeFeed === 'wall' && !isLoadingWall && wallPosts.length === 0 && (
           <div className="empty-state">
-            <div className="empty-state-icon"><ImageIcon size={32} className="text-muted" /></div>
-            <div className="empty-state-text">{t("wall.empty")}</div>
+            <div className="empty-state-icon">
+              <ImageIcon size={32} className="text-muted" />
+            </div>
+            <div className="empty-state-text">{t('wall.empty')}</div>
           </div>
         )}
-        {activeFeed === "night" && (
+        {activeFeed === 'night' && (
           <div className="filter-strip wall-subsection-head">
-            <div className="wall-subsection-title">{t("wall.nightTitle")}</div>
-            <div className="wall-subsection-copy">{t("wall.nightSubtitle")}</div>
+            <div className="wall-subsection-title">{t('wall.nightTitle')}</div>
+            <div className="wall-subsection-copy">
+              {t('wall.nightSubtitle')}
+            </div>
           </div>
         )}
-        {activeFeed === "night" && nightRidePosts.length > 0 && (
+        {activeFeed === 'night' && nightRidePosts.length > 0 && (
           <div className="night-wall-grid">
-            {nightRidePosts.map((post) => (
+            {nightRidePosts.map(post => (
               <article key={post.id} className="glass-card night-wall-card">
-                <img src={post.image_url} alt={post.route_title || post.crew_name || post.rider_name} className="night-wall-image" loading="lazy" decoding="async" />
+                <img
+                  src={post.image_url}
+                  alt={post.route_title || post.crew_name || post.rider_name}
+                  className="night-wall-image"
+                  loading="lazy"
+                  decoding="async"
+                />
                 <div className="night-wall-meta">
                   <strong>{post.crew_name || post.rider_name}</strong>
-                  <span>{post.route_title || t("wall.nightRouteFallback")}</span>
                   <span>
-                    {post.city_name || t("wall.nightCityFallback")}
-                    {post.distance_km ? ` · ${Number(post.distance_km).toFixed(1)} km` : ""}
+                    {post.route_title || t('wall.nightRouteFallback')}
+                  </span>
+                  <span>
+                    {post.city_name || t('wall.nightCityFallback')}
+                    {post.distance_km
+                      ? ` · ${Number(post.distance_km).toFixed(1)} km`
+                      : ''}
                   </span>
                 </div>
               </article>
             ))}
           </div>
         )}
-        {activeFeed === "night" && !isLoadingWall && nightRidePosts.length === 0 && (
-          <div className="empty-state">
-            <div className="empty-state-icon"><Zap size={32} className="text-muted" /></div>
-            <div className="empty-state-text">{t("wall.nightEmpty")}</div>
-          </div>
-        )}
-        {activeFeed === "hunt" && (
+        {activeFeed === 'night' &&
+          !isLoadingWall &&
+          nightRidePosts.length === 0 && (
+            <div className="empty-state">
+              <div className="empty-state-icon">
+                <Zap size={32} className="text-muted" />
+              </div>
+              <div className="empty-state-text">{t('wall.nightEmpty')}</div>
+            </div>
+          )}
+        {activeFeed === 'hunt' && (
           <div className="filter-strip wall-subsection-head">
-            <div className="wall-subsection-title">{t("wall.huntTitle")}</div>
-            <div className="wall-subsection-copy">{t("wall.huntSubtitle")}</div>
+            <div className="wall-subsection-title">{t('wall.huntTitle')}</div>
+            <div className="wall-subsection-copy">{t('wall.huntSubtitle')}</div>
           </div>
         )}
-        {activeFeed === "hunt" && isLoadingGroups && (
-          <div className="status-message">{t("wall.loading")}</div>
+        {activeFeed === 'hunt' && isLoadingGroups && (
+          <div className="status-message">{t('wall.loading')}</div>
         )}
-        {activeFeed === "hunt" && !isLoadingGroups && groupChallenges.length > 0 && (
-          <div className="hunt-groups">
-            {groupChallenges.map((group) => (
-              <div key={group.challenge_id} className="glass-card hunt-group-card">
-                <div className="hunt-group-header">
-                  <div className="hunt-group-title">{group.manifest_title}</div>
-                  <div className="hunt-group-meta">
-                    <span><MapPin size={12} /> {group.city_name}</span>
-                    <span><Users size={12} /> {t("wall.huntRiders", { count: group.rider_count })}</span>
-                    <span><Calendar size={12} /> {formatDate(group.created_at)}</span>
-                    {group.checkpoint_count && (
-                      <span><ArrowRight size={12} /> {t("alleycat.stops", { count: group.checkpoint_count })}</span>
-                    )}
-                  </div>
-                </div>
-                <div className="hunt-riders">
-                  {group.riders.map((rider) => (
-                    <div key={rider.user_id} className="hunt-rider-row">
-                      <div className="hunt-rider-info">
-                        <span className="hunt-rider-name">
-                          <User size={12} />
-                          {rider.rider_name}
+        {activeFeed === 'hunt' &&
+          !isLoadingGroups &&
+          groupChallenges.length > 0 && (
+            <div className="hunt-groups">
+              {groupChallenges.map(group => (
+                <div
+                  key={group.challenge_id}
+                  className="glass-card hunt-group-card"
+                >
+                  <div className="hunt-group-header">
+                    <div className="hunt-group-title">
+                      {group.manifest_title}
+                    </div>
+                    <div className="hunt-group-meta">
+                      <span>
+                        <MapPin size={12} /> {group.city_name}
+                      </span>
+                      <span>
+                        <Users size={12} />{' '}
+                        {t('wall.huntRiders', {count: group.rider_count})}
+                      </span>
+                      <span>
+                        <Calendar size={12} /> {formatDate(group.created_at)}
+                      </span>
+                      {group.checkpoint_count && (
+                        <span>
+                          <ArrowRight size={12} />{' '}
+                          {t('alleycat.stops', {count: group.checkpoint_count})}
                         </span>
-                        <span className="hunt-rider-time">
-                          {rider.finish_seconds !== null
-                            ? formatDuration(rider.finish_seconds)
-                            : t("wall.huntDnf")}
-                        </span>
-                      </div>
-                      {rider.proofs.length > 0 && (
-                        <div className="hunt-proof-strip">
-                          {rider.proofs.map((proof) => (
-                            <div key={proof.id} className="hunt-proof-thumb">
-                              <img
-                                src={proof.public_url}
-                                alt={proof.checkpoint_name}
-                                loading="lazy"
-                                decoding="async"
-                              />
-                              <span className="hunt-proof-label">{proof.checkpoint_name}</span>
-                            </div>
-                          ))}
-                        </div>
                       )}
                     </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        {activeFeed === "hunt" && !isLoadingGroups && groupChallenges.length === 0 && (
-          <div className="empty-state">
-            <div className="empty-state-icon"><Users size={32} className="text-muted" /></div>
-            <div className="empty-state-text">{t("wall.huntEmpty")}</div>
-          </div>
-        )}
-      </section>
-
-      {showCityPicker && createPortal(
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="wall-city-picker-title" onClick={() => setShowCityPicker(false)}>
-          <div className="modal-card" onClick={(event) => event.stopPropagation()}>
-            <div className="modal-header">
-              <div className="modal-title" id="wall-city-picker-title">{t("wall.chooseCity")}</div>
-              <button className="modal-close" type="button" aria-label={t("common.close")} onClick={() => setShowCityPicker(false)}>
-                <X size={20} />
-              </button>
-            </div>
-            <div className="modal-actions city-picker-nav">
-              {cityGroups.map((group) => (
-                <a key={group.anchor} className="inline-link-button city-picker-anchor" href={`#${group.anchor}`}>
-                  {group.label}
-                </a>
-              ))}
-            </div>
-            <div className="modal-actions city-picker-actions">
-              <button
-                className={`ghost-button ${selectedWallCity === "" ? "active-filter-button" : ""}`}
-                type="button"
-                onClick={() => {
-                  setSelectedWallCity("");
-                  setShowCityPicker(false);
-                }}
-              >
-                {t("common.all")}
-              </button>
-              {cityGroups.map((group) => (
-                <div key={group.anchor} className="city-picker-group" id={group.anchor}>
-                  <div className="city-picker-group-title">{group.label}</div>
-                  <div className="city-picker-group-grid">
-                    {group.cities.map((city) => (
-                      <button
-                        key={city}
-                        className={`ghost-button ${selectedWallCity === toCitySlug(city) ? "active-filter-button" : ""}`}
-                        type="button"
-                        onClick={() => {
-                          setSelectedWallCity(toCitySlug(city));
-                          setShowCityPicker(false);
-                        }}
-                      >
-                        {city}
-                      </button>
+                  </div>
+                  <div className="hunt-riders">
+                    {group.riders.map(rider => (
+                      <div key={rider.user_id} className="hunt-rider-row">
+                        <div className="hunt-rider-info">
+                          <span className="hunt-rider-name">
+                            <User size={12} />
+                            {rider.rider_name}
+                          </span>
+                          <span className="hunt-rider-time">
+                            {rider.finish_seconds !== null
+                              ? formatDuration(rider.finish_seconds)
+                              : t('wall.huntDnf')}
+                          </span>
+                        </div>
+                        {rider.proofs.length > 0 && (
+                          <div className="hunt-proof-strip">
+                            {rider.proofs.map(proof => (
+                              <div key={proof.id} className="hunt-proof-thumb">
+                                <img
+                                  src={proof.public_url}
+                                  alt={proof.checkpoint_name}
+                                  loading="lazy"
+                                  decoding="async"
+                                />
+                                <span className="hunt-proof-label">
+                                  {proof.checkpoint_name}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
                 </div>
               ))}
-              <button className="primary-button" type="button" onClick={() => setShowCityPicker(false)}>
-                {t("common.close")}
-              </button>
             </div>
-          </div>
-        </div>,
-        document.body
-      )}
+          )}
+        {activeFeed === 'hunt' &&
+          !isLoadingGroups &&
+          groupChallenges.length === 0 && (
+            <div className="empty-state">
+              <div className="empty-state-icon">
+                <Users size={32} className="text-muted" />
+              </div>
+              <div className="empty-state-text">{t('wall.huntEmpty')}</div>
+            </div>
+          )}
+      </section>
+
+      {showCityPicker &&
+        createPortal(
+          <div
+            className="modal-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="wall-city-picker-title"
+            onClick={() => setShowCityPicker(false)}
+          >
+            <div
+              className="modal-card"
+              onClick={event => event.stopPropagation()}
+            >
+              <div className="modal-header">
+                <div className="modal-title" id="wall-city-picker-title">
+                  {t('wall.chooseCity')}
+                </div>
+                <button
+                  className="modal-close"
+                  type="button"
+                  aria-label={t('common.close')}
+                  onClick={() => setShowCityPicker(false)}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="modal-actions city-picker-nav">
+                {cityGroups.map(group => (
+                  <a
+                    key={group.anchor}
+                    className="inline-link-button city-picker-anchor"
+                    href={`#${group.anchor}`}
+                  >
+                    {group.label}
+                  </a>
+                ))}
+              </div>
+              <div className="modal-actions city-picker-actions">
+                <button
+                  className={`ghost-button ${selectedWallCity === '' ? 'active-filter-button' : ''}`}
+                  type="button"
+                  onClick={() => {
+                    setSelectedWallCity('');
+                    setShowCityPicker(false);
+                  }}
+                >
+                  {t('common.all')}
+                </button>
+                {cityGroups.map(group => (
+                  <div
+                    key={group.anchor}
+                    className="city-picker-group"
+                    id={group.anchor}
+                  >
+                    <div className="city-picker-group-title">{group.label}</div>
+                    <div className="city-picker-group-grid">
+                      {group.cities.map(city => (
+                        <button
+                          key={city}
+                          className={`ghost-button ${selectedWallCity === toCitySlug(city) ? 'active-filter-button' : ''}`}
+                          type="button"
+                          onClick={() => {
+                            setSelectedWallCity(toCitySlug(city));
+                            setShowCityPicker(false);
+                          }}
+                        >
+                          {city}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                <button
+                  className="primary-button"
+                  type="button"
+                  onClick={() => setShowCityPicker(false)}
+                >
+                  {t('common.close')}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

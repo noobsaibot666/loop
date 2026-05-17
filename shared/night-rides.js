@@ -1,37 +1,52 @@
-import { buildFallbackLoopWaypoints, buildGoogleMapsLoopUrl, sampleLoopMapsWaypoints } from "./loop-quality.js";
+import {
+  buildFallbackLoopWaypoints,
+  buildGoogleMapsLoopUrl,
+  sampleLoopMapsWaypoints,
+} from './loop-quality.js';
 
 export const NIGHT_RIDE_CREDIT_COST = 1;
 export const NIGHT_RIDE_CREW_BUILD_COST = 2;
 export const NIGHT_RIDE_CREW_JOIN_COST = 1;
 
-export const normalizeNightRideSessionType = (value = "") => {
-  const sessionType = String(value || "").trim().toLowerCase();
-  return sessionType === "crew" ? "crew" : "single";
+export const normalizeNightRideSessionType = (value = '') => {
+  const sessionType = String(value || '')
+    .trim()
+    .toLowerCase();
+  return sessionType === 'crew' ? 'crew' : 'single';
 };
 
-export const normalizeNightRideMode = (value = "") => {
-  const mode = String(value || "").trim().toLowerCase();
-  return mode === "roulette" ? "roulette" : "loop";
+export const normalizeNightRideMode = (value = '') => {
+  const mode = String(value || '')
+    .trim()
+    .toLowerCase();
+  return mode === 'roulette' ? 'roulette' : 'loop';
 };
 
-export const normalizeNightRideDifficulty = (value = "") => {
-  const difficulty = String(value || "").trim().toLowerCase();
-  if (difficulty === "easy" || difficulty === "hard") return difficulty;
-  return "medium";
+export const normalizeNightRideDifficulty = (value = '') => {
+  const difficulty = String(value || '')
+    .trim()
+    .toLowerCase();
+  if (difficulty === 'easy' || difficulty === 'hard') return difficulty;
+  return 'medium';
 };
 
-export const sanitizeCrewMembers = (value) => {
+export const sanitizeCrewMembers = value => {
   if (!Array.isArray(value)) return [];
   return value
-    .map((item) => String(item || "").trim().replace(/^@+/, ""))
+    .map(item =>
+      String(item || '')
+        .trim()
+        .replace(/^@+/, ''),
+    )
     .filter(Boolean)
     .slice(0, 12);
 };
 
-export const createNightRideCode = () => Math.random().toString(36).slice(2, 8).toUpperCase();
+export const createNightRideCode = () =>
+  Math.random().toString(36).slice(2, 8).toUpperCase();
 
-const toRadians = (value) => (value * Math.PI) / 180;
-const toDegrees = (value) => (value * 180) / Math.PI;
+const toRadians = value => (value * Math.PI) / 180;
+const toDegrees = value => (value * 180) / Math.PI;
 
 export const distanceBetweenKm = (start, end) => {
   const lat1 = toRadians(start.lat);
@@ -53,14 +68,14 @@ export const computeOffsetPoint = (origin, bearingDegrees, distanceKm) => {
 
   const lat2 = Math.asin(
     Math.sin(lat1) * Math.cos(angularDistance) +
-      Math.cos(lat1) * Math.sin(angularDistance) * Math.cos(bearing)
+      Math.cos(lat1) * Math.sin(angularDistance) * Math.cos(bearing),
   );
 
   const lng2 =
     lng1 +
     Math.atan2(
       Math.sin(bearing) * Math.sin(angularDistance) * Math.cos(lat1),
-      Math.cos(angularDistance) - Math.sin(lat1) * Math.sin(lat2)
+      Math.cos(angularDistance) - Math.sin(lat1) * Math.sin(lat2),
     );
 
   return {
@@ -69,9 +84,14 @@ export const computeOffsetPoint = (origin, bearingDegrees, distanceKm) => {
   };
 };
 
-export const buildNightRideMapsUrl = ({ origin, destination, waypoints = [] }) => {
-  const allPoints = waypoints
-    .filter((point) => Number.isFinite(point?.lat) && Number.isFinite(point?.lng));
+export const buildNightRideMapsUrl = ({
+  origin,
+  destination,
+  waypoints = [],
+}) => {
+  const allPoints = waypoints.filter(
+    point => Number.isFinite(point?.lat) && Number.isFinite(point?.lng),
+  );
 
   if (
     Number.isFinite(origin?.lat) &&
@@ -84,19 +104,25 @@ export const buildNightRideMapsUrl = ({ origin, destination, waypoints = [] }) =
     return buildGoogleMapsLoopUrl(origin, allPoints);
   }
 
-  const orderedPoints = [origin, ...allPoints, destination]
-    .filter((point) => Number.isFinite(point?.lat) && Number.isFinite(point?.lng));
-  const path = orderedPoints.map((point) => `${point.lat},${point.lng}`).join("/");
+  const orderedPoints = [origin, ...allPoints, destination].filter(
+    point => Number.isFinite(point?.lat) && Number.isFinite(point?.lng),
+  );
+  const path = orderedPoints
+    .map(point => `${point.lat},${point.lng}`)
+    .join('/');
   return `https://www.google.com/maps/dir/${path}/data=!4m2!4m1!3e1`;
 };
 
 export const sampleLoopWaypoints = (routeCoords = [], distanceKm = 0) =>
   sampleLoopMapsWaypoints(routeCoords, distanceKm);
 
-export const buildNightRideFallbackLoopWaypoints = (origin, distanceKm = 0, seed = 1) =>
-  buildFallbackLoopWaypoints(origin, distanceKm, seed);
+export const buildNightRideFallbackLoopWaypoints = (
+  origin,
+  distanceKm = 0,
+  seed = 1,
+) => buildFallbackLoopWaypoints(origin, distanceKm, seed);
 
-export const buildRouletteWaypoint = ({ start, end, targetKm, difficulty }) => {
+export const buildRouletteWaypoint = ({start, end, targetKm, difficulty}) => {
   const directKm = Math.max(0.8, distanceBetweenKm(start, end));
   const midpoint = {
     lat: (start.lat + end.lat) / 2,
@@ -105,8 +131,12 @@ export const buildRouletteWaypoint = ({ start, end, targetKm, difficulty }) => {
   const dx = end.lng - start.lng;
   const dy = end.lat - start.lat;
   const perpendicularBearing = toDegrees(Math.atan2(dy, -dx));
-  const detourScale = difficulty === "easy" ? 0.22 : difficulty === "hard" ? 0.48 : 0.34;
+  const detourScale =
+    difficulty === 'easy' ? 0.22 : difficulty === 'hard' ? 0.48 : 0.34;
   const requestedExtra = Math.max(0, targetKm - directKm);
-  const offsetKm = Math.min(Math.max(0.9, requestedExtra * detourScale), Math.max(2, targetKm * 0.42));
+  const offsetKm = Math.min(
+    Math.max(0.9, requestedExtra * detourScale),
+    Math.max(2, targetKm * 0.42),
+  );
   return computeOffsetPoint(midpoint, perpendicularBearing, offsetKm);
 };

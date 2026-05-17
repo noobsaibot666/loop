@@ -1,5 +1,5 @@
-import { json } from "../_utils.js";
+import {json} from '../_utils.js';
 
 export async function onRequest() {
-  return json({ ok: true });
+  return json({ok: true});
 }

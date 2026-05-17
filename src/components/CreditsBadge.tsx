@@ -1,6 +1,6 @@
-import React from "react";
-import { useI18n } from "../i18n";
-import { Usage } from "../types";
+import React from 'react';
+import {useI18n} from '../i18n';
+import {Usage} from '../types';
 
 interface CreditsBadgeProps {
   usage: Usage | null;
@@ -8,9 +8,9 @@ interface CreditsBadgeProps {
   label?: string;
 }
 
-const CreditsBadge: React.FC<CreditsBadgeProps> = ({ usage, cost, label }) => {
-  const { t } = useI18n();
-  
+const CreditsBadge: React.FC<CreditsBadgeProps> = ({usage, cost, label}) => {
+  const {t} = useI18n();
+
   if (!usage) return null;
 
   const isUnlimited = usage.unlimited_credits;
@@ -19,12 +19,14 @@ const CreditsBadge: React.FC<CreditsBadgeProps> = ({ usage, cost, label }) => {
   return (
     <div className="loops-left">
       <span className="loops-left-line">
-        {isUnlimited ? t("credits.unlimited") : t("credits.balance", { count: total })}
+        {isUnlimited
+          ? t('credits.unlimited')
+          : t('credits.balance', {count: total})}
       </span>
       {label && <span className="loops-left-line">{label}</span>}
       {!label && cost !== undefined && (
         <span className="loops-left-line">
-          {t("account.credits.burn", { count: cost })}
+          {t('account.credits.burn', {count: cost})}
         </span>
       )}
     </div>

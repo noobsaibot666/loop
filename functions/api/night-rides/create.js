@@ -1,1 +1,1 @@
-export { onRequest } from "./generate.js";
+export {onRequest} from './generate.js';

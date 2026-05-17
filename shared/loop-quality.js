@@ -2,8 +2,8 @@ const EARTH_RADIUS_KM = 6371;
 export const MIN_LOOP_WAYPOINTS = 5;
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-const toRadians = (value) => (value * Math.PI) / 180;
-const toDegrees = (value) => (value * 180) / Math.PI;
+const toRadians = value => (value * Math.PI) / 180;
+const toDegrees = value => (value * 180) / Math.PI;
 
 const computeOffsetPoint = (origin, bearingDegrees, distanceKm) => {
   const angularDistance = distanceKm / EARTH_RADIUS_KM;
@@ -29,22 +29,39 @@ const computeOffsetPoint = (origin, bearingDegrees, distanceKm) => {
   };
 };
 
-export const buildFallbackLoopWaypoints = (origin, distanceKm = 0, seed = 1) => {
+export const buildFallbackLoopWaypoints = (
+  origin,
+  distanceKm = 0,
+  seed = 1,
+) => {
   const originPoint = normalizePoint(origin);
-  if (!originPoint || !Number.isFinite(originPoint.lat) || !Number.isFinite(originPoint.lng)) return [];
+  if (
+    !originPoint ||
+    !Number.isFinite(originPoint.lat) ||
+    !Number.isFinite(originPoint.lng)
+  )
+    return [];
   const radiusBase = clamp(Math.max(1.2, distanceKm * 0.17), 1.2, 5.8);
-  const seedRotation = ((Number(seed || 1) * 37) % 360 + 360) % 360;
-  const bearings = [28, 94, 172, 246, 318].map((offset) => (offset + seedRotation) % 360);
+  const seedRotation = (((Number(seed || 1) * 37) % 360) + 360) % 360;
+  const bearings = [28, 94, 172, 246, 318].map(
+    offset => (offset + seedRotation) % 360,
+  );
   const radiusFactors = [0.96, 1.14, 1.02, 1.18, 0.92];
   return bearings.map((bearing, index) =>
-    computeOffsetPoint(originPoint, bearing, clamp(radiusBase * radiusFactors[index], 0.9, radiusBase * 1.25)),
+    computeOffsetPoint(
+      originPoint,
+      bearing,
+      clamp(radiusBase * radiusFactors[index], 0.9, radiusBase * 1.25),
+    ),
   );
 };
 
 export const hasUsableLoopWaypoints = (waypoints = []) =>
-  waypoints.filter((point) => Number.isFinite(point?.lat) && Number.isFinite(point?.lng)).length >= MIN_LOOP_WAYPOINTS;
+  waypoints.filter(
+    point => Number.isFinite(point?.lat) && Number.isFinite(point?.lng),
+  ).length >= MIN_LOOP_WAYPOINTS;
 
-const normalizePoint = (point) => {
+const normalizePoint = point => {
   if (!point) return null;
   if (Array.isArray(point) && point.length >= 2) {
     return {
@@ -52,7 +69,7 @@ const normalizePoint = (point) => {
       lat: Number(point[1]),
     };
   }
-  if (typeof point === "object") {
+  if (typeof point === 'object') {
     return {
       lat: Number(point.lat),
       lng: Number(point.lng),
@@ -64,7 +81,9 @@ const normalizePoint = (point) => {
 const normalizeRoutePoints = (routeCoords = []) =>
   (routeCoords || [])
     .map(normalizePoint)
-    .filter((point) => Number.isFinite(point?.lat) && Number.isFinite(point?.lng));
+    .filter(
+      point => Number.isFinite(point?.lat) && Number.isFinite(point?.lng),
+    );
 
 const haversineKm = (start, end) => {
   const lat1 = toRadians(start.lat);
@@ -84,7 +103,7 @@ const buildCumulativeDistances = (points = []) => {
     total += haversineKm(points[index - 1], points[index]);
     cumulative.push(total);
   }
-  return { cumulative, total };
+  return {cumulative, total};
 };
 
 const headingBetween = (start, end) => {
@@ -106,16 +125,16 @@ const headingDelta = (left, right) => {
 
 const buildHeadingBins = (headings = [], binCount = 12) => {
   const bins = new Set();
-  headings.forEach((heading) => {
+  headings.forEach(heading => {
     if (!Number.isFinite(heading)) return;
-    bins.add(Math.floor(((heading % 360) + 360) % 360 / (360 / binCount)));
+    bins.add(Math.floor((((heading % 360) + 360) % 360) / (360 / binCount)));
   });
   return bins.size;
 };
 
 const buildBBox = (points = []) => {
-  const lats = points.map((point) => point.lat);
-  const lngs = points.map((point) => point.lng);
+  const lats = points.map(point => point.lat);
+  const lngs = points.map(point => point.lng);
   return {
     minLat: Math.min(...lats),
     maxLat: Math.max(...lats),
@@ -126,33 +145,44 @@ const buildBBox = (points = []) => {
 
 const bboxMetrics = (points = []) => {
   if (!points.length) {
-    return { diagKm: 0, widthKm: 0, heightKm: 0, aspectPenalty: 1 };
+    return {diagKm: 0, widthKm: 0, heightKm: 0, aspectPenalty: 1};
   }
   const box = buildBBox(points);
   const centerLat = (box.minLat + box.maxLat) / 2;
   const widthKm =
-    haversineKm({ lat: centerLat, lng: box.minLng }, { lat: centerLat, lng: box.maxLng }) || 0;
+    haversineKm(
+      {lat: centerLat, lng: box.minLng},
+      {lat: centerLat, lng: box.maxLng},
+    ) || 0;
   const heightKm =
-    haversineKm({ lat: box.minLat, lng: box.minLng }, { lat: box.maxLat, lng: box.minLng }) || 0;
-  const diagKm = haversineKm({ lat: box.minLat, lng: box.minLng }, { lat: box.maxLat, lng: box.maxLng }) || 0;
+    haversineKm(
+      {lat: box.minLat, lng: box.minLng},
+      {lat: box.maxLat, lng: box.minLng},
+    ) || 0;
+  const diagKm =
+    haversineKm(
+      {lat: box.minLat, lng: box.minLng},
+      {lat: box.maxLat, lng: box.maxLng},
+    ) || 0;
   const shorter = Math.max(0.01, Math.min(widthKm, heightKm));
   const longer = Math.max(widthKm, heightKm);
   const aspectPenalty = clamp((longer / shorter - 1.8) / 3.2, 0, 1);
-  return { diagKm, widthKm, heightKm, aspectPenalty };
+  return {diagKm, widthKm, heightKm, aspectPenalty};
 };
 
-const roundedPointKey = (point, precision = 3) => `${point.lat.toFixed(precision)},${point.lng.toFixed(precision)}`;
+const roundedPointKey = (point, precision = 3) =>
+  `${point.lat.toFixed(precision)},${point.lng.toFixed(precision)}`;
 
 const overlapRatio = (points = [], splitRatio = 0.5) => {
   if (points.length < 12) return 1;
   const splitIndex = Math.floor(points.length * splitRatio);
   const left = points.slice(0, splitIndex);
   const right = points.slice(splitIndex);
-  const leftKeys = new Set(left.map((point) => roundedPointKey(point, 3)));
-  const rightKeys = new Set(right.map((point) => roundedPointKey(point, 3)));
+  const leftKeys = new Set(left.map(point => roundedPointKey(point, 3)));
+  const rightKeys = new Set(right.map(point => roundedPointKey(point, 3)));
   if (!leftKeys.size || !rightKeys.size) return 1;
   let shared = 0;
-  rightKeys.forEach((key) => {
+  rightKeys.forEach(key => {
     if (leftKeys.has(key)) shared += 1;
   });
   return shared / Math.max(1, Math.min(leftKeys.size, rightKeys.size));
@@ -163,10 +193,10 @@ const corridorDuplicationRatio = (points = []) => {
   const quarter = Math.max(4, Math.floor(points.length * 0.24));
   const start = points.slice(0, quarter);
   const finish = points.slice(points.length - quarter).reverse();
-  const startKeys = new Set(start.map((point) => roundedPointKey(point, 3)));
-  const finishKeys = new Set(finish.map((point) => roundedPointKey(point, 3)));
+  const startKeys = new Set(start.map(point => roundedPointKey(point, 3)));
+  const finishKeys = new Set(finish.map(point => roundedPointKey(point, 3)));
   let shared = 0;
-  finishKeys.forEach((key) => {
+  finishKeys.forEach(key => {
     if (startKeys.has(key)) shared += 1;
   });
   return shared / Math.max(1, Math.min(startKeys.size, finishKeys.size));
@@ -174,8 +204,8 @@ const corridorDuplicationRatio = (points = []) => {
 
 const radialSpreadBins = (origin, points = [], binCount = 12) => {
   const headings = points
-    .filter((point) => haversineKm(origin, point) > 0.25)
-    .map((point) => headingBetween(origin, point));
+    .filter(point => haversineKm(origin, point) > 0.25)
+    .map(point => headingBetween(origin, point));
   return buildHeadingBins(headings, binCount);
 };
 
@@ -188,7 +218,8 @@ const turnDensity = (points = []) => {
   if (headings.length < 2) return 0;
   let sharpTurns = 0;
   for (let index = 1; index < headings.length; index += 1) {
-    if (headingDelta(headings[index - 1], headings[index]) >= 24) sharpTurns += 1;
+    if (headingDelta(headings[index - 1], headings[index]) >= 24)
+      sharpTurns += 1;
   }
   return sharpTurns / headings.length;
 };
@@ -196,17 +227,22 @@ const turnDensity = (points = []) => {
 const maxRadiusKm = (origin, points = []) =>
   points.reduce((max, point) => Math.max(max, haversineKm(origin, point)), 0);
 
-const sampledLegMetrics = (origin, sampledWaypoints = [], totalDistanceKm = 0) => {
+const sampledLegMetrics = (
+  origin,
+  sampledWaypoints = [],
+  totalDistanceKm = 0,
+) => {
   const sequence = [origin, ...sampledWaypoints, origin].filter(Boolean);
   if (sequence.length < 3 || totalDistanceKm <= 0) {
-    return { dominantLegRatio: 1, averageLegKm: 0 };
+    return {dominantLegRatio: 1, averageLegKm: 0};
   }
   const legs = [];
   for (let index = 1; index < sequence.length; index += 1) {
     legs.push(haversineKm(sequence[index - 1], sequence[index]));
   }
   const dominantLegKm = Math.max(...legs, 0);
-  const averageLegKm = legs.reduce((sum, value) => sum + value, 0) / Math.max(1, legs.length);
+  const averageLegKm =
+    legs.reduce((sum, value) => sum + value, 0) / Math.max(1, legs.length);
   return {
     dominantLegRatio: dominantLegKm / totalDistanceKm,
     averageLegKm: Number(averageLegKm.toFixed(2)),
@@ -227,13 +263,18 @@ const pointAtDistance = (points = [], cumulative = [], targetDistance = 0) => {
   const maxDistance = cumulative[cumulative.length - 1] || 0;
   if (targetDistance >= maxDistance) return points[points.length - 1];
   let index = 1;
-  while (index < cumulative.length && cumulative[index] < targetDistance) index += 1;
+  while (index < cumulative.length && cumulative[index] < targetDistance)
+    index += 1;
   const prevIndex = Math.max(0, index - 1);
   const nextIndex = Math.min(points.length - 1, index);
   const prevDistance = cumulative[prevIndex] || 0;
   const nextDistance = cumulative[nextIndex] || prevDistance;
   if (nextDistance <= prevDistance) return points[nextIndex];
-  const ratio = clamp((targetDistance - prevDistance) / (nextDistance - prevDistance), 0, 1);
+  const ratio = clamp(
+    (targetDistance - prevDistance) / (nextDistance - prevDistance),
+    0,
+    1,
+  );
   const start = points[prevIndex];
   const end = points[nextIndex];
   return {
@@ -245,9 +286,9 @@ const pointAtDistance = (points = [], cumulative = [], targetDistance = 0) => {
 export const sampleLoopMapsWaypoints = (routeCoords = [], distanceKm = 0) => {
   const points = normalizeRoutePoints(routeCoords);
   if (points.length < 8) return [];
-  const { cumulative, total } = buildCumulativeDistances(points);
+  const {cumulative, total} = buildCumulativeDistances(points);
   const count = chooseWaypointCount(distanceKm || total);
-  const minSpacingKm = Math.max(0.45, total / (count + 3) * 0.55);
+  const minSpacingKm = Math.max(0.45, (total / (count + 3)) * 0.55);
   const minOriginDistanceKm = Math.max(0.35, (distanceKm || total) * 0.06);
   const samples = [];
   const keys = new Set();
@@ -256,7 +297,7 @@ export const sampleLoopMapsWaypoints = (routeCoords = [], distanceKm = 0) => {
     if (!point) return;
     const normalized = normalizePoint(point);
     if (!normalized) return;
-    candidates.push({ point: normalized, routeIndex, priority });
+    candidates.push({point: normalized, routeIndex, priority});
   };
 
   for (let index = 0; index < count; index += 1) {
@@ -267,36 +308,65 @@ export const sampleLoopMapsWaypoints = (routeCoords = [], distanceKm = 0) => {
   }
 
   const routeExtrema = [
-    { point: points.reduce((best, point) => (!best || point.lat > best.lat ? point : best), null), priority: 3 },
-    { point: points.reduce((best, point) => (!best || point.lng > best.lng ? point : best), null), priority: 3 },
-    { point: points.reduce((best, point) => (!best || point.lat < best.lat ? point : best), null), priority: 3 },
-    { point: points.reduce((best, point) => (!best || point.lng < best.lng ? point : best), null), priority: 3 },
+    {
+      point: points.reduce(
+        (best, point) => (!best || point.lat > best.lat ? point : best),
+        null,
+      ),
+      priority: 3,
+    },
+    {
+      point: points.reduce(
+        (best, point) => (!best || point.lng > best.lng ? point : best),
+        null,
+      ),
+      priority: 3,
+    },
+    {
+      point: points.reduce(
+        (best, point) => (!best || point.lat < best.lat ? point : best),
+        null,
+      ),
+      priority: 3,
+    },
+    {
+      point: points.reduce(
+        (best, point) => (!best || point.lng < best.lng ? point : best),
+        null,
+      ),
+      priority: 3,
+    },
     {
       point: points.reduce(
         (best, point) =>
-          !best || haversineKm(points[0], point) > haversineKm(points[0], best) ? point : best,
+          !best || haversineKm(points[0], point) > haversineKm(points[0], best)
+            ? point
+            : best,
         null,
       ),
       priority: 4,
     },
   ];
 
-  routeExtrema.forEach(({ point, priority }) => {
+  routeExtrema.forEach(({point, priority}) => {
     if (!point) return;
     const routeIndex = points.findIndex(
-      (candidate) => candidate.lat === point.lat && candidate.lng === point.lng,
+      candidate => candidate.lat === point.lat && candidate.lng === point.lng,
     );
     pushCandidate(point, routeIndex, priority);
   });
 
   candidates
     .sort((left, right) => {
-      if (right.priority !== left.priority) return right.priority - left.priority;
+      if (right.priority !== left.priority)
+        return right.priority - left.priority;
       return (left.routeIndex ?? 0) - (right.routeIndex ?? 0);
     })
-    .forEach(({ point }) => {
+    .forEach(({point}) => {
       if (haversineKm(points[0], point) < minOriginDistanceKm) return;
-      const tooClose = samples.some((sample) => haversineKm(sample, point) < minSpacingKm);
+      const tooClose = samples.some(
+        sample => haversineKm(sample, point) < minSpacingKm,
+      );
       const key = roundedPointKey(point, 4);
       if (tooClose || keys.has(key)) return;
       keys.add(key);
@@ -304,12 +374,14 @@ export const sampleLoopMapsWaypoints = (routeCoords = [], distanceKm = 0) => {
     });
 
   if (samples.length < 4) {
-    [0.14, 0.3, 0.48, 0.64, 0.8, 0.9].forEach((ratio) => {
+    [0.14, 0.3, 0.48, 0.64, 0.8, 0.9].forEach(ratio => {
       if (samples.length >= 5) return;
       const point = pointAtDistance(points, cumulative, total * ratio);
       if (!point) return;
       if (haversineKm(points[0], point) < minOriginDistanceKm) return;
-      const tooClose = samples.some((sample) => haversineKm(sample, point) < minSpacingKm * 0.8);
+      const tooClose = samples.some(
+        sample => haversineKm(sample, point) < minSpacingKm * 0.8,
+      );
       const key = roundedPointKey(point, 4);
       if (tooClose || keys.has(key)) return;
       keys.add(key);
@@ -319,8 +391,12 @@ export const sampleLoopMapsWaypoints = (routeCoords = [], distanceKm = 0) => {
 
   return samples
     .sort((left, right) => {
-      const leftIndex = points.findIndex((point) => roundedPointKey(point, 4) === roundedPointKey(left, 4));
-      const rightIndex = points.findIndex((point) => roundedPointKey(point, 4) === roundedPointKey(right, 4));
+      const leftIndex = points.findIndex(
+        point => roundedPointKey(point, 4) === roundedPointKey(left, 4),
+      );
+      const rightIndex = points.findIndex(
+        point => roundedPointKey(point, 4) === roundedPointKey(right, 4),
+      );
       return leftIndex - rightIndex;
     })
     .slice(0, Math.max(MIN_LOOP_WAYPOINTS, count));
@@ -328,92 +404,110 @@ export const sampleLoopMapsWaypoints = (routeCoords = [], distanceKm = 0) => {
 
 export const buildGoogleMapsLoopUrl = (origin, sampledWaypoints = []) => {
   const originPoint = normalizePoint(origin);
-  if (!originPoint || !Number.isFinite(originPoint.lat) || !Number.isFinite(originPoint.lng)) return "";
+  if (
+    !originPoint ||
+    !Number.isFinite(originPoint.lat) ||
+    !Number.isFinite(originPoint.lng)
+  )
+    return '';
   const points = sampledWaypoints
     .map(normalizePoint)
-    .filter((point) => Number.isFinite(point?.lat) && Number.isFinite(point?.lng));
-  if (!points.length) return "";
+    .filter(
+      point => Number.isFinite(point?.lat) && Number.isFinite(point?.lng),
+    );
+  if (!points.length) return '';
   const originStr = `${originPoint.lat},${originPoint.lng}`;
   const params = new URLSearchParams();
-  params.set("api", "1");
-  params.set("origin", originStr);
-  params.set("destination", originStr);
-  params.set("travelmode", "bicycling");
-  params.set("waypoints", points.map((p) => `${p.lat},${p.lng}`).join("|"));
+  params.set('api', '1');
+  params.set('origin', originStr);
+  params.set('destination', originStr);
+  params.set('travelmode', 'bicycling');
+  params.set('waypoints', points.map(p => `${p.lat},${p.lng}`).join('|'));
   return `https://www.google.com/maps/dir/?${params.toString()}`;
 };
 
-export const parseGoogleMapsLoopUrl = (routeUrl = "") => {
+export const parseGoogleMapsLoopUrl = (routeUrl = '') => {
   try {
     const url = new URL(routeUrl);
-    const originRaw = url.searchParams.get("origin");
-    const destinationRaw = url.searchParams.get("destination");
-    const waypointsRaw = url.searchParams.get("waypoints") || "";
-    const parsePair = (value) => {
-      const cleaned = String(value || "").replace(/^via:/, "");
-      const [lat, lng] = cleaned.split(",").map(Number);
+    const originRaw = url.searchParams.get('origin');
+    const destinationRaw = url.searchParams.get('destination');
+    const waypointsRaw = url.searchParams.get('waypoints') || '';
+    const parsePair = value => {
+      const cleaned = String(value || '').replace(/^via:/, '');
+      const [lat, lng] = cleaned.split(',').map(Number);
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-      return { lat, lng };
+      return {lat, lng};
     };
-    if (!originRaw && !destinationRaw && url.pathname.includes("/maps/dir/")) {
-      const segments = url.pathname
-        .split("/maps/dir/")[1]
-        ?.split("/")
-        .map((segment) => decodeURIComponent(segment).trim())
-        .filter(Boolean)
-        .map(parsePair)
-        .filter(Boolean) || [];
+    if (!originRaw && !destinationRaw && url.pathname.includes('/maps/dir/')) {
+      const segments =
+        url.pathname
+          .split('/maps/dir/')[1]
+          ?.split('/')
+          .map(segment => decodeURIComponent(segment).trim())
+          .filter(Boolean)
+          .map(parsePair)
+          .filter(Boolean) || [];
       return {
         origin: segments[0] || null,
         destination: segments[segments.length - 1] || null,
         waypoints: segments.slice(1, -1),
       };
     }
-    if (url.searchParams.get("api") === "1") {
+    if (url.searchParams.get('api') === '1') {
       return {
         origin: parsePair(originRaw),
         destination: parsePair(destinationRaw),
-        waypoints: waypointsRaw
-          .split("|")
-          .map(parsePair)
-          .filter(Boolean),
+        waypoints: waypointsRaw.split('|').map(parsePair).filter(Boolean),
       };
     }
     return {
       origin: parsePair(originRaw),
       destination: parsePair(destinationRaw),
-      waypoints: waypointsRaw
-        .split("|")
-        .map(parsePair)
-        .filter(Boolean),
+      waypoints: waypointsRaw.split('|').map(parsePair).filter(Boolean),
     };
   } catch {
-    return { origin: null, destination: null, waypoints: [] };
+    return {origin: null, destination: null, waypoints: []};
   }
 };
 
-export const isUsableLoopRouteUrl = (routeUrl = "") => {
+export const isUsableLoopRouteUrl = (routeUrl = '') => {
   const parsed = parseGoogleMapsLoopUrl(routeUrl);
   return Boolean(parsed.origin) && hasUsableLoopWaypoints(parsed.waypoints);
 };
 
-const computeRecentSimilarity = ({ origin, distanceKm, sampledWaypoints, recentRoutes = [] }) => {
-  const candidateKeys = new Set(sampledWaypoints.map((point) => roundedPointKey(point, 3)));
+const computeRecentSimilarity = ({
+  origin,
+  distanceKm,
+  sampledWaypoints,
+  recentRoutes = [],
+}) => {
+  const candidateKeys = new Set(
+    sampledWaypoints.map(point => roundedPointKey(point, 3)),
+  );
   if (!candidateKeys.size) return 0;
   let maxSimilarity = 0;
-  recentRoutes.forEach((route) => {
-    const parsed = parseGoogleMapsLoopUrl(route.route_url || "");
+  recentRoutes.forEach(route => {
+    const parsed = parseGoogleMapsLoopUrl(route.route_url || '');
     if (!parsed.origin) return;
     if (haversineKm(origin, parsed.origin) > 0.75) return;
-    if (Math.abs(Number(route.distance_km || 0) - distanceKm) > Math.max(2, distanceKm * 0.3)) return;
-    const routePoints = [...parsed.waypoints, parsed.destination].filter(Boolean);
-    const routeKeys = new Set(routePoints.map((point) => roundedPointKey(point, 3)));
+    if (
+      Math.abs(Number(route.distance_km || 0) - distanceKm) >
+      Math.max(2, distanceKm * 0.3)
+    )
+      return;
+    const routePoints = [...parsed.waypoints, parsed.destination].filter(
+      Boolean,
+    );
+    const routeKeys = new Set(
+      routePoints.map(point => roundedPointKey(point, 3)),
+    );
     if (!routeKeys.size) return;
     let shared = 0;
-    candidateKeys.forEach((key) => {
+    candidateKeys.forEach(key => {
       if (routeKeys.has(key)) shared += 1;
     });
-    const similarity = shared / Math.max(1, Math.min(candidateKeys.size, routeKeys.size));
+    const similarity =
+      shared / Math.max(1, Math.min(candidateKeys.size, routeKeys.size));
     maxSimilarity = Math.max(maxSimilarity, similarity);
   });
   return maxSimilarity;
@@ -431,45 +525,58 @@ const applyPreferenceBias = ({
   overlapPenalty,
 }) => {
   let bonus = 0;
-  const terrainKey = String(terrain || "").trim().toLowerCase();
-  const surfaceKey = String(surface || "").trim().toLowerCase();
-  const vibeKey = String(vibe || "").trim().toLowerCase();
+  const terrainKey = String(terrain || '')
+    .trim()
+    .toLowerCase();
+  const surfaceKey = String(surface || '')
+    .trim()
+    .toLowerCase();
+  const vibeKey = String(vibe || '')
+    .trim()
+    .toLowerCase();
 
-  if (terrainKey === "climb") bonus += radialSpreadScore * 5 + turnDensityScore * 6;
-  if (terrainKey === "road") bonus += lengthCloseness * 4;
-  if (terrainKey === "coast") bonus += bboxDiagScore * 7 + radialSpreadScore * 4;
+  if (terrainKey === 'climb')
+    bonus += radialSpreadScore * 5 + turnDensityScore * 6;
+  if (terrainKey === 'road') bonus += lengthCloseness * 4;
+  if (terrainKey === 'coast')
+    bonus += bboxDiagScore * 7 + radialSpreadScore * 4;
 
-  if (surfaceKey === "mixed") bonus += headingSpreadScore * 3 + bboxDiagScore * 2;
-  if (surfaceKey === "gravel") bonus += headingSpreadScore * 4 + radialSpreadScore * 3;
+  if (surfaceKey === 'mixed')
+    bonus += headingSpreadScore * 3 + bboxDiagScore * 2;
+  if (surfaceKey === 'gravel')
+    bonus += headingSpreadScore * 4 + radialSpreadScore * 3;
 
-  if (vibeKey === "scenic") bonus += bboxDiagScore * 8 + radialSpreadScore * 5;
-  if (vibeKey === "energy") bonus += turnDensityScore * 8 + headingSpreadScore * 4;
-  if (vibeKey === "elegant") bonus += (1 - overlapPenalty) * 6 + lengthCloseness * 2;
-  if (vibeKey === "climb") bonus += turnDensityScore * 4 + radialSpreadScore * 4;
+  if (vibeKey === 'scenic') bonus += bboxDiagScore * 8 + radialSpreadScore * 5;
+  if (vibeKey === 'energy')
+    bonus += turnDensityScore * 8 + headingSpreadScore * 4;
+  if (vibeKey === 'elegant')
+    bonus += (1 - overlapPenalty) * 6 + lengthCloseness * 2;
+  if (vibeKey === 'climb')
+    bonus += turnDensityScore * 4 + radialSpreadScore * 4;
 
   return bonus;
 };
 
 const mapV3ToLegacy = (difficulty, style) => {
-  let terrain = "mix";
-  let surface = "paved";
-  let vibe = "Energy";
+  let terrain = 'mix';
+  let surface = 'paved';
+  let vibe = 'Energy';
 
-  if (difficulty === "easy") {
-    terrain = "road";
-    vibe = "Elegant";
-  } else if (difficulty === "hard") {
-    terrain = "climb";
-    vibe = "Energy";
+  if (difficulty === 'easy') {
+    terrain = 'road';
+    vibe = 'Elegant';
+  } else if (difficulty === 'hard') {
+    terrain = 'climb';
+    vibe = 'Energy';
   }
 
-  if (style === "local") {
-    vibe = "Scenic";
-  } else if (style === "chaotic") {
-    surface = "mixed";
+  if (style === 'local') {
+    vibe = 'Scenic';
+  } else if (style === 'chaotic') {
+    surface = 'mixed';
   }
 
-  return { terrain, surface, vibe };
+  return {terrain, surface, vibe};
 };
 
 export const evaluateLoopCandidate = ({
@@ -483,12 +590,13 @@ export const evaluateLoopCandidate = ({
   vibe: rawVibe,
   recentRoutes = [],
 }) => {
-  const { terrain, surface, vibe } = (difficulty || style) 
-    ? mapV3ToLegacy(difficulty, style) 
-    : { terrain: rawTerrain, surface: rawSurface, vibe: rawVibe };
+  const {terrain, surface, vibe} =
+    difficulty || style
+      ? mapV3ToLegacy(difficulty, style)
+      : {terrain: rawTerrain, surface: rawSurface, vibe: rawVibe};
 
   const routeCoords = routeData?.features?.[0]?.geometry?.coordinates || [];
-  const points = routeCoords.map(([lng, lat]) => ({ lat, lng }));
+  const points = routeCoords.map(([lng, lat]) => ({lat, lng}));
   if (points.length < 8) {
     return {
       valid: false,
@@ -510,7 +618,7 @@ export const evaluateLoopCandidate = ({
     };
   }
 
-  const { total } = buildCumulativeDistances(points);
+  const {total} = buildCumulativeDistances(points);
   const totalDistanceKm =
     Number(routeData?.features?.[0]?.properties?.summary?.distance || 0) > 0
       ? Number(routeData.features[0].properties.summary.distance) / 1000
@@ -526,9 +634,16 @@ export const evaluateLoopCandidate = ({
   const radialBins = radialSpreadBins(origin, points, 12);
   const turnRate = turnDensity(points);
   const radiusKm = maxRadiusKm(origin, points);
-  const sampledWaypoints = sampleLoopMapsWaypoints(routeCoords, totalDistanceKm);
+  const sampledWaypoints = sampleLoopMapsWaypoints(
+    routeCoords,
+    totalDistanceKm,
+  );
   const startEndGapKm = haversineKm(points[0], points[points.length - 1]);
-  const legMetrics = sampledLegMetrics(origin, sampledWaypoints, totalDistanceKm);
+  const legMetrics = sampledLegMetrics(
+    origin,
+    sampledWaypoints,
+    totalDistanceKm,
+  );
   const recentSimilarity = computeRecentSimilarity({
     origin,
     distanceKm: targetDistanceKm,
@@ -536,17 +651,40 @@ export const evaluateLoopCandidate = ({
     recentRoutes,
   });
 
-  const lengthCloseness = 1 - clamp(Math.abs(totalDistanceKm - targetDistanceKm) / Math.max(targetDistanceKm, 1), 0, 1);
-  const bboxDiagScore = clamp(bbox.diagKm / Math.max(targetDistanceKm * 0.42, 1.2), 0, 1);
+  const lengthCloseness =
+    1 -
+    clamp(
+      Math.abs(totalDistanceKm - targetDistanceKm) /
+        Math.max(targetDistanceKm, 1),
+      0,
+      1,
+    );
+  const bboxDiagScore = clamp(
+    bbox.diagKm / Math.max(targetDistanceKm * 0.42, 1.2),
+    0,
+    1,
+  );
   const headingSpreadScore = clamp(headingBins / 9, 0, 1);
   const radialSpreadScore = clamp(radialBins / 8, 0, 1);
   const turnDensityScore = clamp(turnRate / 0.22, 0, 1);
-  const radiusScore = clamp(radiusKm / Math.max(targetDistanceKm * 0.34, 0.8), 0, 1);
+  const radiusScore = clamp(
+    radiusKm / Math.max(targetDistanceKm * 0.34, 0.8),
+    0,
+    1,
+  );
   const overlapPenalty = clamp(overlap, 0, 1);
   const corridorPenalty = clamp(corridorDup, 0, 1);
   const recentPenalty = clamp(recentSimilarity, 0, 1);
-  const dominantLegPenalty = clamp((legMetrics.dominantLegRatio - 0.3) / 0.28, 0, 1);
-  const returnGapPenalty = clamp(startEndGapKm / Math.max(targetDistanceKm * 0.08, 0.2), 0, 1);
+  const dominantLegPenalty = clamp(
+    (legMetrics.dominantLegRatio - 0.3) / 0.28,
+    0,
+    1,
+  );
+  const returnGapPenalty = clamp(
+    startEndGapKm / Math.max(targetDistanceKm * 0.08, 0.2),
+    0,
+    1,
+  );
 
   let score =
     lengthCloseness * 12 +
@@ -605,16 +743,24 @@ export const evaluateLoopCandidate = ({
 };
 
 export const selectBestLoopCandidate = (candidates = []) => {
-  const successful = candidates.filter((candidate) => candidate?.ok && candidate?.evaluation);
+  const successful = candidates.filter(
+    candidate => candidate?.ok && candidate?.evaluation,
+  );
   if (!successful.length) return null;
-  const validCandidates = successful.filter((candidate) => candidate.evaluation.valid);
+  const validCandidates = successful.filter(
+    candidate => candidate.evaluation.valid,
+  );
   const pool = validCandidates.length ? validCandidates : successful;
-  return [...pool].sort((left, right) => right.evaluation.score - left.evaluation.score)[0] || null;
+  return (
+    [...pool].sort(
+      (left, right) => right.evaluation.score - left.evaluation.score,
+    )[0] || null
+  );
 };
 
 const uniqueProfiles = (profiles = []) => {
   const seen = new Set();
-  return profiles.filter((profile) => {
+  return profiles.filter(profile => {
     const key = `${profile.points}:${profile.seedOffset}`;
     if (seen.has(key)) return false;
     seen.add(key);
@@ -622,76 +768,88 @@ const uniqueProfiles = (profiles = []) => {
   });
 };
 
-export const buildLoopCandidateProfiles = ({ 
-  difficulty, 
-  style, 
-  terrain: rawTerrain, 
-  surface: rawSurface, 
-  vibe: rawVibe, 
-  reroll = false, 
-  strict = false 
+export const buildLoopCandidateProfiles = ({
+  difficulty,
+  style,
+  terrain: rawTerrain,
+  surface: rawSurface,
+  vibe: rawVibe,
+  reroll = false,
+  strict = false,
 }) => {
-  const { terrain, surface, vibe } = (difficulty || style) 
-    ? mapV3ToLegacy(difficulty, style) 
-    : { terrain: rawTerrain, surface: rawSurface, vibe: rawVibe };
+  const {terrain, surface, vibe} =
+    difficulty || style
+      ? mapV3ToLegacy(difficulty, style)
+      : {terrain: rawTerrain, surface: rawSurface, vibe: rawVibe};
 
-  const terrainKey = String(terrain || "").trim().toLowerCase();
-  const surfaceKey = String(surface || "").trim().toLowerCase();
-  const vibeKey = String(vibe || "").trim().toLowerCase();
+  const terrainKey = String(terrain || '')
+    .trim()
+    .toLowerCase();
+  const surfaceKey = String(surface || '')
+    .trim()
+    .toLowerCase();
+  const vibeKey = String(vibe || '')
+    .trim()
+    .toLowerCase();
   const rerollOffset = reroll ? 131 : 0;
   const basePoints =
-    terrainKey === "climb"
+    terrainKey === 'climb'
       ? 5
-      : terrainKey === "coast" || vibeKey === "scenic"
+      : terrainKey === 'coast' || vibeKey === 'scenic'
         ? 4
-        : surfaceKey === "gravel"
+        : surfaceKey === 'gravel'
           ? 5
           : 4;
 
   const anchorProfiles = [
     {
-      label: "anchor-orbit",
-      strategy: "anchors",
+      label: 'anchor-orbit',
+      strategy: 'anchors',
       points: clamp(basePoints + 1, 3, 7),
       seedOffset: rerollOffset + 0,
       bearingOffsets: [42, 162, 286],
       radiusFactors: [1.02, 1.22, 0.9],
     },
     {
-      label: "anchor-wide",
-      strategy: "anchors",
+      label: 'anchor-wide',
+      strategy: 'anchors',
       points: clamp(basePoints + 2, 3, 7),
       seedOffset: rerollOffset + 17,
       bearingOffsets: [64, 184, 304],
       radiusFactors: [1.1, 1.3, 0.98],
     },
     {
-      label: "anchor-urban",
-      strategy: "anchors",
+      label: 'anchor-urban',
+      strategy: 'anchors',
       points: clamp(basePoints, 3, 7),
       seedOffset: rerollOffset + 37,
       bearingOffsets: [28, 146, 258],
       radiusFactors: [0.92, 1.08, 0.84],
     },
     {
-      label: "anchor-cross",
-      strategy: "anchors",
-      points: clamp(basePoints + (surfaceKey === "mixed" || surfaceKey === "gravel" ? 1 : 0), 3, 7),
+      label: 'anchor-cross',
+      strategy: 'anchors',
+      points: clamp(
+        basePoints +
+          (surfaceKey === 'mixed' || surfaceKey === 'gravel' ? 1 : 0),
+        3,
+        7,
+      ),
       seedOffset: rerollOffset + 61,
       bearingOffsets: [80, 208, 332],
       radiusFactors: [1.0, 1.2, 0.96],
     },
     {
-      label: "anchor-deep",
-      strategy: "anchors",
+      label: 'anchor-deep',
+      strategy: 'anchors',
       points: clamp(basePoints + 2, 3, 7),
       seedOffset: rerollOffset + 101,
       bearingOffsets: [24, 118, 214, 308],
       radiusFactors: [0.92, 1.22, 1.28, 0.98],
     },
     {
-      label: "anchor-laced",
-      strategy: "anchors",
+      label: 'anchor-laced',
+      strategy: 'anchors',
       points: clamp(basePoints + 1, 3, 7),
       seedOffset: rerollOffset + 127,
       bearingOffsets: [52, 136, 224, 314],
@@ -703,9 +861,15 @@ export const buildLoopCandidateProfiles = ({
     : [
         ...anchorProfiles,
         {
-          label: "roundtrip-fallback",
-          strategy: "round_trip",
-          points: clamp(surfaceKey === "mixed" || surfaceKey === "gravel" ? basePoints + 1 : 6, 3, 7),
+          label: 'roundtrip-fallback',
+          strategy: 'round_trip',
+          points: clamp(
+            surfaceKey === 'mixed' || surfaceKey === 'gravel'
+              ? basePoints + 1
+              : 6,
+            3,
+            7,
+          ),
           seedOffset: rerollOffset + 89,
         },
       ];
@@ -724,27 +888,40 @@ export const buildLoopCandidateRequest = ({
   seed,
   profile,
 }) => {
-  const { terrain, surface, vibe } = (difficulty || style) 
-    ? mapV3ToLegacy(difficulty, style) 
-    : { terrain: rawTerrain, surface: rawSurface, vibe: rawVibe };
+  const {terrain, surface, vibe} =
+    difficulty || style
+      ? mapV3ToLegacy(difficulty, style)
+      : {terrain: rawTerrain, surface: rawSurface, vibe: rawVibe};
 
-  const terrainKey = String(terrain || "").trim().toLowerCase();
-  const surfaceKey = String(surface || "").trim().toLowerCase();
-  const vibeKey = String(vibe || "").trim().toLowerCase();
+  const terrainKey = String(terrain || '')
+    .trim()
+    .toLowerCase();
+  const surfaceKey = String(surface || '')
+    .trim()
+    .toLowerCase();
+  const vibeKey = String(vibe || '')
+    .trim()
+    .toLowerCase();
   const baseBearing =
     (((Number(seed || 1) * 47 + profile.seedOffset * 17) % 360) +
-      (terrainKey === "coast" ? 18 : 0) +
-      (terrainKey === "climb" ? 11 : 0) +
-      (vibeKey === "scenic" ? 24 : 0) +
-      (vibeKey === "energy" ? -12 : 0) +
-      (surfaceKey === "gravel" ? 9 : 0) +
+      (terrainKey === 'coast' ? 18 : 0) +
+      (terrainKey === 'climb' ? 11 : 0) +
+      (vibeKey === 'scenic' ? 24 : 0) +
+      (vibeKey === 'energy' ? -12 : 0) +
+      (surfaceKey === 'gravel' ? 9 : 0) +
       360) %
     360;
 
-  if (profile.strategy === "anchors") {
+  if (profile.strategy === 'anchors') {
     const radiusBase = clamp(
       targetDistanceKm *
-        (terrainKey === "road" ? 0.22 : terrainKey === "climb" ? 0.24 : vibeKey === "scenic" ? 0.25 : 0.23),
+        (terrainKey === 'road'
+          ? 0.22
+          : terrainKey === 'climb'
+            ? 0.24
+            : vibeKey === 'scenic'
+              ? 0.25
+              : 0.23),
       1.1,
       6.4,
     );
@@ -752,14 +929,18 @@ export const buildLoopCandidateRequest = ({
       computeOffsetPoint(
         origin,
         (baseBearing + offset + 360) % 360,
-        clamp(radiusBase * (profile.radiusFactors?.[index] || 1), 0.9, Math.max(1.6, targetDistanceKm * 0.48)),
+        clamp(
+          radiusBase * (profile.radiusFactors?.[index] || 1),
+          0.9,
+          Math.max(1.6, targetDistanceKm * 0.48),
+        ),
       ),
     );
 
     return {
       coordinates: [
         [origin.lng, origin.lat],
-        ...points.map((point) => [point.lng, point.lat]),
+        ...points.map(point => [point.lng, point.lat]),
         [origin.lng, origin.lat],
       ],
     };

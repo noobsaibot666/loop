@@ -1,1 +1,1 @@
-export { onRequest } from "../city-lanes.js";
+export {onRequest} from '../city-lanes.js';

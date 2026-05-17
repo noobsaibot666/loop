@@ -1,85 +1,99 @@
-const OPENAI_API_URL = "https://api.openai.com/v1/responses";
-const DEFAULT_OPENAI_MODEL = "gpt-4o-mini";
+const OPENAI_API_URL = 'https://api.openai.com/v1/responses';
+const DEFAULT_OPENAI_MODEL = 'gpt-4o-mini';
 
 const aiSystemPrompt = [
-  "You write Alleycat city content for a cycling app.",
-  "Keep language young, sharp, and readable.",
-  "Do not sound corporate, cringe, or overhyped.",
-  "Lean toward street culture, messenger energy, adolescent chaos, dares, and friend-group humor.",
-  "Keep it respectful, funny, and a little shameless, but not abusive.",
-  "Tasks must be physically doable in live city riding conditions.",
-  "Avoid illegal, unsafe, or reckless instructions.",
-  "Avoid tourist-attraction rounds, postcard landmarks, and generic city-center clichés.",
-  "Prefer district spread, local texture, and route-choice pressure.",
-  "Output only JSON that matches the schema.",
-].join(" ");
+  'You write Alleycat city content for a cycling app.',
+  'Keep language young, sharp, and readable.',
+  'Do not sound corporate, cringe, or overhyped.',
+  'Lean toward street culture, messenger energy, adolescent chaos, dares, and friend-group humor.',
+  'Keep it respectful, funny, and a little shameless, but not abusive.',
+  'Tasks must be physically doable in live city riding conditions.',
+  'Avoid illegal, unsafe, or reckless instructions.',
+  'Avoid tourist-attraction rounds, postcard landmarks, and generic city-center clichés.',
+  'Prefer district spread, local texture, and route-choice pressure.',
+  'Output only JSON that matches the schema.',
+].join(' ');
 
 const checkpointDraftSchema = {
-  type: "object",
+  type: 'object',
   additionalProperties: false,
   properties: {
-    task_local: { type: "string" },
-    task_fast: { type: "string" },
-    task_chaotic: { type: "string" },
+    task_local: {type: 'string'},
+    task_fast: {type: 'string'},
+    task_chaotic: {type: 'string'},
     admin_notes: {
-      type: "array",
-      items: { type: "string" },
+      type: 'array',
+      items: {type: 'string'},
     },
   },
-  required: ["task_local", "task_fast", "task_chaotic", "admin_notes"],
+  required: ['task_local', 'task_fast', 'task_chaotic', 'admin_notes'],
 };
 
 const packDraftSchema = {
-  type: "object",
+  type: 'object',
   additionalProperties: false,
   properties: {
-    route_note: { type: "string" },
-    finish_label: { type: "string" },
+    route_note: {type: 'string'},
+    finish_label: {type: 'string'},
     spread_suggestions: {
-      type: "array",
-      items: { type: "string" },
+      type: 'array',
+      items: {type: 'string'},
     },
     tourist_overuse_warnings: {
-      type: "array",
-      items: { type: "string" },
+      type: 'array',
+      items: {type: 'string'},
     },
     admin_notes: {
-      type: "array",
-      items: { type: "string" },
+      type: 'array',
+      items: {type: 'string'},
     },
   },
-  required: ["route_note", "finish_label", "spread_suggestions", "tourist_overuse_warnings", "admin_notes"],
+  required: [
+    'route_note',
+    'finish_label',
+    'spread_suggestions',
+    'tourist_overuse_warnings',
+    'admin_notes',
+  ],
 };
 
-const extractOutputText = (data) => {
-  if (typeof data?.output_text === "string" && data.output_text.trim()) return data.output_text;
+const extractOutputText = data => {
+  if (typeof data?.output_text === 'string' && data.output_text.trim())
+    return data.output_text;
   const parts = [];
   for (const item of data?.output || []) {
-    if (item?.type !== "message") continue;
+    if (item?.type !== 'message') continue;
     for (const content of item?.content || []) {
-      if (content?.type === "output_text" && content?.text) parts.push(content.text);
+      if (content?.type === 'output_text' && content?.text)
+        parts.push(content.text);
     }
   }
-  return parts.join("").trim();
+  return parts.join('').trim();
 };
 
-const callOpenAIJson = async ({ apiKey, model = DEFAULT_OPENAI_MODEL, schemaName, schema, userPrompt }) => {
-  if (!apiKey) throw new Error("OPENAI_API_KEY missing");
+const callOpenAIJson = async ({
+  apiKey,
+  model = DEFAULT_OPENAI_MODEL,
+  schemaName,
+  schema,
+  userPrompt,
+}) => {
+  if (!apiKey) throw new Error('OPENAI_API_KEY missing');
   const response = await fetch(OPENAI_API_URL, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
       model,
       input: [
-        { role: "system", content: aiSystemPrompt },
-        { role: "user", content: userPrompt },
+        {role: 'system', content: aiSystemPrompt},
+        {role: 'user', content: userPrompt},
       ],
       text: {
         format: {
-          type: "json_schema",
+          type: 'json_schema',
           name: schemaName,
           strict: true,
           schema,
@@ -90,11 +104,13 @@ const callOpenAIJson = async ({ apiKey, model = DEFAULT_OPENAI_MODEL, schemaName
 
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data?.error?.message || data?.message || "OpenAI request failed");
+    throw new Error(
+      data?.error?.message || data?.message || 'OpenAI request failed',
+    );
   }
 
   const text = extractOutputText(data);
-  if (!text) throw new Error("OpenAI returned no draft content");
+  if (!text) throw new Error('OpenAI returned no draft content');
   return JSON.parse(text);
 };
 
@@ -105,15 +121,16 @@ const buildCheckpointDraftPrompt = ({
   vibe,
   checkpoint_name,
   hint,
-}) => `
+}) =>
+  `
 Create three Alleycat checkpoint task variants for this spot.
 
-City: ${city || "Unknown"}
-District: ${district || "Unknown"}
-Category: ${category || "Unknown"}
-Vibe: ${vibe || "Unknown"}
-Checkpoint name: ${checkpoint_name || "Unknown"}
-Hint: ${hint || "Unknown"}
+City: ${city || 'Unknown'}
+District: ${district || 'Unknown'}
+Category: ${category || 'Unknown'}
+Vibe: ${vibe || 'Unknown'}
+Checkpoint name: ${checkpoint_name || 'Unknown'}
+Hint: ${hint || 'Unknown'}
 
 Rules:
 - Each task should be one sentence.
@@ -126,17 +143,21 @@ Rules:
 - Include short admin review notes about tone, safety, or overuse risk.
 `.trim();
 
-const buildPackDraftPrompt = ({ city, route_note, finish_label, checkpoints }) => `
+const buildPackDraftPrompt = ({city, route_note, finish_label, checkpoints}) =>
+  `
 Create Alleycat pack copy suggestions and route-spread guidance.
 
-City: ${city || "Unknown"}
-Current route note: ${route_note || "None"}
-Current finish label: ${finish_label || "None"}
+City: ${city || 'Unknown'}
+Current route note: ${route_note || 'None'}
+Current finish label: ${finish_label || 'None'}
 Checkpoint sample:
 ${(checkpoints || [])
   .slice(0, 12)
-  .map((item) => `- ${item.name} | district: ${item.district || "unknown"} | category: ${item.category || "unknown"} | vibe: ${item.vibe || "unknown"}`)
-  .join("\n")}
+  .map(
+    item =>
+      `- ${item.name} | district: ${item.district || 'unknown'} | category: ${item.category || 'unknown'} | vibe: ${item.vibe || 'unknown'}`,
+  )
+  .join('\n')}
 
 Rules:
 - Keep route note and finish label concise.

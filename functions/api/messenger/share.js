@@ -1,5 +1,5 @@
-import { json, parseJSON, getAuthUser, supabaseRequest } from "../../_utils.js";
-import { deriveChallengeStatus } from "../../../shared/challenges.js";
+import {json, parseJSON, getAuthUser, supabaseRequest} from '../../_utils.js';
+import {deriveChallengeStatus} from '../../../shared/challenges.js';
 import {
   consumeMessengerCredits,
   createChallengeCode,
@@ -7,40 +7,55 @@ import {
   getChallengeByCode,
   getChallengeEntries,
   MESSENGER_TABLES,
-} from "./_helpers.js";
+} from './_helpers.js';
 
-export async function onRequest({ request, env }) {
+export async function onRequest({request, env}) {
   const body = await parseJSON(request);
   const authUser = await getAuthUser(env, request);
-  const userId = authUser?.id || "";
-  if (!userId) return json({ error: "login required" }, { status: 401 });
+  const userId = authUser?.id || '';
+  if (!userId) return json({error: 'login required'}, {status: 401});
 
   if (body?.code) {
-    const challenge = await getChallengeByCode(env, String(body.code).trim().toUpperCase());
-    if (!challenge) return json({ error: "share code not found" }, { status: 404 });
-    const challengeEntriesForStatus = await getChallengeEntries(env, challenge.id);
+    const challenge = await getChallengeByCode(
+      env,
+      String(body.code).trim().toUpperCase(),
+    );
+    if (!challenge) return json({error: 'share code not found'}, {status: 404});
+    const challengeEntriesForStatus = await getChallengeEntries(
+      env,
+      challenge.id,
+    );
     const challengeStatusRows = [];
     for (const entry of challengeEntriesForStatus || []) {
       const runs = await supabaseRequest(
         env,
         `${MESSENGER_TABLES.runs}?manifest_id=eq.${encodeURIComponent(entry.manifest_id)}&user_id=eq.${encodeURIComponent(
-          entry.user_id
+          entry.user_id,
         )}&order=finish_seconds.asc.nullslast,started_at.asc&select=*`,
-        { method: "GET" }
+        {method: 'GET'},
       );
-      const bestRun = (runs || []).find((run) => run.status === "finished" && typeof run.finish_seconds === "number") || null;
+      const bestRun =
+        (runs || []).find(
+          run =>
+            run.status === 'finished' && typeof run.finish_seconds === 'number',
+        ) || null;
       challengeStatusRows.push({
         user_id: entry.user_id,
-        status: bestRun ? "finished" : "open",
+        status: bestRun ? 'finished' : 'open',
         best_seconds: bestRun?.finish_seconds || null,
       });
     }
     const joinStatus = deriveChallengeStatus(challenge, challengeStatusRows);
 
     const existingEntries = challengeEntriesForStatus;
-    const existingEntry = existingEntries.find((entry) => entry.user_id === userId);
+    const existingEntry = existingEntries.find(
+      entry => entry.user_id === userId,
+    );
     if (existingEntry) {
-      const existingManifest = await getManifest(env, existingEntry.manifest_id);
+      const existingManifest = await getManifest(
+        env,
+        existingEntry.manifest_id,
+      );
       return json({
         manifest_id: existingEntry.manifest_id,
         manifest: existingManifest?.manifest || null,
@@ -50,25 +65,31 @@ export async function onRequest({ request, env }) {
       });
     }
 
-    if (joinStatus === "expired") {
-      return json({ error: "share code expired" }, { status: 410 });
+    if (joinStatus === 'expired') {
+      return json({error: 'share code expired'}, {status: 410});
     }
-    if (joinStatus === "finished") {
-      return json({ error: "challenge already closed" }, { status: 409 });
+    if (joinStatus === 'finished') {
+      return json({error: 'challenge already closed'}, {status: 409});
     }
 
     const sourceManifest = await getManifest(env, challenge.manifest_id);
-    if (!sourceManifest) return json({ error: "source manifest missing" }, { status: 404 });
+    if (!sourceManifest)
+      return json({error: 'source manifest missing'}, {status: 404});
 
-    const creditResult = await consumeMessengerCredits(env, userId, 3, authUser?.email || "");
+    const creditResult = await consumeMessengerCredits(
+      env,
+      userId,
+      3,
+      authUser?.email || '',
+    );
     if (!creditResult.ok) {
       return creditResult.response;
     }
 
     const clonedManifestId = crypto.randomUUID();
     const rows = await supabaseRequest(env, MESSENGER_TABLES.manifests, {
-      method: "POST",
-      headers: { Prefer: "return=representation" },
+      method: 'POST',
+      headers: {Prefer: 'return=representation'},
       body: JSON.stringify({
         id: clonedManifestId,
         user_id: userId,
@@ -86,8 +107,8 @@ export async function onRequest({ request, env }) {
     });
 
     await supabaseRequest(env, MESSENGER_TABLES.challengeEntries, {
-      method: "POST",
-      headers: { Prefer: "return=minimal" },
+      method: 'POST',
+      headers: {Prefer: 'return=minimal'},
       body: JSON.stringify({
         challenge_id: challenge.id,
         user_id: userId,
@@ -104,18 +125,18 @@ export async function onRequest({ request, env }) {
   }
 
   const manifestId = body?.manifest_id;
-  if (!manifestId) return json({ error: "manifest_id required" }, { status: 400 });
+  if (!manifestId) return json({error: 'manifest_id required'}, {status: 400});
 
   const manifest = await getManifest(env, manifestId);
   if (!manifest || manifest.user_id !== userId) {
-    return json({ error: "manifest not found" }, { status: 404 });
+    return json({error: 'manifest not found'}, {status: 404});
   }
 
   if (manifest.source_challenge_id) {
     const existingChallenge = await supabaseRequest(
       env,
       `${MESSENGER_TABLES.challenges}?id=eq.${encodeURIComponent(manifest.source_challenge_id)}&select=*`,
-      { method: "GET" }
+      {method: 'GET'},
     );
     const challenge = existingChallenge?.[0];
     if (challenge) {
@@ -135,8 +156,8 @@ export async function onRequest({ request, env }) {
   }
 
   const rows = await supabaseRequest(env, MESSENGER_TABLES.challenges, {
-    method: "POST",
-    headers: { Prefer: "return=representation" },
+    method: 'POST',
+    headers: {Prefer: 'return=representation'},
     body: JSON.stringify({
       creator_user_id: userId,
       manifest_id: manifestId,
@@ -150,15 +171,15 @@ export async function onRequest({ request, env }) {
       env,
       `${MESSENGER_TABLES.manifests}?id=eq.${encodeURIComponent(manifestId)}`,
       {
-        method: "PATCH",
-        headers: { Prefer: "return=minimal" },
-        body: JSON.stringify({ source_challenge_id: challengeId }),
-      }
+        method: 'PATCH',
+        headers: {Prefer: 'return=minimal'},
+        body: JSON.stringify({source_challenge_id: challengeId}),
+      },
     );
 
     await supabaseRequest(env, MESSENGER_TABLES.challengeEntries, {
-      method: "POST",
-      headers: { Prefer: "return=minimal,resolution=merge-duplicates" },
+      method: 'POST',
+      headers: {Prefer: 'return=minimal,resolution=merge-duplicates'},
       body: JSON.stringify({
         challenge_id: challengeId,
         user_id: userId,

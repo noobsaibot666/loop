@@ -1,6 +1,6 @@
 // functions/api/test.ts
 export async function onRequest() {
-  return new Response(JSON.stringify({ ok: true }), {
-    headers: { "content-type": "application/json" },
+  return new Response(JSON.stringify({ok: true}), {
+    headers: {'content-type': 'application/json'},
   });
 }

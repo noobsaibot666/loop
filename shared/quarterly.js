@@ -1,5 +1,18 @@
-const QUARTER_NAMES = ["Q1", "Q2", "Q3", "Q4"];
-const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const QUARTER_NAMES = ['Q1', 'Q2', 'Q3', 'Q4'];
+const MONTH_NAMES = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
 
 const getQuarterWindow = (date = new Date()) => {
   const year = date.getUTCFullYear();
@@ -19,7 +32,7 @@ const getMonthWindow = (date = new Date()) => {
   const month = date.getUTCMonth();
   const start = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
   const end = new Date(Date.UTC(year, month + 1, 1, 0, 0, 0, 0));
-  return { start, end, label: `${MONTH_NAMES[month]} ${year}` };
+  return {start, end, label: `${MONTH_NAMES[month]} ${year}`};
 };
 
 const isInWindow = (value, start, end) => {
@@ -28,8 +41,14 @@ const isInWindow = (value, start, end) => {
   return time >= start.getTime() && time < end.getTime();
 };
 
-const computeTaskStreak = (proofs) => {
-  const days = [...new Set((proofs || []).map((proof) => new Date(proof.created_at).toISOString().slice(0, 10)))].sort();
+const computeTaskStreak = proofs => {
+  const days = [
+    ...new Set(
+      (proofs || []).map(proof =>
+        new Date(proof.created_at).toISOString().slice(0, 10),
+      ),
+    ),
+  ].sort();
   let best = 0;
   let current = 0;
   let previous = null;
@@ -45,71 +64,77 @@ const computeTaskStreak = (proofs) => {
   return best;
 };
 
-const deriveBadges = ({ quarterStats, proofs, manifests, challenges }) => {
+const deriveBadges = ({quarterStats, proofs, manifests, challenges}) => {
   const badges = [];
   const proofsByCity = new Map();
   for (const proof of proofs || []) {
     const current = proofsByCity.get(proof.city_name) || 0;
     proofsByCity.set(proof.city_name, current + 1);
   }
-  const cityRegular = [...proofsByCity.values()].some((count) => count >= 3);
+  const cityRegular = [...proofsByCity.values()].some(count => count >= 3);
   const streak = computeTaskStreak(proofs || []);
-  const hasChallengeClose = (challenges || []).some((item) => item.status === "finished" && item.source_challenge_id);
+  const hasChallengeClose = (challenges || []).some(
+    item => item.status === 'finished' && item.source_challenge_id,
+  );
 
   if (streak >= 3) {
     badges.push({
-      id: "task-streak",
+      id: 'task-streak',
       label: `${streak}-day streak`,
-      description: "Kept proof coming on consecutive days.",
+      description: 'Kept proof coming on consecutive days.',
     });
   }
   if ((quarterStats?.finished_runs || 0) > 0) {
     badges.push({
-      id: "quarter-finisher",
-      label: "Quarter finisher",
-      description: "Closed at least one Alleycat this quarter.",
+      id: 'quarter-finisher',
+      label: 'Quarter finisher',
+      description: 'Closed at least one Alleycat this quarter.',
     });
   }
   if (cityRegular) {
-    const city = [...proofsByCity.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "city";
+    const city =
+      [...proofsByCity.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || 'city';
     badges.push({
-      id: "city-regular",
+      id: 'city-regular',
       label: `${city} regular`,
-      description: "Posted enough proof in one city to own the patch.",
+      description: 'Posted enough proof in one city to own the patch.',
     });
   }
   if (hasChallengeClose) {
     badges.push({
-      id: "challenge-closer",
-      label: "Challenge closer",
-      description: "Finished a shared Alleycat challenge.",
+      id: 'challenge-closer',
+      label: 'Challenge closer',
+      description: 'Finished a shared Alleycat challenge.',
     });
   }
   if ((quarterStats?.rank || Infinity) <= 3) {
     badges.push({
-      id: "top-task-maker",
-      label: "Top task maker",
-      description: "Currently inside the top 3 for the quarter.",
+      id: 'top-task-maker',
+      label: 'Top task maker',
+      description: 'Currently inside the top 3 for the quarter.',
     });
   }
 
   return badges;
 };
 
-const buildQuarterLeaderboard = ({ proofs, finishedRuns, userLookup }) => {
+const buildQuarterLeaderboard = ({proofs, finishedRuns, userLookup}) => {
   const riders = new Map();
 
   for (const proof of proofs || []) {
     if (!proof.user_id) continue;
     const current = riders.get(proof.user_id) || {
       user_id: proof.user_id,
-      rider_name: userLookup?.get(proof.user_id)?.rider_name || proof.rider_name || "Rider",
+      rider_name:
+        userLookup?.get(proof.user_id)?.rider_name ||
+        proof.rider_name ||
+        'Rider',
       public_proofs: 0,
       finished_runs: 0,
-      city_name: proof.city_name || "",
+      city_name: proof.city_name || '',
     };
     current.public_proofs += 1;
-    current.rider_name = current.rider_name || proof.rider_name || "Rider";
+    current.rider_name = current.rider_name || proof.rider_name || 'Rider';
     riders.set(proof.user_id, current);
   }
 
@@ -117,18 +142,20 @@ const buildQuarterLeaderboard = ({ proofs, finishedRuns, userLookup }) => {
     if (!run.user_id) continue;
     const current = riders.get(run.user_id) || {
       user_id: run.user_id,
-      rider_name: userLookup?.get(run.user_id)?.rider_name || "Rider",
+      rider_name: userLookup?.get(run.user_id)?.rider_name || 'Rider',
       public_proofs: 0,
       finished_runs: 0,
-      city_name: "",
+      city_name: '',
     };
     current.finished_runs += 1;
     riders.set(run.user_id, current);
   }
 
   const sorted = [...riders.values()].sort((a, b) => {
-    if (b.public_proofs !== a.public_proofs) return b.public_proofs - a.public_proofs;
-    if (b.finished_runs !== a.finished_runs) return b.finished_runs - a.finished_runs;
+    if (b.public_proofs !== a.public_proofs)
+      return b.public_proofs - a.public_proofs;
+    if (b.finished_runs !== a.finished_runs)
+      return b.finished_runs - a.finished_runs;
     return String(a.rider_name).localeCompare(String(b.rider_name));
   });
 
@@ -138,4 +165,10 @@ const buildQuarterLeaderboard = ({ proofs, finishedRuns, userLookup }) => {
   }));
 };
 
-export { buildQuarterLeaderboard, deriveBadges, getMonthWindow, getQuarterWindow, isInWindow };
+export {
+  buildQuarterLeaderboard,
+  deriveBadges,
+  getMonthWindow,
+  getQuarterWindow,
+  isInWindow,
+};

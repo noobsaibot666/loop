@@ -1,15 +1,20 @@
-import { json, supabaseRequest, isAdminEmail } from "../../_utils.js";
+import {json, supabaseRequest, isAdminEmail} from '../../_utils.js';
 
 export const MESSENGER_TABLES = {
-  manifests: "messenger_manifests",
-  runs: "messenger_runs",
-  checkins: "messenger_run_checkins",
-  proofs: "messenger_proof_posts",
-  challenges: "messenger_challenges",
-  challengeEntries: "messenger_challenge_entries",
+  manifests: 'messenger_manifests',
+  runs: 'messenger_runs',
+  checkins: 'messenger_run_checkins',
+  proofs: 'messenger_proof_posts',
+  challenges: 'messenger_challenges',
+  challengeEntries: 'messenger_challenge_entries',
 };
 
-export const consumeMessengerCredits = async (env, userId, cost, userEmail = "") => {
+export const consumeMessengerCredits = async (
+  env,
+  userId,
+  cost,
+  userEmail = '',
+) => {
   if (isAdminEmail(env, userEmail)) {
     return {
       ok: true,
@@ -23,9 +28,9 @@ export const consumeMessengerCredits = async (env, userId, cost, userEmail = "")
   const creditRows = await supabaseRequest(
     env,
     `user_credits?user_id=eq.${encodeURIComponent(userId)}&select=user_id,credits,free_used`,
-    { method: "GET" }
+    {method: 'GET'},
   ).catch(() => []);
-  const usage = creditRows?.[0] || { user_id: userId, credits: 0, free_used: 0 };
+  const usage = creditRows?.[0] || {user_id: userId, credits: 0, free_used: 0};
   const creditsRemaining = usage.credits || 0;
 
   if (creditsRemaining < cost) {
@@ -37,15 +42,15 @@ export const consumeMessengerCredits = async (env, userId, cost, userEmail = "")
           credits_remaining: creditsRemaining,
           free_used: usage.free_used || 0,
         },
-        { status: 402 }
+        {status: 402},
       ),
     };
   }
 
   const nextCredits = creditsRemaining - cost;
-  await supabaseRequest(env, "user_credits", {
-    method: "POST",
-    headers: { Prefer: "resolution=merge-duplicates" },
+  await supabaseRequest(env, 'user_credits', {
+    method: 'POST',
+    headers: {Prefer: 'resolution=merge-duplicates'},
     body: JSON.stringify({
       user_id: userId,
       credits: nextCredits,
@@ -64,8 +69,8 @@ export const consumeMessengerCredits = async (env, userId, cost, userEmail = "")
 
 export const persistManifest = async (env, payload) => {
   const rows = await supabaseRequest(env, MESSENGER_TABLES.manifests, {
-    method: "POST",
-    headers: { Prefer: "return=representation" },
+    method: 'POST',
+    headers: {Prefer: 'return=representation'},
     body: JSON.stringify(payload),
   });
   return rows?.[0] || null;
@@ -75,7 +80,7 @@ export const getManifest = async (env, manifestId) => {
   const rows = await supabaseRequest(
     env,
     `${MESSENGER_TABLES.manifests}?id=eq.${encodeURIComponent(manifestId)}&select=*`,
-    { method: "GET" }
+    {method: 'GET'},
   );
   return rows?.[0] || null;
 };
@@ -84,7 +89,7 @@ export const getRun = async (env, runId) => {
   const rows = await supabaseRequest(
     env,
     `${MESSENGER_TABLES.runs}?id=eq.${encodeURIComponent(runId)}&select=*`,
-    { method: "GET" }
+    {method: 'GET'},
   );
   return rows?.[0] || null;
 };
@@ -93,9 +98,9 @@ export const getActiveRunForManifest = async (env, manifestId, userId) => {
   const rows = await supabaseRequest(
     env,
     `${MESSENGER_TABLES.runs}?manifest_id=eq.${encodeURIComponent(manifestId)}&user_id=eq.${encodeURIComponent(
-      userId
+      userId,
     )}&status=eq.active&order=started_at.desc&limit=1&select=*`,
-    { method: "GET" }
+    {method: 'GET'},
   );
   return rows?.[0] || null;
 };
@@ -104,9 +109,9 @@ export const getRunCheckins = async (env, runId) => {
   return supabaseRequest(
     env,
     `${MESSENGER_TABLES.checkins}?run_id=eq.${encodeURIComponent(
-      runId
+      runId,
     )}&select=checkpoint_id,checked_in_at,distance_meters,rider_lat,rider_lng`,
-    { method: "GET" }
+    {method: 'GET'},
   );
 };
 
@@ -114,19 +119,20 @@ export const getRunProofs = async (env, runId) => {
   return supabaseRequest(
     env,
     `${MESSENGER_TABLES.proofs}?run_id=eq.${encodeURIComponent(
-      runId
+      runId,
     )}&order=created_at.asc&select=id,checkpoint_id,checkpoint_name,public_url,location_label,is_public,created_at,proof_type,answer_text`,
-    { method: "GET" }
+    {method: 'GET'},
   );
 };
 
-export const createChallengeCode = () => Math.random().toString(36).slice(2, 8).toUpperCase();
+export const createChallengeCode = () =>
+  Math.random().toString(36).slice(2, 8).toUpperCase();
 
 export const getChallengeByCode = async (env, code) => {
   const rows = await supabaseRequest(
     env,
     `${MESSENGER_TABLES.challenges}?code=eq.${encodeURIComponent(code)}&select=*`,
-    { method: "GET" }
+    {method: 'GET'},
   );
   return rows?.[0] || null;
 };
@@ -135,7 +141,7 @@ export const getChallengeById = async (env, challengeId) => {
   const rows = await supabaseRequest(
     env,
     `${MESSENGER_TABLES.challenges}?id=eq.${encodeURIComponent(challengeId)}&select=*`,
-    { method: "GET" }
+    {method: 'GET'},
   );
   return rows?.[0] || null;
 };
@@ -144,33 +150,39 @@ export const getChallengeEntries = async (env, challengeId) => {
   return supabaseRequest(
     env,
     `${MESSENGER_TABLES.challengeEntries}?challenge_id=eq.${encodeURIComponent(
-      challengeId
+      challengeId,
     )}&order=joined_at.asc&select=*`,
-    { method: "GET" }
+    {method: 'GET'},
   );
 };
 
 export const getPublishedCityPackByCity = async (env, city) => {
-  const normalized = String(city || "").trim().toLowerCase();
+  const normalized = String(city || '')
+    .trim()
+    .toLowerCase();
   if (!normalized) return null;
   const rows = await supabaseRequest(
     env,
     `city_packs?is_active=eq.true&or=(slug.eq.${encodeURIComponent(normalized)},name.ilike.*${encodeURIComponent(normalized)}*)&select=*`,
-    { method: "GET" }
+    {method: 'GET'},
   ).catch(() => []);
   return rows?.[0] || null;
 };
 
 export const getCityPackById = async (env, packId) => {
-  const rows = await supabaseRequest(env, `city_packs?id=eq.${encodeURIComponent(packId)}&select=*`, { method: "GET" }).catch(() => []);
+  const rows = await supabaseRequest(
+    env,
+    `city_packs?id=eq.${encodeURIComponent(packId)}&select=*`,
+    {method: 'GET'},
+  ).catch(() => []);
   return rows?.[0] || null;
 };
 
 export const getPackCheckpoints = async (env, packId, activeOnly = true) => {
-  const activeFilter = activeOnly ? "&is_active=eq.true" : "";
+  const activeFilter = activeOnly ? '&is_active=eq.true' : '';
   return supabaseRequest(
     env,
     `city_checkpoints?pack_id=eq.${encodeURIComponent(packId)}${activeFilter}&order=sort_weight.asc,created_at.asc&select=*`,
-    { method: "GET" }
+    {method: 'GET'},
   ).catch(() => []);
 };

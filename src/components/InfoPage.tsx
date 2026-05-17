@@ -1,5 +1,5 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React from 'react';
+import {Link} from 'react-router-dom';
 
 interface InfoPageProps {
   eyebrow: string;
@@ -9,7 +9,13 @@ interface InfoPageProps {
   actions?: React.ReactNode;
 }
 
-const InfoPage: React.FC<InfoPageProps> = ({ eyebrow, title, intro, items = [], actions }) => {
+const InfoPage: React.FC<InfoPageProps> = ({
+  eyebrow,
+  title,
+  intro,
+  items = [],
+  actions,
+}) => {
   return (
     <section className="info-page-shell page-stage-enter">
       <div className="info-page-wrap">
@@ -22,7 +28,7 @@ const InfoPage: React.FC<InfoPageProps> = ({ eyebrow, title, intro, items = [], 
           {intro ? <p className="info-page-intro">{intro}</p> : null}
           {items.length ? (
             <ul className="info-page-list">
-              {items.map((item) => (
+              {items.map(item => (
                 <li key={item}>{item}</li>
               ))}
             </ul>

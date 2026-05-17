@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 
 interface HeroProps {
   title: React.ReactNode;
@@ -9,7 +9,14 @@ interface HeroProps {
   badgeDurationMs?: number;
 }
 
-const Hero: React.FC<HeroProps> = ({ title, subtitle, image, actions, badge, badgeDurationMs = 5500 }) => {
+const Hero: React.FC<HeroProps> = ({
+  title,
+  subtitle,
+  image,
+  actions,
+  badge,
+  badgeDurationMs = 5500,
+}) => {
   const [badgeVisible, setBadgeVisible] = React.useState(false);
   const [shouldRenderBadge, setShouldRenderBadge] = React.useState(false);
 
@@ -19,8 +26,14 @@ const Hero: React.FC<HeroProps> = ({ title, subtitle, image, actions, badge, bad
       setShouldRenderBadge(true);
       setBadgeVisible(true);
     }, 400);
-    const hideTimer = window.setTimeout(() => setBadgeVisible(false), badgeDurationMs);
-    const removeTimer = window.setTimeout(() => setShouldRenderBadge(false), badgeDurationMs + 700);
+    const hideTimer = window.setTimeout(
+      () => setBadgeVisible(false),
+      badgeDurationMs,
+    );
+    const removeTimer = window.setTimeout(
+      () => setShouldRenderBadge(false),
+      badgeDurationMs + 700,
+    );
 
     return () => {
       window.clearTimeout(showTimer);
@@ -35,7 +48,9 @@ const Hero: React.FC<HeroProps> = ({ title, subtitle, image, actions, badge, bad
         <img src={image} alt="Hero" className="hero-image-raw" />
         <div className="hero-image-overlay" />
         {badge && shouldRenderBadge && (
-          <div className={`hero-badge-container ${badgeVisible ? "pill-appear" : "pill-hide"}`}>
+          <div
+            className={`hero-badge-container ${badgeVisible ? 'pill-appear' : 'pill-hide'}`}
+          >
             {badge}
           </div>
         )}
@@ -43,12 +58,8 @@ const Hero: React.FC<HeroProps> = ({ title, subtitle, image, actions, badge, bad
 
       <div className="hero-container">
         <div className="hero-content">
-          <h1 className="hero-header">
-            {title}
-          </h1>
-          <p className="hero-subheader">
-            {subtitle}
-          </p>
+          <h1 className="hero-header">{title}</h1>
+          <p className="hero-subheader">{subtitle}</p>
           {actions && <div className="hero-actions">{actions}</div>}
         </div>
       </div>

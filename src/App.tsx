@@ -1,27 +1,33 @@
-import React, { useEffect, Suspense, lazy } from "react";
-import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
-import { I18nProvider } from "./i18n";
-import { useAuthStore } from "./store/useAuthStore";
-import { useUIStore } from "./store/useUIStore";
-import { useCreditStore } from "./store/useCreditStore";
-import { postJSON } from "./utils/routeUtils";
-import MainLayout from "./components/MainLayout";
+import React, {useEffect, Suspense, lazy} from 'react';
+import {
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
+import {I18nProvider} from './i18n';
+import {useAuthStore} from './store/useAuthStore';
+import {useUIStore} from './store/useUIStore';
+import {useCreditStore} from './store/useCreditStore';
+import {postJSON} from './utils/routeUtils';
+import MainLayout from './components/MainLayout';
 
 const routeModuleLoaders = {
-  Home: () => import("./pages/Home"),
-  LoopBuilder: () => import("./pages/LoopBuilder"),
-  AlleycatMode: () => import("./pages/AlleycatMode"),
-  WallOfFame: () => import("./pages/WallOfFame"),
-  CitiesHub: () => import("./pages/CitiesHub"),
-  RiderAccount: () => import("./pages/RiderAccount"),
-  Leaderboard: () => import("./pages/Leaderboard"),
-  NightRide: () => import("./pages/NightRide"),
-  RiderProfile: () => import("./pages/RiderProfile"),
-  AdminDashboard: () => import("./pages/AdminDashboard"),
-  HowToPage: () => import("./pages/HowToPage"),
-  PrivacyPage: () => import("./pages/PrivacyPage"),
-  CoffeePage: () => import("./pages/CoffeePage"),
-  CommunityAccessPage: () => import("./pages/CommunityAccessPage"),
+  Home: () => import('./pages/Home'),
+  LoopBuilder: () => import('./pages/LoopBuilder'),
+  AlleycatMode: () => import('./pages/AlleycatMode'),
+  WallOfFame: () => import('./pages/WallOfFame'),
+  CitiesHub: () => import('./pages/CitiesHub'),
+  RiderAccount: () => import('./pages/RiderAccount'),
+  Leaderboard: () => import('./pages/Leaderboard'),
+  NightRide: () => import('./pages/NightRide'),
+  RiderProfile: () => import('./pages/RiderProfile'),
+  AdminDashboard: () => import('./pages/AdminDashboard'),
+  HowToPage: () => import('./pages/HowToPage'),
+  PrivacyPage: () => import('./pages/PrivacyPage'),
+  CoffeePage: () => import('./pages/CoffeePage'),
+  CommunityAccessPage: () => import('./pages/CommunityAccessPage'),
 } as const;
 
 const Home = lazy(routeModuleLoaders.Home);
@@ -40,12 +46,14 @@ const CoffeePage = lazy(routeModuleLoaders.CoffeePage);
 const CommunityAccessPage = lazy(routeModuleLoaders.CommunityAccessPage);
 
 const preloadRouteModules = () =>
-  Promise.allSettled(Object.values(routeModuleLoaders).map((loadRoute) => loadRoute()));
+  Promise.allSettled(
+    Object.values(routeModuleLoaders).map(loadRoute => loadRoute()),
+  );
 
 const App: React.FC = () => {
-  const { initialize: initAuth, accessToken } = useAuthStore();
-  const { initializeDeviceId } = useUIStore();
-  const { fetchAccountSummary } = useCreditStore();
+  const {initialize: initAuth, accessToken} = useAuthStore();
+  const {initializeDeviceId} = useUIStore();
+  const {fetchAccountSummary} = useCreditStore();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -65,20 +73,26 @@ const App: React.FC = () => {
       void preloadRouteModules();
     };
 
-    if ("requestIdleCallback" in window) {
-      idleHandle = (window as Window & typeof globalThis & {
-        requestIdleCallback: (callback: IdleRequestCallback) => number;
-      }).requestIdleCallback(() => warmRoutes());
+    if ('requestIdleCallback' in window) {
+      idleHandle = (
+        window as Window &
+          typeof globalThis & {
+            requestIdleCallback: (callback: IdleRequestCallback) => number;
+          }
+      ).requestIdleCallback(() => warmRoutes());
     } else {
       timeoutHandle = globalThis.setTimeout(warmRoutes, 900);
     }
 
     return () => {
       cancelled = true;
-      if (idleHandle !== null && "cancelIdleCallback" in window) {
-        (window as Window & typeof globalThis & {
-          cancelIdleCallback: (handle: number) => void;
-        }).cancelIdleCallback(idleHandle);
+      if (idleHandle !== null && 'cancelIdleCallback' in window) {
+        (
+          window as Window &
+            typeof globalThis & {
+              cancelIdleCallback: (handle: number) => void;
+            }
+        ).cancelIdleCallback(idleHandle);
       }
       if (timeoutHandle !== null) {
         globalThis.clearTimeout(timeoutHandle);
@@ -88,18 +102,20 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const sessionId = params.get("session_id");
-    const isMembership = params.get("membership") === "success";
+    const sessionId = params.get('session_id');
+    const isMembership = params.get('membership') === 'success';
 
     if (sessionId && isMembership && accessToken) {
       const verify = async () => {
         try {
-          await postJSON("/api/stripe/verify-membership-session", { session_id: sessionId });
+          await postJSON('/api/stripe/verify-membership-session', {
+            session_id: sessionId,
+          });
           fetchAccountSummary(accessToken);
           // Redirect to clean the URL
-          navigate("/?community=active", { replace: true });
+          navigate('/?community=active', {replace: true});
         } catch (e) {
-          console.error("Membership verification failed", e);
+          console.error('Membership verification failed', e);
         }
       };
       verify();
@@ -108,7 +124,9 @@ const App: React.FC = () => {
 
   return (
     <I18nProvider>
-      <Suspense fallback={<div className="loading-screen">LOADING LOOP...</div>}>
+      <Suspense
+        fallback={<div className="loading-screen">LOADING LOOP...</div>}
+      >
         <Routes>
           <Route element={<MainLayout />}>
             <Route path="/" element={<Home />} />

@@ -1,17 +1,18 @@
-import { json, supabaseRequest } from "../../_utils.js";
+import {json, supabaseRequest} from '../../_utils.js';
 
-const normalizeCityName = (value = "") => String(value).trim();
+const normalizeCityName = (value = '') => String(value).trim();
 
-export async function onRequest({ request, env }) {
-  if (request.method !== "GET") return json({ error: "method not allowed" }, { status: 405 });
+export async function onRequest({request, env}) {
+  if (request.method !== 'GET')
+    return json({error: 'method not allowed'}, {status: 405});
   const url = new URL(request.url);
-  const city = normalizeCityName(url.searchParams.get("city") || "");
+  const city = normalizeCityName(url.searchParams.get('city') || '');
   const filters = [
-    "is_public=eq.true",
-    "moderation_status=eq.live",
-    "select=id,user_id,moderation_status,session_id,rider_name,crew_name,city_name,route_title,distance_km,aspect_ratio,caption,image_url,created_at",
-    "order=created_at.desc",
-    "limit=32",
+    'is_public=eq.true',
+    'moderation_status=eq.live',
+    'select=id,user_id,moderation_status,session_id,rider_name,crew_name,city_name,route_title,distance_km,aspect_ratio,caption,image_url,created_at',
+    'order=created_at.desc',
+    'limit=32',
   ];
   if (city) {
     // city param is the display name (e.g. "Sao Paulo"), match substring in city_name
@@ -19,20 +20,24 @@ export async function onRequest({ request, env }) {
   }
   const rows = await supabaseRequest(
     env,
-    `night_ride_posts?${filters.join("&")}`,
-    { method: "GET" }
+    `night_ride_posts?${filters.join('&')}`,
+    {method: 'GET'},
   ).catch(() => []);
-  const sessionIds = Array.from(new Set((rows || []).map((row) => row.session_id).filter(Boolean)));
+  const sessionIds = Array.from(
+    new Set((rows || []).map(row => row.session_id).filter(Boolean)),
+  );
   let sessionsById = {};
   if (sessionIds.length) {
     const sessionRows = await supabaseRequest(
       env,
-      `night_ride_sessions?id=in.(${sessionIds.join(",")})&select=id,title,ride_city,crew_name,distance_km`,
-      { method: "GET" }
+      `night_ride_sessions?id=in.(${sessionIds.join(',')})&select=id,title,ride_city,crew_name,distance_km`,
+      {method: 'GET'},
     ).catch(() => []);
-    sessionsById = Object.fromEntries((sessionRows || []).map((session) => [session.id, session]));
+    sessionsById = Object.fromEntries(
+      (sessionRows || []).map(session => [session.id, session]),
+    );
   }
-  const posts = (rows || []).map((row) => {
+  const posts = (rows || []).map(row => {
     const session = row.session_id ? sessionsById[row.session_id] : null;
     return {
       ...row,
@@ -42,5 +47,5 @@ export async function onRequest({ request, env }) {
       distance_km: row.distance_km ?? session?.distance_km ?? null,
     };
   });
-  return json({ posts });
+  return json({posts});
 }

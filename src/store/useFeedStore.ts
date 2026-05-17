@@ -1,6 +1,6 @@
-import { create } from "zustand";
-import { WallPost, NightRideFeedPost, GroupChallengeWallEntry } from "../types";
-import { postJSON } from "../utils/routeUtils";
+import {create} from 'zustand';
+import {WallPost, NightRideFeedPost, GroupChallengeWallEntry} from '../types';
+import {postJSON} from '../utils/routeUtils';
 
 interface FeedState {
   wallPosts: WallPost[];
@@ -18,54 +18,58 @@ interface FeedState {
   addNightRidePost: (post: NightRideFeedPost) => void;
 }
 
-export const useFeedStore = create<FeedState>((set) => ({
+export const useFeedStore = create<FeedState>(set => ({
   wallPosts: [],
   nightRidePosts: [],
   groupChallenges: [],
   isLoadingWall: false,
   isLoadingNight: false,
   isLoadingGroups: false,
-  selectedCity: "",
+  selectedCity: '',
 
-  setSelectedCity: (city) => set({ selectedCity: city }),
+  setSelectedCity: city => set({selectedCity: city}),
 
-  fetchWall: async (city, checkpointCount = "") => {
-    set({ isLoadingWall: true });
+  fetchWall: async (city, checkpointCount = '') => {
+    set({isLoadingWall: true});
     try {
-      const data = await postJSON<any>("/api/messenger/wall", { city, checkpoint_count: checkpointCount });
-      set({ wallPosts: data.posts || [] });
+      const data = await postJSON<any>('/api/messenger/wall', {
+        city,
+        checkpoint_count: checkpointCount,
+      });
+      set({wallPosts: data.posts || []});
     } catch {
-      set({ wallPosts: [] });
+      set({wallPosts: []});
     } finally {
-      set({ isLoadingWall: false });
+      set({isLoadingWall: false});
     }
   },
 
-  fetchNightRide: async (city = "") => {
-    set({ isLoadingNight: true });
+  fetchNightRide: async (city = '') => {
+    set({isLoadingNight: true});
     try {
-      const data = await postJSON<any>("/api/night-ride/feed", { city });
-      set({ nightRidePosts: data.posts || [] });
+      const data = await postJSON<any>('/api/night-ride/feed', {city});
+      set({nightRidePosts: data.posts || []});
     } catch {
-      set({ nightRidePosts: [] });
+      set({nightRidePosts: []});
     } finally {
-      set({ isLoadingNight: false });
+      set({isLoadingNight: false});
     }
   },
 
   fetchGroupChallenges: async () => {
-    set({ isLoadingGroups: true });
+    set({isLoadingGroups: true});
     try {
-      const data = await postJSON<any>("/api/messenger/group-wall", {});
-      set({ groupChallenges: data.groups || [] });
+      const data = await postJSON<any>('/api/messenger/group-wall', {});
+      set({groupChallenges: data.groups || []});
     } catch {
-      set({ groupChallenges: [] });
+      set({groupChallenges: []});
     } finally {
-      set({ isLoadingGroups: false });
+      set({isLoadingGroups: false});
     }
   },
 
-  addNightRidePost: (post) => set((s) => ({
-    nightRidePosts: [post, ...s.nightRidePosts].slice(0, 24)
-  }))
+  addNightRidePost: post =>
+    set(s => ({
+      nightRidePosts: [post, ...s.nightRidePosts].slice(0, 24),
+    })),
 }));

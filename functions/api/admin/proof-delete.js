@@ -1,57 +1,61 @@
-import { json, parseJSON, requireAdmin, supabaseRequest } from "../../_utils.js";
+import {json, parseJSON, requireAdmin, supabaseRequest} from '../../_utils.js';
 
-export async function onRequest({ request, env }) {
+export async function onRequest({request, env}) {
   const admin = await requireAdmin(env, request);
-  if (!admin) return json({ error: "unauthorized" }, { status: 401 });
+  if (!admin) return json({error: 'unauthorized'}, {status: 401});
 
   const body = await parseJSON(request);
-  const proofId = String(body.proof_id || "").trim();
-  if (!proofId) return json({ error: "proof_id required" }, { status: 400 });
+  const proofId = String(body.proof_id || '').trim();
+  if (!proofId) return json({error: 'proof_id required'}, {status: 400});
 
   const proofRows = await supabaseRequest(
     env,
     `messenger_proof_posts?id=eq.${encodeURIComponent(proofId)}&select=id,storage_path,rider_name,city_name,checkpoint_name,is_public,archived_at`,
-    { method: "GET" }
+    {method: 'GET'},
   );
   const proof = proofRows?.[0] || null;
-  if (!proof) return json({ error: "proof not found" }, { status: 404 });
+  if (!proof) return json({error: 'proof not found'}, {status: 404});
 
   if (proof.storage_path) {
     await supabaseRequest(
       env,
       `storage.objects?bucket_id=eq.alleycat-proofs&name=eq.${encodeURIComponent(proof.storage_path)}`,
-      { method: "DELETE" }
+      {method: 'DELETE'},
     ).catch(() => null);
   }
 
-  await supabaseRequest(env, `messenger_proof_posts?id=eq.${encodeURIComponent(proofId)}`, {
-    method: "DELETE",
-    headers: {
-      Prefer: "return=minimal",
+  await supabaseRequest(
+    env,
+    `messenger_proof_posts?id=eq.${encodeURIComponent(proofId)}`,
+    {
+      method: 'DELETE',
+      headers: {
+        Prefer: 'return=minimal',
+      },
     },
-  });
+  );
 
-  await supabaseRequest(env, "moderation_action_history", {
-    method: "POST",
+  await supabaseRequest(env, 'moderation_action_history', {
+    method: 'POST',
     headers: {
-      Prefer: "return=minimal",
+      Prefer: 'return=minimal',
     },
     body: JSON.stringify({
       admin_user_id: admin.id || null,
-      admin_email: admin.email || "",
-      action: "proof_delete",
-      target_type: "proof",
+      admin_email: admin.email || '',
+      action: 'proof_delete',
+      target_type: 'proof',
       target_id: proofId,
       target_label: proof.checkpoint_name || proof.city_name || proofId,
       details: {
-        rider_name: proof.rider_name || "",
-        city_name: proof.city_name || "",
-        checkpoint_name: proof.checkpoint_name || "",
+        rider_name: proof.rider_name || '',
+        city_name: proof.city_name || '',
+        checkpoint_name: proof.checkpoint_name || '',
         was_public: proof.is_public,
         was_archived: Boolean(proof.archived_at),
       },
     }),
   }).catch(() => null);
 
-  return json({ ok: true, deleted_id: proofId });
+  return json({ok: true, deleted_id: proofId});
 }

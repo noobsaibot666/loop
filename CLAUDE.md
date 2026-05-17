@@ -12,7 +12,9 @@ Loop is a web app for bike messenger and night-ride coordination. It is deployed
 npm run dev           # Vite dev server (frontend)
 npm run dev:server    # Express local server for testing server-side code
 npm run build         # tsc -b && vite build
-npm run typecheck     # tsc --noEmit (via tsconfig.app.json)
+npm run lint          # GTS lint and format check
+npm run fix           # GTS auto-fix for formatting and safe lint fixes
+npm run clean         # GTS clean
 
 # Admin
 npm run admin:create -- admin@email.com strong-password
@@ -20,6 +22,8 @@ npm run admin:create -- admin@email.com strong-password
 # Verification
 npm run verify:loop-routes
 ```
+
+Development tooling details live in `docs/development-tooling.md`.
 
 ## Architecture
 

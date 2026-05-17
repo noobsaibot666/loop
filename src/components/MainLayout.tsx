@@ -1,28 +1,41 @@
-import React, { useEffect } from "react";
-import { Outlet, Link, useLocation } from "react-router-dom";
-import { useUIStore } from "../store/useUIStore";
-import { useAuthStore } from "../store/useAuthStore";
-import { useCreditStore } from "../store/useCreditStore";
-import { useI18n } from "../i18n";
+import React, {useEffect} from 'react';
+import {Outlet, Link, useLocation} from 'react-router-dom';
+import {useUIStore} from '../store/useUIStore';
+import {useAuthStore} from '../store/useAuthStore';
+import {useCreditStore} from '../store/useCreditStore';
+import {useI18n} from '../i18n';
 import {
-  Menu as MenuIcon, X, Globe, User, LogOut, LayoutGrid, Trophy,
-  Map as MapIcon, Moon, Mail, ChevronRight
-} from "lucide-react";
-import AuthModal from "./AuthModal";
+  Menu as MenuIcon,
+  X,
+  Globe,
+  User,
+  LogOut,
+  LayoutGrid,
+  Trophy,
+  Map as MapIcon,
+  Moon,
+  Mail,
+  ChevronRight,
+} from 'lucide-react';
+import AuthModal from './AuthModal';
 
 const MainLayout: React.FC = () => {
-  const { 
-    menuOpen, setMenuOpen, 
-    showLanguageMenu, setShowLanguageMenu,
+  const {
+    menuOpen,
+    setMenuOpen,
+    showLanguageMenu,
+    setShowLanguageMenu,
     mobileHeaderVisible,
     setMobileHeaderVisible,
-    authModalOpen, setAuthModalOpen,
-    authMode, setAuthMode
+    authModalOpen,
+    setAuthModalOpen,
+    authMode,
+    setAuthMode,
   } = useUIStore();
-  
-  const { user, handleLogout: signOut } = useAuthStore();
-  const { usage } = useCreditStore();
-  const { language, setLanguage, t } = useI18n();
+
+  const {user, handleLogout: signOut} = useAuthStore();
+  const {usage} = useCreditStore();
+  const {language, setLanguage, t} = useI18n();
   const location = useLocation();
 
   useEffect(() => {
@@ -33,15 +46,16 @@ const MainLayout: React.FC = () => {
 
   useEffect(() => {
     if (menuOpen) {
-      document.body.classList.add("menu-open-lock");
+      document.body.classList.add('menu-open-lock');
     } else {
-      document.body.classList.remove("menu-open-lock");
+      document.body.classList.remove('menu-open-lock');
     }
-    return () => document.body.classList.remove("menu-open-lock");
+    return () => document.body.classList.remove('menu-open-lock');
   }, [menuOpen]);
 
   useEffect(() => {
-    const isMobileViewport = () => window.matchMedia("(max-width: 1100px)").matches;
+    const isMobileViewport = () =>
+      window.matchMedia('(max-width: 1100px)').matches;
     if (!isMobileViewport()) {
       setMobileHeaderVisible(true);
       return;
@@ -85,11 +99,11 @@ const MainLayout: React.FC = () => {
       armHideTimer();
     };
 
-    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener('scroll', onScroll, {passive: true});
     armHideTimer();
 
     return () => {
-      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener('scroll', onScroll);
       clearHideTimer();
     };
   }, [menuOpen, setMobileHeaderVisible]);
@@ -100,34 +114,38 @@ const MainLayout: React.FC = () => {
   };
 
   const navLinks = [
-    { to: "/", label: t("nav.home") },
-    { to: "/messenger", label: t("nav.alleycat") },
-    { to: "/loop", label: t("nav.loop") },
-    { to: "/night", label: t("nav.night") },
-    { to: "/leaderboard", label: t("nav.leaderboard") },
-    { to: "/wall", label: t("nav.wall") },
-    { to: "/cities", label: t("nav.cities") },
+    {to: '/', label: t('nav.home')},
+    {to: '/messenger', label: t('nav.alleycat')},
+    {to: '/loop', label: t('nav.loop')},
+    {to: '/night', label: t('nav.night')},
+    {to: '/leaderboard', label: t('nav.leaderboard')},
+    {to: '/wall', label: t('nav.wall')},
+    {to: '/cities', label: t('nav.cities')},
   ];
 
   const languages = [
-    { code: "en", label: "EN" },
-    { code: "pt", label: "PT" },
-    { code: "es", label: "ES" },
-    { code: "de", label: "DE" },
-    { code: "ja", label: "JP" }
+    {code: 'en', label: 'EN'},
+    {code: 'pt', label: 'PT'},
+    {code: 'es', label: 'ES'},
+    {code: 'de', label: 'DE'},
+    {code: 'ja', label: 'JP'},
   ];
 
   return (
     <div className="page" data-theme="dark">
       {/* Desktop & Mobile Header */}
-      <header className={`site-header ${!mobileHeaderVisible ? "mobile-hidden" : "mobile-visible"}`}>
+      <header
+        className={`site-header ${!mobileHeaderVisible ? 'mobile-hidden' : 'mobile-visible'}`}
+      >
         <div className="nav-container">
           {/* Logo / Brand */}
           <div className="nav-left">
             <Link to="/" className="brand">
               <span className="brand-title">
-                GIMME<br/>
-                THE<br/>
+                GIMME
+                <br />
+                THE
+                <br />
                 LOOP
               </span>
             </Link>
@@ -135,11 +153,11 @@ const MainLayout: React.FC = () => {
 
           {/* Desktop Navigation Link Group */}
           <nav className="header-nav">
-            {navLinks.map((link) => (
-              <Link 
-                key={link.to} 
-                to={link.to} 
-                className={`nav-link ${location.pathname === link.to ? "active" : ""}`}
+            {navLinks.map(link => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className={`nav-link ${location.pathname === link.to ? 'active' : ''}`}
               >
                 {link.label}
               </Link>
@@ -153,23 +171,25 @@ const MainLayout: React.FC = () => {
                 <button
                   className="mobile-login-button"
                   onClick={() => {
-                    setAuthMode("signin");
+                    setAuthMode('signin');
                     setAuthModalOpen(true);
                   }}
                 >
-                  {t("nav.logIn")}
+                  {t('nav.logIn')}
                 </button>
               ) : (
                 <Link to="/account" className="profile-link">
                   <User size={16} className="profile-icon" />
-                  <span className="profile-credit-count">{usage?.credits_remaining ?? 0}</span>
+                  <span className="profile-credit-count">
+                    {usage?.credits_remaining ?? 0}
+                  </span>
                 </Link>
               )}
 
               <div className="language-menu-wrap">
-                <button 
+                <button
                   className="language-trigger"
-                  onClick={(e) => {
+                  onClick={e => {
                     e.stopPropagation();
                     setShowLanguageMenu(!showLanguageMenu);
                   }}
@@ -179,10 +199,10 @@ const MainLayout: React.FC = () => {
 
                 {showLanguageMenu && (
                   <div className="language-menu">
-                    {languages.map((lang) => (
+                    {languages.map(lang => (
                       <button
                         key={lang.code}
-                        className={`language-option ${language === lang.code ? "active" : ""}`}
+                        className={`language-option ${language === lang.code ? 'active' : ''}`}
                         onClick={() => {
                           setLanguage(lang.code as any);
                           setShowLanguageMenu(false);
@@ -197,8 +217,8 @@ const MainLayout: React.FC = () => {
             </div>
 
             {/* Mobile Menu Toggle */}
-            <button 
-              className={`menu-toggle ${menuOpen ? "active" : ""}`}
+            <button
+              className={`menu-toggle ${menuOpen ? 'active' : ''}`}
               onClick={() => setMenuOpen(!menuOpen)}
             >
               {menuOpen ? <X size={24} /> : <MenuIcon size={24} />}
@@ -208,14 +228,11 @@ const MainLayout: React.FC = () => {
       </header>
 
       {/* Mobile Nav Overlay (Sheet) */}
-      <div 
-        className={`mobile-nav-sheet ${menuOpen ? "open" : ""}`}
+      <div
+        className={`mobile-nav-sheet ${menuOpen ? 'open' : ''}`}
         onClick={() => setMenuOpen(false)}
       >
-        <div 
-          className="mobile-nav-content"
-          onClick={(e) => e.stopPropagation()}
-        >
+        <div className="mobile-nav-content" onClick={e => e.stopPropagation()}>
           {/* Mobile Profile Area */}
           <div className="mobile-user-profile">
             {user ? (
@@ -226,17 +243,25 @@ const MainLayout: React.FC = () => {
                   </div>
                   <div className="user-profile-details">
                     <span className="profile-email">{user.email}</span>
-                    <span className="profile-tier">{t("nav.account")}</span>
+                    <span className="profile-tier">{t('nav.account')}</span>
                   </div>
                 </div>
                 <div className="user-quick-stats">
                   <div className="quick-stat">
-                    <span className="stat-value">{usage?.credits_remaining ?? 0}</span>
-                    <span className="stat-label">{t("nav.credits")}</span>
+                    <span className="stat-value">
+                      {usage?.credits_remaining ?? 0}
+                    </span>
+                    <span className="stat-label">{t('nav.credits')}</span>
                   </div>
                   <div className="quick-stat">
-                    <span className="stat-value">{usage?.unlimited_credits ? t("nav.passShort") : t("nav.freeShort")}</span>
-                    <span className="stat-label">{t("account.community.plan")}</span>
+                    <span className="stat-value">
+                      {usage?.unlimited_credits
+                        ? t('nav.passShort')
+                        : t('nav.freeShort')}
+                    </span>
+                    <span className="stat-label">
+                      {t('account.community.plan')}
+                    </span>
                   </div>
                 </div>
               </>
@@ -246,16 +271,16 @@ const MainLayout: React.FC = () => {
                   <User size={28} />
                 </div>
                 <div className="user-profile-details">
-                  <span className="profile-email">{t("nav.guestRider")}</span>
-                  <button 
-                    className="profile-tier profile-tier-button" 
+                  <span className="profile-email">{t('nav.guestRider')}</span>
+                  <button
+                    className="profile-tier profile-tier-button"
                     onClick={() => {
-                      setAuthMode("signin");
+                      setAuthMode('signin');
                       setAuthModalOpen(true);
                       setMenuOpen(false);
                     }}
                   >
-                    {t("nav.logIn")}
+                    {t('nav.logIn')}
                   </button>
                 </div>
               </div>
@@ -263,11 +288,11 @@ const MainLayout: React.FC = () => {
           </div>
 
           <nav className="mobile-nav-links">
-            {navLinks.map((link) => (
-              <Link 
-                key={link.to} 
-                to={link.to} 
-                className={`mobile-nav-link ${location.pathname === link.to ? "active" : ""}`}
+            {navLinks.map(link => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className={`mobile-nav-link ${location.pathname === link.to ? 'active' : ''}`}
                 onClick={() => setMenuOpen(false)}
               >
                 <span className="link-label">{link.label}</span>
@@ -280,35 +305,42 @@ const MainLayout: React.FC = () => {
             <div className="mobile-auth-actions">
               {user ? (
                 <>
-                  <Link to="/account" className="mobile-nav-link mobile-nav-link-compact" onClick={() => setMenuOpen(false)}>
-                    {t("nav.account")}
+                  <Link
+                    to="/account"
+                    className="mobile-nav-link mobile-nav-link-compact"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    {t('nav.account')}
                   </Link>
-                  <button onClick={handleSignOut} className="mobile-nav-link mobile-nav-link-compact mobile-nav-link-button">
+                  <button
+                    onClick={handleSignOut}
+                    className="mobile-nav-link mobile-nav-link-compact mobile-nav-link-button"
+                  >
                     <LogOut size={20} className="mobile-nav-link-icon" />
-                    {t("nav.out")}
+                    {t('nav.out')}
                   </button>
                 </>
               ) : (
                 <>
-                  <button 
+                  <button
                     className="primary-button full-width"
                     onClick={() => {
-                      setAuthMode("signin");
+                      setAuthMode('signin');
                       setAuthModalOpen(true);
                       setMenuOpen(false);
                     }}
                   >
-                    {t("account.guest.signIn") || "Sign in"}
+                    {t('account.guest.signIn') || 'Sign in'}
                   </button>
-                  <button 
+                  <button
                     className="ghost-button full-width"
                     onClick={() => {
-                      setAuthMode("signup");
+                      setAuthMode('signup');
                       setAuthModalOpen(true);
                       setMenuOpen(false);
                     }}
                   >
-                    {t("account.guest.create")}
+                    {t('account.guest.create')}
                   </button>
                 </>
               )}
@@ -328,18 +360,32 @@ const MainLayout: React.FC = () => {
         <div className="nav-container">
           <div className="footer-meta">
             <h4 className="footer-title">GIMME THE LOOP</h4>
-            <span className="footer-meta-info">V1.2.0 · {new Date().getFullYear()}</span>
+            <span className="footer-meta-info">
+              V1.2.0 · {new Date().getFullYear()}
+            </span>
           </div>
           <nav className="footer-nav">
             <div className="footer-nav-group footer-nav-group-actions">
-              <Link to="/account" className="footer-nav-link">{t("nav.account")}</Link>
-              <Link to="/account#account-credits" className="footer-nav-link">{t("nav.addCredits")}</Link>
+              <Link to="/account" className="footer-nav-link">
+                {t('nav.account')}
+              </Link>
+              <Link to="/account#account-credits" className="footer-nav-link">
+                {t('nav.addCredits')}
+              </Link>
             </div>
             <div className="footer-nav-group">
-              <Link to="/how" className="footer-nav-link">{t("footer.how")}</Link>
-              <Link to="/privacy" className="footer-nav-link">{t("footer.privacy")}</Link>
-              <Link to="/coffee" className="footer-nav-link">{t("footer.coffee")}</Link>
-              <Link to="/admin" className="footer-nav-link">{t("footer.admin")}</Link>
+              <Link to="/how" className="footer-nav-link">
+                {t('footer.how')}
+              </Link>
+              <Link to="/privacy" className="footer-nav-link">
+                {t('footer.privacy')}
+              </Link>
+              <Link to="/coffee" className="footer-nav-link">
+                {t('footer.coffee')}
+              </Link>
+              <Link to="/admin" className="footer-nav-link">
+                {t('footer.admin')}
+              </Link>
             </div>
           </nav>
         </div>
@@ -347,9 +393,9 @@ const MainLayout: React.FC = () => {
 
       {/* Login / Auth Modal */}
       {authModalOpen && (
-        <AuthModal 
-          defaultMode={authMode} 
-          onClose={() => setAuthModalOpen(false)} 
+        <AuthModal
+          defaultMode={authMode}
+          onClose={() => setAuthModalOpen(false)}
         />
       )}
     </div>
