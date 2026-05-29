@@ -8,3 +8,7 @@ vite.config.js
 .DS_Store
 .vscode/
 .wrangler/
+
+# Seed photos (large binaries, source locally before running npm run admin:seed)
+scripts/seed-data/photos/alleycat-proofs/
+scripts/seed-data/photos/night-ride-posts/

@@ -33,7 +33,7 @@ const Leaderboard: React.FC = () => {
           country: selectedCountry,
           checkpoint_count: selectedCheckpointCount,
         });
-        setLeaderboard(data.leaderboard || []);
+        setLeaderboard(data?.quarter?.leaders || []);
       } catch {
         setLeaderboard([]);
       } finally {

@@ -16,7 +16,7 @@ export const useProfileStore = create<ProfileState>(set => ({
     set({isLoading: true});
     try {
       const data = await postJSON<any>('/api/rider/profile', {user_id: userId});
-      set({publicProfile: data.profile || null});
+      set({publicProfile: data || null});
     } catch {
       set({publicProfile: null});
     } finally {

@@ -22,6 +22,7 @@ type PublicLeaderboardEntry = {
   finished_runs: number;
   rank: number;
   is_community_member?: boolean;
+  avatar_url?: string | null;
 };
 
 type LeaderboardPageProps = {
@@ -384,15 +385,34 @@ export default function LeaderboardPage({
                   className={`podium-card podium-${entry.rank}`}
                   onClick={() => onOpenRiderProfile(entry.user_id)}
                 >
-                  <div
-                    className={`animated-rank-badge rank-${entry.rank} animated-badge ${entry.rank === 1 ? 'gold' : entry.rank === 2 ? 'silver' : 'bronze'}`}
-                  >
-                    <Award size={16} />
+                  <div className="podium-avatar-wrap">
+                    {entry.avatar_url ? (
+                      <img
+                        src={entry.avatar_url}
+                        alt={entry.rider_name}
+                        className="podium-avatar"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <div className="podium-avatar podium-avatar-placeholder">
+                        {entry.rider_name.slice(0, 1).toUpperCase()}
+                      </div>
+                    )}
+                    <div
+                      className={`animated-rank-badge rank-${entry.rank} animated-badge ${entry.rank === 1 ? 'gold' : entry.rank === 2 ? 'silver' : 'bronze'}`}
+                    >
+                      <Award size={14} />
+                    </div>
                   </div>
-                  <span className="winner-label">
-                    {t('leaderboard.top', {rank: entry.rank})}
-                  </span>
-                  <strong>{entry.rider_name}</strong>
+                  <div className="podium-rider-info">
+                    <strong>{entry.rider_name}</strong>
+                    {entry.is_community_member && (
+                      <span className="achievement-badge community podium-badge">
+                        <Globe size={11} /> {t('leaderboard.hardChainCrew')}
+                      </span>
+                    )}
+                  </div>
                   <span>
                     {t('leaderboard.proofsFinishes', {
                       proofs: entry.public_proofs,
@@ -414,6 +434,26 @@ export default function LeaderboardPage({
                   className={`leaderboard-row ${entry.rank <= 3 ? `rank-${entry.rank}-row` : ''}`}
                 >
                   <div className="leaderboard-rank">#{entry.rank}</div>
+                  <button
+                    type="button"
+                    className="leaderboard-avatar-btn"
+                    onClick={() => onOpenRiderProfile(entry.user_id)}
+                    aria-label={entry.rider_name}
+                  >
+                    {entry.avatar_url ? (
+                      <img
+                        src={entry.avatar_url}
+                        alt={entry.rider_name}
+                        className="leaderboard-avatar"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <div className="leaderboard-avatar leaderboard-avatar-placeholder">
+                        {entry.rider_name.slice(0, 1).toUpperCase()}
+                      </div>
+                    )}
+                  </button>
                   <div className="leaderboard-main">
                     <strong>
                       <button

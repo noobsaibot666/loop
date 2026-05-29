@@ -16,6 +16,8 @@
     "clean": "gts clean",
     "preview": "vite preview",
     "admin:create": "node scripts/bootstrap-admin.mjs",
+    "admin:seed": "node scripts/seed-users.mjs",
+    "admin:seed:clean": "node scripts/seed-cleanup.mjs",
     "verify:loop-routes": "node scripts/verify-loop-routes.mjs"
   },
   "dependencies": {

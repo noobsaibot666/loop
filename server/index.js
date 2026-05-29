@@ -4911,6 +4911,16 @@ async function handlePublicLeaderboard(req, res, input = {}) {
 
   const memberSet = new Set(memberships.map(m => m.user_id));
 
+  let avatarProfiles = [];
+  if (userIds.length) {
+    const {data: aData} = await supabase
+      .from('user_profiles')
+      .select('user_id,avatar_url')
+      .in('user_id', userIds);
+    avatarProfiles = aData || [];
+  }
+  const avatarMap = new Map(avatarProfiles.map(p => [p.user_id, p.avatar_url || null]));
+
   return res.json({
     quarter: {
       label: quarter.label,
@@ -4919,6 +4929,7 @@ async function handlePublicLeaderboard(req, res, input = {}) {
       leaders: leaders.map(l => ({
         ...l,
         is_community_member: memberSet.has(l.user_id),
+        avatar_url: avatarMap.get(l.user_id) ?? null,
       })),
     },
   });
