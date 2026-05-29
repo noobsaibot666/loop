@@ -340,8 +340,8 @@ textarea {
 }
 
 .language-trigger {
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border: none;
   border-radius: 0;
   background: transparent;
@@ -654,6 +654,7 @@ textarea {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-height: 44px;
   cursor: pointer;
   background: transparent;
   border: none;
@@ -831,6 +832,7 @@ textarea {
   letter-spacing: 0.08em;
   text-transform: none;
   text-decoration: none;
+  min-height: 44px;
   padding: 0 12px;
   white-space: nowrap;
 }
@@ -2413,11 +2415,14 @@ input[type="range"] {
   appearance: none;
   width: 100%;
   max-width: 480px;
-  height: 4px;
+  height: 44px;
   background: linear-gradient(to right, var(--page-accent, var(--accent)) 0%, var(--page-accent, var(--accent)) var(--range-progress, 0%), rgba(255, 255, 255, 0.1) var(--range-progress, 0%), rgba(255, 255, 255, 0.1) 100%) !important;
+  background-size: 100% 4px !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
   border-radius: 2px;
   outline: none;
-  margin: 24px 0;
+  margin: 4px 0;
   cursor: pointer;
 }
 
@@ -3287,7 +3292,8 @@ input[type="range"]:focus::-webkit-slider-thumb {
 .text-link-button {
   background: none;
   border: none;
-  padding: 0;
+  min-height: 40px;
+  padding: 8px 0;
   color: var(--accent);
   font: inherit;
   font-size: 0.74rem;
@@ -3358,7 +3364,7 @@ input[type="range"] {
   max-width: 480px;
   align-self: center;
   appearance: none;
-  height: 6px;
+  height: 44px;
   border-radius: 3px;
   background: linear-gradient(
       90deg,
@@ -3368,8 +3374,11 @@ input[type="range"] {
       rgba(255, 255, 255, 0.08) var(--range-progress, 0%),
       rgba(255, 255, 255, 0.08) 100%
     ) !important;
+  background-size: 100% 6px !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
   outline: none;
-  margin: 24px auto;
+  margin: 4px auto;
   cursor: pointer;
 }
 
@@ -5932,6 +5941,13 @@ input[type="range"]::-moz-range-thumb {
   text-decoration: none;
 }
 
+.mini-chip {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .helper-note {
   color: var(--text-muted);
   font-size: 0.84rem;
@@ -6538,6 +6554,8 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .footer-nav-link {
+  display: inline-flex;
+  align-items: center;
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-dim);
@@ -6547,7 +6565,8 @@ input[type="range"]::-moz-range-thumb {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 4px 0;
+  min-height: 40px;
+  padding: 8px 0;
   text-decoration: none !important;
 }
 
@@ -8089,7 +8108,7 @@ input[type="range"]::-moz-range-thumb {
   }
 
   .mobile-login-button {
-    min-height: 34px;
+    min-height: 44px;
     padding: 0 12px;
     font-size: 0.72rem;
     letter-spacing: 0.08em;
@@ -8459,33 +8478,52 @@ input[type="range"]::-moz-range-thumb {
   .wall-feed-toggle {
     flex-direction: row;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: flex-start;
     gap: 8px;
     padding: 0 4px;
     flex-wrap: nowrap;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+
+  .wall-feed-toggle::-webkit-scrollbar {
+    display: none;
   }
 
   .wall-feed-toggle .ghost-button {
     width: auto;
     min-width: 0;
-    min-height: 32px;
+    min-height: 40px;
     padding: 0.4rem 0.66rem;
     font-size: 0.62rem;
     letter-spacing: 0.08em;
     white-space: nowrap;
+    flex: 0 0 auto;
   }
 
   .wall-filter-strip {
-    justify-content: flex-end;
+    justify-content: flex-start;
     padding-inline: 4px;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .wall-filter-strip::-webkit-scrollbar {
+    display: none;
   }
 
   .wall-filter-button {
-    min-height: 32px;
-    margin-left: auto;
+    min-height: 40px;
+    margin-left: 0;
     padding: 0.38rem 0.66rem;
     font-size: 0.6rem;
     letter-spacing: 0.08em;
+    flex: 0 0 auto;
   }
 
   .page-wall .wall-section {
@@ -8819,6 +8857,7 @@ input[type="range"]::-moz-range-thumb {
   }
 
   .section-jump-strip .mini-chip {
+    min-height: 40px;
     white-space: nowrap;
   }
 
@@ -8834,7 +8873,7 @@ input[type="range"]::-moz-range-thumb {
   }
 
   .page-account .account-topbar-actions .mini-chip {
-    min-height: 32px;
+    min-height: 40px;
     padding: 0.42rem 0.72rem;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 999px;
@@ -9103,7 +9142,7 @@ input[type="range"]::-moz-range-thumb {
   }
 
   .builder-section .pill {
-    min-height: 38px;
+    min-height: 40px;
     padding: 0 10px;
     font-size: 0.72rem;
   }
@@ -9154,19 +9193,19 @@ input[type="range"]::-moz-range-thumb {
   }
 
   .page-messenger .ghost-pressure-shell .pill {
-    min-height: 38px;
+    min-height: 40px;
     padding-inline: 8px;
     font-size: 0.56rem;
   }
 
   .page-messenger .street-tone-group .pill {
-    min-height: 38px;
+    min-height: 40px;
     padding-inline: 8px;
     font-size: 0.5rem;
   }
 
   .page-messenger .messenger-checkpoint-grid .pill {
-    min-height: 38px;
+    min-height: 40px;
     padding-inline: 8px;
     font-size: 0.56rem;
   }
@@ -9266,7 +9305,7 @@ input[type="range"]::-moz-range-thumb {
   .page-night .checkpoint-count-grid .pill,
   .page-night .builder-option-grid-3 .pill,
   .page-night .builder-option-grid-4 .pill {
-    min-height: 38px;
+    min-height: 40px;
     padding-inline: 8px;
     font-size: 0.5rem;
     white-space: nowrap;
@@ -9726,10 +9765,10 @@ input[type="range"]::-moz-range-thumb {
 
   /* Slider — match desktop size, keep touch-friendly */
   input[type="range"] {
-    height: 4px;
+    height: 44px;
     max-width: 100%;
     padding: 0;
-    margin: 24px 0;
+    margin: 4px 0;
   }
 
   .range-field {
@@ -10303,13 +10342,13 @@ input[type="range"]::-webkit-slider-thumb {
   }
 
   .language-trigger {
-    width: 30px !important;
-    height: 30px !important;
+    width: 44px !important;
+    height: 44px !important;
   }
 
   .menu-toggle {
-    width: 34px !important;
-    height: 34px !important;
+    width: 44px !important;
+    height: 44px !important;
     border-radius: 6px !important;
   }
 }

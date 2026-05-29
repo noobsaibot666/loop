@@ -30,19 +30,16 @@ export async function onRequestDelete({request, env}) {
       'user_credits',
       'user_bikes',
       'loop_history',
-      'messenger_runs',
       'messenger_manifests',
       'messenger_proof_posts',
       'messenger_challenge_entries',
+      'messenger_runs',
       'night_ride_participants',
       'night_ride_posts',
       'saved_setups',
     ];
 
     for (const table of tables) {
-      // Note: For messenger_runs delete will fail if child records exist,
-      // but Supabase usually handles CASCADE if we set it.
-      // We'll perform delete on all tables where user_id matches.
       await supabaseRequest(
         env,
         `${table}?user_id=eq.${encodeURIComponent(user_id)}`,

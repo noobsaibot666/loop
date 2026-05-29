@@ -3,6 +3,7 @@ import {
   parseJSON,
   requireEnv,
   getAuthUser,
+  sameOriginUrl,
   supabaseRequest,
 } from '../_utils.js';
 
@@ -46,10 +47,18 @@ export async function onRequest({request, env}) {
 
     const secret = requireEnv(env, 'STRIPE_SECRET_KEY');
     const appUrl = new URL(request.url).origin;
-    const successUrl =
-      success_redirect_to ||
-      `${appUrl}/?donation=success&session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = cancel_redirect_to || `${appUrl}/?donation=cancel`;
+    const defaultSuccessUrl = `${appUrl}/?donation=success&session_id={CHECKOUT_SESSION_ID}`;
+    const defaultCancelUrl = `${appUrl}/?donation=cancel`;
+    const successUrl = sameOriginUrl(
+      success_redirect_to,
+      defaultSuccessUrl,
+      appUrl,
+    );
+    const cancelUrl = sameOriginUrl(
+      cancel_redirect_to,
+      defaultCancelUrl,
+      appUrl,
+    );
 
     let sessionPayload;
     let amountInCents;

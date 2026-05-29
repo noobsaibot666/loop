@@ -163,9 +163,15 @@ const sanitizeBikePayload = (input = {}) => ({
 const sanitizeRedirectUrl = (value, fallback) => {
   const raw = String(value || '').trim();
   if (!raw) return fallback;
-  if (/^https?:\/\//i.test(raw) || /^[a-z][a-z0-9+.-]*:\/\//i.test(raw))
-    return raw;
-  return fallback;
+  try {
+    const fallbackUrl = new URL(fallback);
+    const candidate = new URL(raw, fallbackUrl.origin);
+    return candidate.origin === fallbackUrl.origin
+      ? candidate.toString()
+      : fallback;
+  } catch {
+    return fallback;
+  }
 };
 
 const appendRedirectParams = (url, params) => {

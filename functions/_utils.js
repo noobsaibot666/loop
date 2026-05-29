@@ -1,15 +1,6 @@
 const json = (data, init = {}) => {
   const headers = new Headers(init.headers || {});
   headers.set('Content-Type', 'application/json');
-  headers.set('Access-Control-Allow-Origin', '*');
-  headers.set(
-    'Access-Control-Allow-Methods',
-    'GET, POST, PUT, DELETE, OPTIONS',
-  );
-  headers.set(
-    'Access-Control-Allow-Headers',
-    'Content-Type, Authorization, apikey',
-  );
   return new Response(JSON.stringify(data), {...init, headers});
 };
 
@@ -140,6 +131,17 @@ const parseJSON = async request => {
   }
 };
 
+const sameOriginUrl = (value, fallback, origin) => {
+  const raw = String(value || '').trim();
+  if (!raw) return fallback;
+  try {
+    const candidate = new URL(raw, origin);
+    return candidate.origin === origin ? candidate.toString() : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
 export {
   json,
   getEnv,
@@ -151,4 +153,5 @@ export {
   isAdminEmail,
   requireAdmin,
   parseJSON,
+  sameOriginUrl,
 };
